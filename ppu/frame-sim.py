@@ -114,7 +114,7 @@ def createPixel(row, col, vram, palette_tbl, nametbl_off, patterntbl_off):
     bg_pallete_idx = (attribute<<2) | color
     palette_color = palette_tbl[BACKGROUND_PLT + bg_pallete_idx]
 
-    palette_color_hi = (palette_color >> 8) & 15
+    palette_color_hi = (palette_color >> 4) & 15
     palette_color_lo = palette_color & 15
     return PALETTE[palette_color_hi][palette_color_lo]
 
