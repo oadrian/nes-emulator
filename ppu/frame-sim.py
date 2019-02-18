@@ -109,9 +109,11 @@ def createPixel(row, col, vram, palette_tbl, nametbl_off, patterntbl_off):
     tile_lsb = vram[patterntbl_off + tile_idx*CHR_SIZE + tile_row]
     tile_msb = vram[patterntbl_off + tile_idx*CHR_SIZE + tile_row + CHR_SIZE//2]
     
-    color = (getIthBit(TILE_W-tile_col, tile_msb)<<1) | getIthBit(TILE_W-tile_col, tile_lsb)
+    color = (getIthBit(TILE_W-tile_col-1, tile_msb)<<1) | getIthBit(TILE_W-tile_col-1, tile_lsb)
 
     bg_pallete_idx = (attribute<<2) | color
+    if (bg_pallete_idx == 0x04 or bg_pallete_idx == 0x08 or bg_pallete_idx == 0x0c):
+        bg_pallete_idx = 0x00
     palette_color = palette_tbl[BACKGROUND_PLT + bg_pallete_idx]
 
     palette_color_hi = (palette_color >> 4) & 15
