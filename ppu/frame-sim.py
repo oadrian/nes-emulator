@@ -61,6 +61,10 @@ OAM_PRIO = 5
 OAM_FLIP_HOR = 6
 OAM_FLIP_VER = 7
 
+BYTES_PER_SPRITE = 4
+
+SECOND_OAM_LEN = 8
+
 
 # Enable Sprites
 SPRITES_EN = False
@@ -187,9 +191,9 @@ def createSpritePixel(row, col, vram, palette_ram, oam, sprite_idxs, patterntbl_
 # return indexes of active sprites on next scanline
 def getSpritesInLine(row, oam):
     idxs = []
-    for i in range(0, OAM_SPRITES, 4):
+    for i in range(0, BYTES_PER_SPRITE*OAM_SPRITES, BYTES_PER_SPRITE):
         sprite_y = oam[i + Y_OFF]
-        if(len(idxs) < 8 and (sprite_y <= row and row < sprite_y + TILE_H)):
+        if(len(idxs) < SECOND_OAM_LEN and (sprite_y <= row and row < sprite_y + TILE_H)):
             idxs.append(i)
     return idxs
 
