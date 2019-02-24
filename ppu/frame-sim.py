@@ -69,6 +69,9 @@ SECOND_OAM_LEN = 8
 # Enable Sprites
 SPRITES_EN = False
 
+#CRT TV look
+CRT_LOOK = True
+
 
 #NES Palettes
 PALETTE = [
@@ -226,7 +229,18 @@ def createBitmap(vram, palette_ram, oam):
             else:
                 bg_color, bg_color_idx = createBackgroundPixel(row, col, vram, palette_ram, NAMETABLE_0, PATTERN_TBL_1)
                 bitmap[row][col] = bg_color
-    return bitmap
+
+    if CRT_LOOK:
+        bitmap_crt = [[0 for j in range(2*WIDTH)] for i in range(2*HEIGHT)]
+        for row in range(2*HEIGHT):
+            for col in range(2*WIDTH):
+                if row % 2 == 1:
+                    bitmap_crt[row][col] = (0,0,0)
+                else:
+                    bitmap_crt[row][col] = bitmap[row//2][col//2]
+        return bitmap_crt
+    else: 
+        return bitmap
 
 def createImage(bitmap):
     w, h = len(bitmap[0]), len(bitmap)
