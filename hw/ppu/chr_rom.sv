@@ -6,33 +6,31 @@
 `define chr_rom_init
 
 // chr rom is 8KB 8 bit words
-`define WIDTH 13
+`define CHR_ROM_WIDTH 13
 
 module chr_rom (
     input clk,    // Clock
     input clk_en, // Clock Enable (PPU clock = master clk/4)
     input rst_n,  // Asynchronous reset active low
     
-    input logic [WIDTH-1:0] addr1,
-    input logic [WIDTH-1:0] addr2,
+    input logic [`CHR_ROM_WIDTH-1:0] addr1,
+    input logic [`CHR_ROM_WIDTH-1:0] addr2,
     
     output logic [7:0] data_out1,
     output logic [7:0] data_out2
 );
 
-    logic [7:0] mem[2**WIDTH-1:0]; //2KB 8-bit words
+    logic [7:0] mem[2**`CHR_ROM_WIDTH-1:0]; //2KB 8-bit words
 
     always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n) begin
-            data_out1 <= 0;
-            data_out2 <= 0;
-
-            for (int i = 0; i < 2<<WIDTH; i++) begin
+            for (int i = 0; i < 2<<`CHR_ROM_WIDTH; i++) begin
                 mem[i] = 0;
             end
         `ifdef chr_rom_init
-            $readmemh("chr_rom_init.hex", mem);
+            $readmemh("init/chr_rom_init.hex", mem);
         `endif
+        end
     end
 
     assign data_out1 = mem[addr1];

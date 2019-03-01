@@ -12,8 +12,8 @@ module clock_div
 
   assign clk_en = (counter == 1'b0);
 
-  always_ff @(posedge clk or negedge reset_n) begin
-    if(~reset_n) begin
+  always_ff @(posedge clk or negedge rst_n) begin
+    if(~rst_n) begin
       counter <= DIV - 1;
     end else if(counter == 1'b0) begin
       counter <= DIV - 1; 

@@ -6,29 +6,28 @@
 `define pal_init
 
 // pal_ram is 32 bytes
-`define WIDTH 5
+`define PAL_RAM_WIDTH 5
 
 module pal_ram (
     input clk,    // Clock
     input clk_en, // Clock Enable (PPU clock = master clk/4)
     input rst_n,  // Asynchronous reset active low
     
-    input logic [WIDTH-1:0] addr,
+    input logic [`PAL_RAM_WIDTH-1:0] addr,
     input logic we, // write enable
     input logic [7:0] data_in,
-    output logic [7:0] data_out,
+    output logic [7:0] data_out
 );
 
-    logic [7:0] mem[2**WIDTH-1:0]; //32 8-bit words
+    logic [7:0] mem[2**`PAL_RAM_WIDTH-1:0]; //32 8-bit words
 
     always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n) begin
-            data_out <= 0;
-            for (int i = 0; i < 2<<WIDTH; i++) begin
+            for (int i = 0; i < 2<<`PAL_RAM_WIDTH; i++) begin
                 mem[i] = 0;
             end
         `ifdef pal_init
-            $readmemh("pal_init.hex", mem);
+            $readmemh("init/pal_init.hex", mem);
         `endif
         end else if(we && clk_en) begin
             mem[addr] <= data_in;

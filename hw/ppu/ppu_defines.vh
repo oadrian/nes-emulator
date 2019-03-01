@@ -13,7 +13,7 @@
 
 
 // Vertical scanline states
-typedef enum {
+typedef enum logic [1:0] {
     PRE_SL,  // 0
     VIS_SL,  // 1-240 
     POST_SL, // 241
@@ -21,9 +21,9 @@ typedef enum {
 } vs_state_t;
 
 // Horizontal cycles states
-typedef enum {
-    IDLE_CYC,    // 0
-    DISPLAY_CYC, // 1-256
+typedef enum logic [2:0] {
+    SL_PRE_CYC, // 0-255
+    IDLE_CYC,    // 256
     SP_PRE_CYC,  // 257-320 
     TL_PRE_CYC,  // 321-336
     GARB_CYC     // 337-340
@@ -31,17 +31,17 @@ typedef enum {
 
 
 // pattern table 
-typedef enum {
+typedef enum logic {
     LEFT_TBL,  // 0x0000-0x0FFF
     RIGHT_TBL  // 0x1000-0x1FFF
-} pattern_tbl_t
+} pattern_tbl_t;
 
 // nametable 
-typedef enum {
+typedef enum logic [1:0] {
     TOP_L_TBL,  // 0x2000
     TOP_R_TBL,  // 0x2400
     BOT_L_TBL,  // 0x2800
     BOT_R_TBL   // 0x2C00
-} name_tbl_t
+} name_tbl_t;
 
 `endif

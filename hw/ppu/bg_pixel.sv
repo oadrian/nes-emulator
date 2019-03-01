@@ -1,6 +1,7 @@
 `default_nettype none
 `include "ppu_defines.vh"
 
+`define ATTR_TBL_OFF 11'h3C0
 
 module bg_pixel (
     input logic clk, // Master clock
@@ -29,11 +30,13 @@ module bg_pixel (
     output logic [12:0] chr_rom_addr1, chr_rom_addr2,
     input logic [7:0] chr_rom_data1, chr_rom_data2,
 
+    // palette ram
+    output logic [4:0] pal_addr, 
+    input logic [7:0] pal_data,
+
     // output pixel
-    output logic [3:0] pal_color_idx
+    output logic [7:0] pal_color
 );
-    local param ATTR_TBL_OFF = 11'h3C0;
-    
 
     //////////// Nametable ////////////
     logic [5:0] nametbl_row, nametbl_col;
@@ -50,11 +53,11 @@ module bg_pixel (
 
     always_comb begin
         case (name_tbl) 
-            TOP_L_TBL: nametbl_off = 11'h2000;
-            TOP_R_TBL: nametbl_off = 11'h2400;
-            BOT_L_TBL: nametbl_off = 11'h2800;
-            TOP_R_TBL: nametbl_off = 11'h2C00;
-            default : nametbl_off = 11'h2000;  // top Left
+            TOP_L_TBL: nametbl_off = 11'h000;
+            TOP_R_TBL: nametbl_off = 11'h400;
+            BOT_L_TBL: nametbl_off = 11'h000;   // depends on mirroring
+            BOT_R_TBL: nametbl_off = 11'h400;   // deppends on mirroring
+            default : nametbl_off = 11'h000;  // top Left
         endcase
     end
 
@@ -84,7 +87,7 @@ module bg_pixel (
     assign tile_msb = chr_rom_data2;
 
     logic [2:0] bit_idx;
-    assign msb_idx = 3'd7-tile_col;
+    assign bit_idx = 3'd7-tile_col;
     assign color_idx = {tile_msb[bit_idx], tile_lsb[bit_idx]};
 
     //////////// Attribute table ////////////
@@ -102,25 +105,38 @@ module bg_pixel (
     assign block_col = col[4:0];   // col % 32
 
     assign attrtbl_idx = {4'b0,attrtbl_row,3'b0} + {7'b0, attrtbl_col}; 
-    assign vram_addr2 = nametbl_off + ATTR_TBL_OFF + attrtbl_idx;
+    assign vram_addr2 = nametbl_off + `ATTR_TBL_OFF + attrtbl_idx;
     assign attr_blk = vram_data2;
 
     always_comb begin
         pal_idx = attr_blk[1:0];
-        case (block_row < 5'd16, block_col < 5'd16)
-            1'b1, 1'b1: pal_idx = attr_blk[1:0];       // TOPLEFT
-            1'b1, 1'b0: pal_idx = attr_blk[3:2];       // TOPRIGHT
-            1'b0, 1'b1: pal_idx = attr_blk[5:4];       // BOTLEFT
-            1'b0, 1'b0: pal_idx = attr_blk[7:6];       // BOTRIGHT
-        endcase    
+
+        if(block_row < 5'd16 && block_col < 5'd16)
+            pal_idx = attr_blk[1:0];       // TOPLEFT
+        else if(block_row < 5'd16 && block_col >= 5'd16)
+            pal_idx = attr_blk[3:2];       // TOPRIGHT
+        else if(block_row >= 5'd16 && block_col < 5'd16)
+            pal_idx = attr_blk[5:4];       // BOTLEFT
+        else if(block_row >= 5'd16 && block_col >= 5'd16)
+            pal_idx = attr_blk[7:6];       // BOTRIGHT
+        // case (block_row < 5'd16, block_col < 5'd16)
+        //     1'b1, 1'b1: pal_idx = attr_blk[1:0];       // TOPLEFT
+        //     1'b1, 1'b0: pal_idx = attr_blk[3:2];       // TOPRIGHT
+        //     1'b0, 1'b1: pal_idx = attr_blk[5:4];       // BOTLEFT
+        //     1'b0, 1'b0: pal_idx = attr_blk[7:6];       // BOTRIGHT
+        // endcase    
     end
 
     // palette color index
+    logic [3:0] pal_color_idx;
 
     always_comb begin 
         pal_color_idx = {pal_idx, color_idx};
         if(pal_color_idx == 4'h4 || pal_color_idx == 4'h8 || pal_color_idx == 4'hC) 
             pal_color_idx = 4'h0;
     end
+
+    assign pal_addr = pal_color_idx;
+    assign pal_color = pal_data;
 
 endmodule

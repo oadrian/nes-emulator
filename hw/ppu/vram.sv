@@ -6,30 +6,28 @@
 `define vram_init
 
 // vram is 2KB 8 bit words
-`define WIDTH 11
+`define VRAM_WIDTH 11
 
 module vram (
     input clk,    // Clock
     input clk_en, // Clock Enable (PPU clock = master clk/4)
     input rst_n,  // Asynchronous reset active low
     
-    input logic [WIDTH-1:0] addr1, addr2,
+    input logic [`VRAM_WIDTH-1:0] addr1, addr2,
     input logic we1, we2, // write enable
     input logic [7:0] data_in1, data_in2,
     output logic [7:0] data_out1, data_out2
 );
 
-    logic [7:0] mem[2**WIDTH-1:0]; //2KB 8-bit words
+    logic [7:0] mem[2**`VRAM_WIDTH-1:0]; //2KB 8-bit words
 
     always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n) begin
-            data_out1 <= 0;
-            data_out2 <= 0;
-            for (int i = 0; i < 2<<WIDTH; i++) begin
+            for (int i = 0; i < 2<<`VRAM_WIDTH; i++) begin
                 mem[i] = 0;
             end
         `ifdef vram_init
-            $readmemh("vram_init.hex", mem);
+            $readmemh("init/vram_init.hex", mem);
         `endif
         end else if(clk_en) begin
             if(we1) begin
