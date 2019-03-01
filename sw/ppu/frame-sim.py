@@ -1,7 +1,5 @@
 import sys
-import random
-from PIL import Image
-import numpy as np
+import trace_lib
 
 #FRAME dimensions
 WIDTH = 256
@@ -70,35 +68,25 @@ SECOND_OAM_LEN = 8
 SPRITES_EN = False
 
 #CRT TV look
-CRT_LOOK = True
+CRT_LOOK = False
 
-
-#NES Palettes
-PALETTE = [
-[(84,84,84),    (0,30,116),    (8,16,144),    (48,0,136),    (68,0,100),    (92,0,48),     (84,4,0),      (60,24,0),     (32,42,0),     (8,58,0),      (0,64,0),      (0,60,0),      (0,50,60),     (0,0,0),       (0,0,0), (0,0,0)],
-[(152,150,152), (8,76,196),    (48,50,236),   (92,30,228),   (136,20,176),  (160,20,100),  (152,34,32 ),  (120,60,0),    (84,90,0),     (40,114,0),    (8,124,0),     (0,118,40),    (0,102,120),   (0,0,0),       (0,0,0), (0,0,0)],
-[(236,238,236), (76,154,236),  (120,124,236), (176,98,236),  (228,84,236),  (236,88,180),  (236,106,100), (212,136,32),  (160,170,0),   (116,196,0),   (76,208,32),   (56,204,108),  (56,180,204),  (60,60,60),    (0,0,0), (0,0,0)],
-[(236,238,236), (168,204,236), (188,188,236), (212,178,236), (236,174,236), (236,174,212), (236,180,176), (228,196,144), (204,210,120), (180,222,120), (168,226,144), (152,226,180), (160,214,228), (160,162,160), (0,0,0), (0,0,0)]
-]
-def parseMemoryFile(filename):
+def parseMemory(filename):
     global SPRITES_EN
-    with open(filename) as f:
-        vram_raw = f.readline().strip().split(" ")
-        palette_raw = f.readline().strip().split(" ")
-        oam_raw = f.readline().strip().split(" ")
 
-        vram = list(map(lambda x: int(x, 16), vram_raw))
-        palette = list(map(lambda x: int(x, 16), palette_raw))
-        oam = []
-        if(len(oam_raw) == 256):
-            oam = list(map(lambda x: int(x, 16), oam_raw))
-            SPRITES_EN = True
+    pattbl_r, nametbl_r, pal_r, oam_r = trace_lib.parseMemoryFile(filename)
 
-        assert(len(vram) == 12288)
-        assert(len(palette) == 32)
+    vram = list(map(lambda x: int(x,16), pattbl_r+nametbl_r))
+    pal = list(map(lambda x: int(x,16), pal_r))
+    oam = []
 
+    if(len(oam_r) == 256):
+        oam = list(map(lambda x: int(x, 16), oam_r))
+        SPRITES_EN = True
 
-        return vram, palette, oam
+    assert(len(vram) == 12288)
+    assert(len(pal) == 32)
+
+    return vram, pal, oam
 
 def getIthBit(i, num):
     return (num>>i)&1
@@ -128,11 +116,8 @@ def getTileColor(tile_idx, tile_row, tile_col, vram, patterntbl_off, flip_ver, f
     return color
 
 def getPaletteColor(palette_ram, palette_idx):
-    palette_color = palette_ram[palette_idx]
-
-    palette_color_hi = (palette_color >> 4) & 0xf
-    palette_color_lo = palette_color & 0xf
-    return PALETTE[palette_color_hi][palette_color_lo]
+    pal_color_idx = palette_ram[palette_idx]
+    return trace_lib.getPaletteRGB(pal_color_idx)
 
 def createBackgroundPixel(row, col, vram, palette_ram, nametbl_off, patterntbl_off):
     nametbl_row = row // TILE_H
@@ -242,20 +227,11 @@ def createBitmap(vram, palette_ram, oam):
     else: 
         return bitmap
 
-def createImage(bitmap):
-    w, h = len(bitmap[0]), len(bitmap)
-    data = np.zeros((h, w, 3), dtype=np.uint8)
-    for row in range(h):
-        for col in range(w):
-            data[row][col] = bitmap[row][col]
-    img = Image.fromarray(data, 'RGB')
-    img.save('my.png')
-
 def main():
     filename = sys.argv[1]
-    vram, palette_ram, oam = parseMemoryFile(filename)
+    vram, palette_ram, oam = parseMemory(filename)
     bitmap = createBitmap(vram, palette_ram, oam)
-    createImage(bitmap)
+    trace_lib.createImage("my.png", bitmap)
 
 if __name__ == '__main__':
     main()
