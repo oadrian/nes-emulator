@@ -71,7 +71,7 @@ module ppu (
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             ppu_buf_idx <= 0;
-            for(int i = 0; i<`SCREEN_HEIGHT; i++) begin 
+            for(int i = 0; i<`SCREEN_WIDTH; i++) begin 
                 ppu_buffer[i] = 8'h00; // black
             end
         end else if(ppu_clk_en && ppu_buffer_wr) begin
@@ -79,6 +79,7 @@ module ppu (
             ppu_buf_idx <= ppu_buf_idx + 1;
         end
     end
+
 
 
 
@@ -109,6 +110,8 @@ module ppu (
 
     // Horizontal states
     hs_state_t hs_curr_state, hs_next_state;
+
+	assign ppu_buffer_wr = (hs_curr_state == SL_PRE_CYC);
     
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin

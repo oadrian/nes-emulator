@@ -7,6 +7,7 @@ module top ();
 
     logic clk;
     logic rst_n;
+    default clocking cb_main @(posedge clk); endclocking
 
     logic vblank;
     logic vsync_n;     // vga vsync enable low
@@ -30,6 +31,12 @@ module top ();
         clk = 1'b0;
         forever #5 clk = ~clk;
     end
+
+    initial begin
+    	##100000;
+    	$finish;
+  	end
+
 
     initial begin
         doReset;
