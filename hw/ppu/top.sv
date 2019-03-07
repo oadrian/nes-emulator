@@ -32,10 +32,10 @@ module top ();
         forever #5 clk = ~clk;
     end
 
-    initial begin
-    	##100000;
-    	$finish;
-  	end
+   //  initial begin
+   //  	##1000000000;
+   //  	$finish;
+  	// end
 
 
     initial begin
@@ -43,18 +43,35 @@ module top ();
 
         f = $fopen(filename, "w");
 
-        $display("row: %d, col: %d",dut.row, dut.col);
-
         while(!(dut.row == 9'd261 && dut.col == 9'd340)) begin 
-            if(dut.col == 9'd256) begin 
-                for (int i = 0; i < 256; i++) begin
-                    $fwrite(f, "%X ", dut.ppu_buffer[i]);
+            if(dut.ppu_clk_en) begin 
+                $display("row: %d, col: %d",dut.row, dut.col);
+                if(dut.col == 9'd256 && dut.row < 240) begin 
+                    for (int i = 0; i < 256; i++) begin
+                        $fwrite(f, "%X ", dut.ppu_buffer[i]);
+                    end
+                    $fwrite(f, "\n");
                 end
-                $fwrite(f, "\n");
             end
             @(posedge clk);
         end
-
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        $finish;
 
     end
 

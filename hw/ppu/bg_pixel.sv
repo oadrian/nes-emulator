@@ -118,13 +118,7 @@ module bg_pixel (
         else if(block_row >= 5'd16 && block_col < 5'd16)
             pal_idx = attr_blk[5:4];       // BOTLEFT
         else if(block_row >= 5'd16 && block_col >= 5'd16)
-            pal_idx = attr_blk[7:6];       // BOTRIGHT
-        // case (block_row < 5'd16, block_col < 5'd16)
-        //     1'b1, 1'b1: pal_idx = attr_blk[1:0];       // TOPLEFT
-        //     1'b1, 1'b0: pal_idx = attr_blk[3:2];       // TOPRIGHT
-        //     1'b0, 1'b1: pal_idx = attr_blk[5:4];       // BOTLEFT
-        //     1'b0, 1'b0: pal_idx = attr_blk[7:6];       // BOTRIGHT
-        // endcase    
+            pal_idx = attr_blk[7:6];       // BOTRIGHT   
     end
 
     // palette color index

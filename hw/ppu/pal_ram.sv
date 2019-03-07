@@ -23,7 +23,7 @@ module pal_ram (
 
     always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n) begin
-            for (int i = 0; i < 2<<`PAL_RAM_WIDTH; i++) begin
+            for (int i = 0; i < 1<<`PAL_RAM_WIDTH; i++) begin
                 mem[i] = 0;
             end
         `ifdef pal_init

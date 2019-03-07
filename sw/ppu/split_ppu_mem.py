@@ -16,6 +16,7 @@ def main():
     trace_lib.dumpMemory(PATTBL_FILE, pattbl)
     trace_lib.dumpMemory(NAMETBL_FILE, vram)
     trace_lib.dumpMemory(PAL_FILE, pal)
+    trace_lib.dumpMemory(OAM_FILE, oam)
 
 if __name__ == '__main__':
     main()

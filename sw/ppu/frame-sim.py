@@ -17,8 +17,8 @@ BLOCK_H = 4*TILE_H
 CHR_SIZE = 16 #pixel representation of chr takes 16 bytes
 
 #NAMETABLE dimensions
-NAMETABLE_W = WIDTH//TILE_W    # TILES
-NAMETABLE_H = HEIGHT//TILE_H   # TILES
+NAMETABLE_W = WIDTH//TILE_W    # 32 TILES
+NAMETABLE_H = HEIGHT//TILE_H   # 30 TILES
 
 #ATTRIBUTE TABLE dimesions
 ATTRIBUTE_TBL_W = 8             # BLOCKS
@@ -81,7 +81,10 @@ def parseMemory(filename):
 
     if(len(oam_r) == 256):
         oam = list(map(lambda x: int(x, 16), oam_r))
-        SPRITES_EN = True
+        SPRITES_EN = SPRITES_EN
+    else:
+        SPRITES_EN = False 
+
 
     assert(len(vram) == 12288)
     assert(len(pal) == 32)
@@ -231,7 +234,8 @@ def main():
     filename = sys.argv[1]
     vram, palette_ram, oam = parseMemory(filename)
     bitmap = createBitmap(vram, palette_ram, oam)
-    trace_lib.createImage("my.png", bitmap)
+    print(bitmap)
+    # trace_lib.createImage("my.png", bitmap)
 
 if __name__ == '__main__':
     main()

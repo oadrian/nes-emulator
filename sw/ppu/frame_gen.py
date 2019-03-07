@@ -10,7 +10,7 @@ def createBitmap(filename):
 		for line in f:
 			scanline_raw = line.strip().split(" ")
 
-			sl_rgb = list(map(lambda x: trace_lib.getPaletteRGB(int(x)), scanline_raw))
+			sl_rgb = list(map(lambda x: trace_lib.getPaletteRGB(int(x, 16)), scanline_raw))
 		
 			bitmap.append(sl_rgb)
 		return bitmap

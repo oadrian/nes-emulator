@@ -23,7 +23,7 @@ module vram (
 
     always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n) begin
-            for (int i = 0; i < 2<<`VRAM_WIDTH; i++) begin
+            for (int i = 0; i < 1<<`VRAM_WIDTH; i++) begin
                 mem[i] = 0;
             end
         `ifdef vram_init

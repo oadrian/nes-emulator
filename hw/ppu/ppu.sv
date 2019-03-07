@@ -97,14 +97,15 @@ module ppu (
         end else if(ppu_clk_en) begin
             if(col == 9'd340) begin
                 col <= 0;
+            end else begin
+                col <= col + 9'd1;
             end 
-            if(row == 9'd261) begin
+
+            if(row == 9'd261 && col == 9'd340) begin
                 row <= 0;
             end else if(update_row) begin
                 row <= row + 9'd1;
-            end
-
-            col <= col + 9'd1;
+            end 
         end
     end
 
@@ -116,7 +117,7 @@ module ppu (
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             hs_curr_state <= SL_PRE_CYC;
-        end else begin
+        end else if(ppu_clk_en) begin
             hs_curr_state <= hs_next_state;
         end
     end
@@ -155,7 +156,7 @@ module ppu (
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             vs_curr_state <= PRE_SL;
-        end else begin
+        end else if(ppu_clk_en) begin
             vs_curr_state <= vs_next_state;
         end
     end
@@ -186,6 +187,10 @@ module ppu (
     logic [7:0] pal_color;
 
     assign ppu_buf_in = pal_color;
+
+    assign patt_tbl = RIGHT_TBL;
+
+    assign name_tbl = TOP_L_TBL;
 
     bg_pixel bg(.clk, .clk_en(ppu_clk_en), .rst_n, .row, .col, 
                 .patt_tbl, .name_tbl, 
