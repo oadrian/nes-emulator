@@ -16,6 +16,12 @@ decode_ctrl_signals_files = "decode_ctrl_signals.csv"
 instr_ctrl_signals_struct_name = "instr_ctrl_signals"
 addr_mode_ucode_struct_name = "ucode_ctrl_signals"
 
+template_dir = "templates"
+
+c_template_file = "ucode_ctrl_template.txt"
+
+c_target_file = "ucode_ctrl.c"
+
 
 #ALUOUTDST,ALU1SRC,ALU2SRC,ALU2INV,ALUCINSRC,ALUOP,ZEROSRC,NEGSRC,CARSRC,OVRSRC,INTSRC,BRKSRC,DECSRC,BRANCHBIT,BRANCHINV,STORE
 class instr_ctrl_vector(object):
@@ -126,7 +132,7 @@ class ucode_vector(object):
         self.init_cpu_ctrl_signals(fields[13:])
 
     def init_mem_signals(self, mem_row):
-        if mem_row[0] == ""
+        if mem_row[0] == "":
             self.addr_lo = "hold"
         else:
             self.addr_lo = mem_row[0]
@@ -355,7 +361,7 @@ def get_opcode_dicts():
     for row in opcode_mappings:
         opcode = row[2]
         instr = row[0]
-        if instr in instr_mem_type_dict:
+        if row[1] != "IMM" and instr in instr_mem_type_dict:
             addr_mode = row[1] + instr_mem_type_dict[instr]
         else:
             addr_mode = row[1]
@@ -363,7 +369,7 @@ def get_opcode_dicts():
         instr_dict[opcode] = instr
         addr_mode_dict[opcode] = addr_mode
 
-        return instr_dict, addr_mode_dict
+    return instr_dict, addr_mode_dict
 
 def get_opcode_to_decode_ctrl_signals(opcode_to_addr_mode):
     path = "%s/%s" % (csv_dir, decode_ctrl_signals_files)
@@ -374,7 +380,7 @@ def get_opcode_to_decode_ctrl_signals(opcode_to_addr_mode):
     addr_mode_to_decode_ctrl_signals_dict = dict()
     for row in decode_ctrl_signals_list:
         addr_mode = row[0]
-        decode_ctrl_signals = decode_ctrl_signals_vector(row[1:])
+        decode_ctrl_signals = decode_ctrl_signal_vector(row[1:])
         addr_mode_to_decode_ctrl_signals_dict[addr_mode] = decode_ctrl_signals
 
     opcode_to_decode_ctrl_signals = dict()
@@ -397,8 +403,8 @@ def get_hex_byte(i):
     upper_nibble, lower_nibble = i//16, i % 16
     return "0x%s%s" % (hex_chrs[upper_nibble], hex_chrs[lower_nibble])
 
-def get_c_indices(struct_name, opcode_dict, index_dict):
-    res = "uint8_t %s_indices[] = {" % (struct_name)
+def get_c_indices_array(struct_name, opcode_dict, index_dict):
+    res = "uint8_t %s_indices[] = {\n  " % (struct_name)
     ct = 0
 
     for i in range(256):
@@ -408,37 +414,47 @@ def get_c_indices(struct_name, opcode_dict, index_dict):
             if target_value in index_dict:
                 index = index_dict[target_value]
             else:
-                index = "0"
+                index = 0
         else:
-            index = "0"
+            index = 0
 
         if ct == 15:
-            res += "%d,\n" % index
+            res += "%3d,\n  " % index
             ct = 0
         else:
-            res += "%d, " % index
+            res += "%3d, " % index
             ct += 1
 
     return res + "}\n"
 
 def get_c_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals):
-    res = "uint8_t decode_ctrl_signals_rom[] = {"
+    res = "uint8_t decode_ctrl_signals_rom[] = {\n  "
+    ct = 0
 
     for i in range(256):
         hex_i = get_hex_byte(i)
         if hex_i in opcode_to_decode_ctrl_signals:
-            decode_ctrl_signals_byte = str(opcode_to_decode_ctrl_signals[hex_i])
+            decode_ctrl_signals_byte = opcode_to_decode_ctrl_signals[hex_i].to_packed_int()
         else:
-            decode_ctrl_signals_byte = str(default_decode_ctrl_signal_vector)
+            decode_ctrl_signals_byte = default_decode_ctrl_signal_vector.to_packed_int()
 
         if ct == 15:
-            res += "%d,\n" % decode_ctrl_signals_byte
+            res += "%d,\n  " % decode_ctrl_signals_byte
             ct = 0
         else:
             res += "%d, " % decode_ctrl_signals_byte
             ct += 1
 
     return res + "}\n"
+
+def write_c_code(new_c_code):
+    read_path = "%s/%s" % (template_dir, c_template_file)
+    read_contents = readFile(read_path)
+    write_contents = read_contents + new_c_code
+
+    write_path = c_target_file
+    writeFile(write_path, write_contents)
+
 
 def main():
     instr_indices, instr_ctrl_signals = get_instr_ctrl_signals()
@@ -455,5 +471,9 @@ def main():
     decode_ctrl_signals_array = get_c_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals)
 
     # how to write to another file? will need to put the structs and enums in their own file?
+    new_c_code = "\n\n%s\n%s\n%s\n%s\n%s" % (instr_ctrl_signals_indices_array, instr_ctrl_signals_vector_array, 
+                                           ucode_indices_array, ucode_vector_array, 
+                                           decode_ctrl_signals_array)
+    write_c_code(new_c_code)
 
 main()
