@@ -112,7 +112,6 @@ module ppu (
     // Horizontal states
     hs_state_t hs_curr_state, hs_next_state;
 
-	assign ppu_buffer_wr = (hs_curr_state == SL_PRE_CYC);
     
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
@@ -164,22 +163,25 @@ module ppu (
     always_comb begin
         case (vs_curr_state)
             PRE_SL: begin 
-                vs_next_state = VIS_SL;
+                vs_next_state = (row == 9'd0 && col == 9'd340) ? VIS_SL : PRE_SL;
             end
 
             VIS_SL: begin 
-                vs_next_state = (row < 9'd240) ? VIS_SL : POST_SL;
+                vs_next_state = (row == 9'd240 && col == 9'd340) ? POST_SL : VIS_SL;
             end
 
             POST_SL: begin 
-                vs_next_state = VBLANK_SL;
+                vs_next_state = (row == 9'd241 && col == 9'd340) ? VBLANK_SL : POST_SL;
             end
 
             VBLANK_SL: begin 
-                vs_next_state = (row < 9'd261) ? VBLANK_SL : PRE_SL;
+                vs_next_state = (row == 9'd261 && col == 9'd340) ? PRE_SL : VBLANK_SL;
             end
         endcase
     end
+
+    // write to ppu buffer
+    assign ppu_buffer_wr = (hs_curr_state == SL_PRE_CYC && vs_curr_state == VIS_SL);
 
     // background pixel generation
     pattern_tbl_t patt_tbl; // register info
@@ -192,7 +194,8 @@ module ppu (
 
     assign name_tbl = TOP_L_TBL;
 
-    bg_pixel bg(.clk, .clk_en(ppu_clk_en), .rst_n, .row, .col, 
+    // first row is garbage, used for prefetching sprites for first visible sl
+    bg_pixel bg(.clk, .clk_en(ppu_clk_en), .rst_n, .row(row-9'd1), .col, 
                 .patt_tbl, .name_tbl, 
                 .vram_addr1, .vram_data1(vram_d_out1), 
                 .vram_addr2, .vram_data2(vram_d_out2),
