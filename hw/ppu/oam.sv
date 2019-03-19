@@ -5,8 +5,8 @@
 
 `define oam_init
 
-// oam is 64 bytes
-`define OAM_WIDTH 6
+// oam is 256 bytes  (64 sprites each of 4 bytes)
+`define OAM_WIDTH 8
 
 module oam (
     input clk,    // Clock
@@ -19,7 +19,7 @@ module oam (
     output logic [7:0] data_out
 );
 
-    logic [7:0] mem[2**`OAM_WIDTH-1:0]; //64 8-bit words
+    logic [7:0] mem[2**`OAM_WIDTH-1:0]; //64 sprites each 4 bytes 
 
     always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n) begin
