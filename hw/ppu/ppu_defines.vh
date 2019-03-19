@@ -11,6 +11,11 @@
 `define SCREEN_WIDTH 256
 `define SCREEN_HEIGHT 240
 
+// Sprite Width
+`define SPRITE_WIDTH 8
+
+// Secondary OAM array size
+`define SEC_OAM_SIZE 8
 
 // Vertical scanline states
 typedef enum logic [1:0] {
@@ -43,5 +48,15 @@ typedef enum logic [1:0] {
     BOT_L_TBL,  // 0x2800
     BOT_R_TBL   // 0x2C00
 } name_tbl_t;
+
+typedef struct packed{
+    logic active;
+    logic [7:0] y_pos;
+    logic [7:0] tile_idx;
+    logic [7:0] attribute;
+    logic [7:0] x_pos;
+    logic [7:0] bitmap_hi;
+    logic [7:0] bitmap_lo;
+} second_oam_t;
 
 `endif
