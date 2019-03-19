@@ -3,8 +3,82 @@
 
 
 module sp_pixel (
-    input clk, // Clock Enable (PPU Clock = Master clock/4)
-    input rst_n  // Asynchronous reset active low
+    input logic clk, // Master clock
+    input logic clk_en, // Clock Enable (PPU Clock = Master clock/4)
+    input logic rst_n,  // Asynchronous reset active low
+
+    // current pixel to draw
+    input logic [8:0] row,
+    input logic [8:0] col,
+
+    // Second OAM 
+    input second_oam_t sec_oam [7:0],  // the second oam entries
+ 
+    // output pixel (pal_idx << 2 | color_idx)
+    output logic [3:0] sp_color_idx,
+    output logic sp_prio
 );
+
+    // find current active sprite
+    second_oam_t curr_sp;
+    logic sp_active;
+    always_comb begin
+        curr_sp = 49'd0;
+        sp_active = 0;
+        if(sec_oam[0].active && sec_oam[0].x_pos <= col && col < sec_oam[0].x_pos + `SPRITE_WIDTH) begin 
+            curr_sp = sec_oam[0];
+            sp_active = 1'b1;
+        end else if(sec_oam[1].active && sec_oam[1].x_pos <= col && col < sec_oam[1].x_pos + `SPRITE_WIDTH) begin 
+            curr_sp = sec_oam[1];
+            sp_active = 1'b1;
+        end else if(sec_oam[2].active && sec_oam[2].x_pos <= col && col < sec_oam[2].x_pos + `SPRITE_WIDTH) begin 
+            curr_sp = sec_oam[2];
+            sp_active = 1'b1;
+        end else if(sec_oam[3].active && sec_oam[3].x_pos <= col && col < sec_oam[3].x_pos + `SPRITE_WIDTH) begin 
+            curr_sp = sec_oam[3];
+            sp_active = 1'b1;
+        end else if(sec_oam[4].active && sec_oam[4].x_pos <= col && col < sec_oam[4].x_pos + `SPRITE_WIDTH) begin 
+            curr_sp = sec_oam[4];
+            sp_active = 1'b1;
+        end else if(sec_oam[5].active && sec_oam[5].x_pos <= col && col < sec_oam[5].x_pos + `SPRITE_WIDTH) begin 
+            curr_sp = sec_oam[5];
+            sp_active = 1'b1;
+        end else if(sec_oam[6].active && sec_oam[6].x_pos <= col && col < sec_oam[6].x_pos + `SPRITE_WIDTH) begin 
+            curr_sp = sec_oam[6];
+            sp_active = 1'b1;
+        end else if(sec_oam[7].active && sec_oam[7].x_pos <= col && col < sec_oam[7].x_pos + `SPRITE_WIDTH) begin 
+            curr_sp = sec_oam[7];
+            sp_active = 1'b1;
+        end
+    end
+    
+    // 
+    logic [7:0] sp_bitmap_hi, sp_bitmap_lo;
+    logic [1:0] pal_idx, color_idx;
+    logic flip_hor, flip_ver;
+
+    logic [2:0] bit_idx;
+    always_comb begin
+        sp_bitmap_hi = curr_sp.bitmap_hi;
+        sp_bitmap_lo = curr_sp.bitmap_lo;
+        pal_idx = curr_sp.attribute[1:0];
+        sp_prio = curr_sp.attribute[5];
+        flip_hor = curr_sp.attribute[6];
+        flip_ver = curr_sp.attribute[7];
+        
+        bit_idx = 3'd0;
+        color_idx = 2'd0;
+        if(sp_active) begin
+            if(flip_hor) begin 
+                bit_idx = col - curr_sp.x_pos; 
+            end else begin
+                bit_idx = 7 - col - curr_sp.x_pos;
+            end
+            color_idx = {sp_bitmap_hi[bit_idx], sp_bitmap_lo[bit_idx]};
+        end
+    end
+
+
+    assign sp_color_idx = {pal_idx, color_idx};
 
 endmodule

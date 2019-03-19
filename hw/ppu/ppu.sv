@@ -37,7 +37,7 @@ module ppu (
             .data_out1(vram_d_out1), .data_out2(vram_d_out2));
 
     // OAM (SYNC READ)
-    logic [5:0] oam_addr;
+    logic [7:0] oam_addr;
     logic oam_we;
     logic [7:0] oam_d_in, oam_d_out;
 
@@ -72,7 +72,7 @@ module ppu (
         if(~rst_n) begin
             ppu_buf_idx <= 0;
             for(int i = 0; i<`SCREEN_WIDTH; i++) begin 
-                ppu_buffer[i] = 8'h00; // black
+                ppu_buffer[i] <= 8'h00; // black
             end
         end else if(ppu_clk_en && ppu_buffer_wr) begin
             ppu_buffer[ppu_buf_idx] <= ppu_buf_in;
@@ -183,25 +183,89 @@ module ppu (
     // write to ppu buffer
     assign ppu_buffer_wr = (hs_curr_state == SL_PRE_CYC && vs_curr_state == VIS_SL);
 
+
+    /////////////////////   BACKGROUND  //////////////////////////
     // background pixel generation
-    pattern_tbl_t patt_tbl; // register info
-    name_tbl_t name_tbl;    // register info
-    logic [7:0] pal_color;
+    pattern_tbl_t bg_patt_tbl; // register info
+    name_tbl_t bg_name_tbl;    // register info
+    logic [3:0] bg_color_idx;
 
-    assign ppu_buf_in = pal_color;
-
-    assign patt_tbl = RIGHT_TBL;
-
-    assign name_tbl = TOP_L_TBL;
+    assign bg_patt_tbl = RIGHT_TBL;
+    assign bg_name_tbl = TOP_L_TBL;
 
     // first row is garbage, used for prefetching sprites for first visible sl
     bg_pixel bg(.clk, .clk_en(ppu_clk_en), .rst_n, .row(row-9'd1), .col, 
-                .patt_tbl, .name_tbl, 
+                .patt_tbl(bg_patt_tbl), .name_tbl(bg_name_tbl), 
                 .vram_addr1, .vram_data1(vram_d_out1), 
                 .vram_addr2, .vram_data2(vram_d_out2),
                 .chr_rom_addr1, .chr_rom_addr2, 
                 .chr_rom_data1(chr_rom_out1), .chr_rom_data2(chr_rom_out2),
-                .pal_addr, .pal_data(pal_d_out),
-                .pal_color);
+                .bg_color_idx);
+
+
+    /////////////////////   SPRITE  //////////////////////////
+    // secondary OAM read/write for Sprite eval
+    second_oam_t sec_oam_rw [`SEC_OAM_SIZE-1:0];
+    logic sec_oam_wr, sec_oam_clr;
+    logic [2:0] sec_oam_wr_idx, sec_oam_rd_idx;
+    second_oam_t sec_oam_in, sec_oam_out;
+
+    assign sec_oam_out = sec_oam_rw[sec_oam_rd_idx];
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            sec_oam_wr_idx <= 3'd0;
+            sec_oam_rd_idx <= 3'd0;
+            for (int i = 0; i < `SEC_OAM_SIZE; i++) begin
+                sec_oam_rw[i] <= 49'h0;
+            end
+        end else if(ppu_clk_en && sec_oam_clr) begin 
+            sec_oam_wr_idx <= 3'd0;
+            sec_oam_rd_idx <= 3'd0;
+            for (int i = 0; i < `SEC_OAM_SIZE; i++) begin
+                sec_oam_rw[i] <= 49'h0;
+            end
+        end else if(ppu_clk_en && sec_oam_wr && sec_oam_wr_idx < 3'd7) begin
+            sec_oam_rw[sec_oam_wr_idx] <= sec_oam_in;
+            sec_oam_wr_idx <= sec_oam_wr_idx + 3'd1;
+        end
+    end
+
+    // Secondary OAM for Sprite Rendering
+    second_oam_t sec_oam_ro [`SEC_OAM_SIZE-1:0];
+    logic sec_oam_mv;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            sec_oam_mv <= 1'b0;
+            for (int i = 0; i < `SEC_OAM_SIZE; i++) begin
+                sec_oam_ro[i] <= 49'h0;
+            end
+        end else if(ppu_clk_en && sec_oam_mv)begin
+            for (int i = 0; i < `SEC_OAM_SIZE; i++) begin
+                sec_oam_ro[i] <= sec_oam_rw[i];
+            end
+        end
+    end
+
+    // sprite evaluation
+    pattern_tbl_t sp_patt_tbl; // register info
+
+    // sprite pixel generation
+    logic [3:0] sp_color_idx;
+    logic sp_prio;
+
+    sp_pixel sp(.clk, .clk_en(ppu_clk_en), .rst_n,
+                .row(row-1), .col,  
+                .sec_oam(sec_oam_ro), 
+                .sp_color_idx, .sp_prio);
+
+
+    /////////////////////   FINAL PIXEL  //////////////////////////
+    // merge Background and Sprites using priority
+
+    assign pal_addr = {1'b0, bg_color_idx};  // merge here
+    assign ppu_buf_in = pal_d_out;
+
 
 endmodule
