@@ -30,12 +30,8 @@ module bg_pixel (
     output logic [12:0] chr_rom_addr1, chr_rom_addr2,
     input logic [7:0] chr_rom_data1, chr_rom_data2,
 
-    // palette ram
-    output logic [4:0] pal_addr, 
-    input logic [7:0] pal_data,
-
-    // output pixel
-    output logic [7:0] pal_color
+    // output pixel (pal_idx << 2 || color_idx)
+    output logic [3:0] bg_color_idx   
 );
 
     //////////// Nametable ////////////
@@ -121,16 +117,11 @@ module bg_pixel (
             pal_idx = attr_blk[7:6];       // BOTRIGHT   
     end
 
-    // palette color index
-    logic [3:0] pal_color_idx;
-
+    // background color index
     always_comb begin 
-        pal_color_idx = {pal_idx, color_idx};
-        if(pal_color_idx == 4'h4 || pal_color_idx == 4'h8 || pal_color_idx == 4'hC) 
-            pal_color_idx = 4'h0;
+        bg_color_idx = {pal_idx, color_idx};
+        if(bg_color_idx == 4'h4 || bg_color_idx == 4'h8 || bg_color_idx == 4'hC) 
+            bg_color_idx = 4'h0;
     end
-
-    assign pal_addr = pal_color_idx;
-    assign pal_color = pal_data;
 
 endmodule
