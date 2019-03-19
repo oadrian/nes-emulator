@@ -3,10 +3,6 @@
 
 
 module sp_pixel (
-    input logic clk, // Master clock
-    input logic clk_en, // Clock Enable (PPU Clock = Master clock/4)
-    input logic rst_n,  // Asynchronous reset active low
-
     // current pixel to draw
     input logic [8:0] row,
     input logic [8:0] col,
@@ -23,7 +19,7 @@ module sp_pixel (
     second_oam_t curr_sp;
     logic sp_active;
     always_comb begin
-        curr_sp = 49'd0;
+        curr_sp = 'd0;
         sp_active = 0;
         if(sec_oam[0].active && sec_oam[0].x_pos <= col && col < sec_oam[0].x_pos + `SPRITE_WIDTH) begin 
             curr_sp = sec_oam[0];
@@ -58,6 +54,8 @@ module sp_pixel (
     logic flip_hor, flip_ver;
 
     logic [2:0] bit_idx;
+    logic [7:0] col_within;
+    assign col_within = col[7:0] - curr_sp.x_pos;
     always_comb begin
         sp_bitmap_hi = curr_sp.bitmap_hi;
         sp_bitmap_lo = curr_sp.bitmap_lo;
@@ -70,9 +68,9 @@ module sp_pixel (
         color_idx = 2'd0;
         if(sp_active) begin
             if(flip_hor) begin 
-                bit_idx = col - curr_sp.x_pos; 
+                bit_idx = col_within[2:0]; 
             end else begin
-                bit_idx = 7 - col - curr_sp.x_pos;
+                bit_idx = 3'd7 - col_within[2:0];
             end
             color_idx = {sp_bitmap_hi[bit_idx], sp_bitmap_lo[bit_idx]};
         end

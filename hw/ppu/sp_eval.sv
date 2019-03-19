@@ -21,44 +21,105 @@ module sp_eval (
     output logic [7:0] oam_addr,
     input logic [7:0] oam_data,
 
-    // Secondary Read/Write OAM
-        // clearing OAM 
-    output logic sec_oam_clr, 
+    // Temp OAM
+        // clearing Temp OAM 
+    output logic temp_oam_clr, 
 
-        // writing to OAM
+        // writing to Temp OAM
+    output logic temp_oam_wr,
+    output second_oam_t temp_oam_wr_data,
+
+        // reading Temp OAM
+    output logic [2:0] temp_oam_rd_idx,
+    input second_oam_t temp_oam_rd_data,
+
+    // Secondary OAM  
+        // clearing secondary OAM
+    output logic sec_oam_clr,
+
+        // Writing to Secondary OAM
     output logic sec_oam_wr,
-    output second_oam_t sec_oam_wr_data
+    output second_oam_t sec_oam_wr_data,
 
-        // reading OAM
-    output logic sec_oam_rd_idx,
-    input logic sec_oam_rd_data,
-
-    // Secondary Read Only OAM
-    output logic sec_oam_mv
-
+    // chr rom (pattern table rom)
+    output logic [12:0] chr_rom_addr1, chr_rom_addr2,
+    input logic [7:0] chr_rom_data1, chr_rom_data2,
+    output logic chr_rom_re
 );
-    
-    assign oam_addr = col[7:0];
+    logic [8:0] next_row;
+    assign next_row = row + 9'd1;
 
+    // register for current sprite information
     second_oam_t curr_sprite_in, curr_sprite;
-
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
-            curr_sprite <= 49'd0;
+            curr_sprite <= 'd0;
         end else if(clk_en) begin
             curr_sprite <= curr_sprite_in;
         end
     end
+    
+    // constantly reading primary OAM for the SL_PRE_CYC 
+    assign oam_addr = col[7:0];
+
+    // write data to sec_oam enabled with temp_oam_wr 
+    assign temp_oam_wr_data = curr_sprite_in;
+
+    
+    // constantly reading temp OAM, used for SP_PRE_CYC section
+    logic [8:0] sp_pre_col;
+    assign sp_pre_col =  col - 9'd257;  // 257 is the start cycle of SP_PRE_CYC
+    assign temp_oam_rd_idx = sp_pre_col[2:0];
+
+    // Pattern Table Reading
+    logic [12:0] pattbl_off, pattbl_idx;    
+    logic [7:0] tile_lsb, tile_msb;
+    logic [2:0] tile_row;
+    logic [7:0] tile_idx;
+    logic flip_ver;
 
     always_comb begin
-        curr_sprite_in = 49'd0;
-        sec_oam_wr_data = 49'd0;
+        case (patt_tbl)
+            LEFT_TBL: pattbl_off = 13'h0000;
+            RIGHT_TBL: pattbl_off = 13'h1000;
+            default : pattbl_off = 13'h0000;
+        endcase
+    
+    end
+
+    assign tile_idx = temp_oam_rd_data.tile_idx;
+    assign flip_ver = temp_oam_rd_data.attribute[7];
+    assign tile_row = (flip_ver) ? 3'd7 - next_row[2:0] : next_row[2:0]; 
+ 
+    assign pattbl_idx = {1'b0, tile_idx, 1'b0, tile_row};
+    assign chr_rom_addr1 = pattbl_off + pattbl_idx;
+    assign chr_rom_addr2 = chr_rom_addr1 + 13'd8;
+
+    assign tile_lsb = chr_rom_data1;
+    assign tile_msb = chr_rom_data2;
+
+    always_comb begin
+        curr_sprite_in = 'd0;
+
+        // clearing temp OAM
+        temp_oam_clr = 1'b0;
+        // Write to temp OAM
+        temp_oam_wr = 1'b0;
+
+        // clearing sec OAM
+        sec_oam_clr = 1'b0;
+        // write to sec OAM
         sec_oam_wr = 1'b0;
+        // write data to sec OAM
+        sec_oam_wr_data = 'd0;
+
+        chr_rom_re = 1'b0;
+
         unique case (hs_state)
             SL_PRE_CYC: begin 
                 unique case (col[1:0])
                     2'd0: begin 
-                        if(oam_data == row[7:0] + 8'd1) begin 
+                        if(oam_data <= next_row[7:0] && next_row[7:0] < oam_data + `SPRITE_WIDTH) begin 
                             curr_sprite_in.active = 1'b1;
                             curr_sprite_in.y_pos = oam_data;
                         end 
@@ -86,16 +147,31 @@ module sp_eval (
                             curr_sprite_in.attribute = curr_sprite.attribute;
                             curr_sprite_in.x_pos = oam_data;
 
-                            sec_oam_wr_data = curr_sprite_in;
-                            sec_oam_wr = 1'b1;
+                            // write curr_sprite_in to secondary OAM
+                            temp_oam_wr = 1'b1;
                         end
                     end
                 endcase
             end
-            IDLE_CYC:
-            SP_PRE_CYC:
+            IDLE_CYC: begin 
+                sec_oam_clr = 1'b1;
+            end
+            SP_PRE_CYC: begin 
+                // only first 8 writes will go through to secondary OAM
+                chr_rom_re = 1'b1;
+                sec_oam_wr = 1'b1;
+                sec_oam_wr_data.active = temp_oam_rd_data.active;
+                sec_oam_wr_data.y_pos = temp_oam_rd_data.y_pos;
+                sec_oam_wr_data.tile_idx = temp_oam_rd_data.tile_idx;
+                sec_oam_wr_data.attribute = temp_oam_rd_data.attribute;
+                sec_oam_wr_data.x_pos = temp_oam_rd_data.x_pos;
+                sec_oam_wr_data.bitmap_hi = tile_msb;
+                sec_oam_wr_data.bitmap_lo = tile_lsb;
+            end
             TL_PRE_CYC:
-            GARB_CYC: 
+            GARB_CYC: begin 
+                temp_oam_clr = 1'b1;
+            end
         endcase
     
     end

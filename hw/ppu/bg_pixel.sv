@@ -4,10 +4,6 @@
 `define ATTR_TBL_OFF 11'h3C0
 
 module bg_pixel (
-    input logic clk, // Master clock
-    input logic clk_en, // Master Clock / 4
-    input logic rst_n,  // Asynchronous reset active low
-
     // current pixel to draw
     input logic [8:0] row,  // 262
     input logic [8:0] col,  // 341
