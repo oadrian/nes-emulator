@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "cpu-types.h"
 
 /* 
 
@@ -45,96 +46,6 @@ typedef union {
     uint8_t half[2];
 } mem_addr;
 
-// enums used for instr ctrl signals
-
-typedef enum {ALUOP_hold, ALUOP_add, ALUOP_and, ALUOP_or, ALUOP_xor, ALUOP_shift_left, ALUOP_shift_right} ctrl_alu_op;
-
-typedef enum {ALUDST_A, ALUDST_X, ALUDST_Y, ALUDST_WMEM, ALUDST_status, ALUDST_SP, ALUDST_none} ctrl_alu_out_dst;
-
-typedef enum {SRC1_A, SRC1_X, SRC1_Y, SRC1_RMEM, SRC1_SP, SRC1_PCHI, SRC1_PCLO, SRC1_ALUOUT} ctrl_alu_src1;
-
-typedef enum {SRC2_RMEM, SRC2_0} ctrl_alu_src2;
-
-typedef enum {Invert_1, Invert_0} ctrl_inv;
-
-typedef enum {ALUC_C, ALUC_0, ALUC_1, ALUC_ALUCOUT} ctrl_alu_c_src;
-
-typedef enum {Flag_alu, Flag_0, Flag_1, Flag_none} ctrl_flag_src;
-
-typedef enum {Branch_C, Branch_Z, Branch_N, Branch_V} ctrl_branch_bit;
-
-typedef enum {Store_A, Store_X, Store_Y, Store_status} ctrl_store_reg;
-
-// enums used for addressing mode ucode
-
-typedef enum {ADDRLO_1, ADDRLO_FF, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_0, ADDRLO_ALUOUT, ADDRLO_HOLD} ucode_addr_lo_src;
-
-typedef enum {ADDRHI_SP, ADDRHI_FE, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM, ADDRHI_ALUOUT, ADDRHI_HOLD} ucode_addr_hi_src;
-
-typedef enum {ReadEn_read, ReadEn_write, ReadEn_none} ucode_r_en;
-
-typedef enum {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status, WMEMSRC_instr_store, WMEMSRC_RMEM} ucode_write_mem_src;
-
-typedef enum {SPSRC_ALUOUT, SPSRC_none} ucode_sp_src;
-
-typedef enum {PCLOSRC_RMEM, PCLOSRC_ALUOUT, PCLOSRC_RMEM_BUFFER, PCLOSRC_none} ucode_pclo_src;
-
-typedef enum {PCHISRC_RMEM, PCHISRC_ALUOUT, PCHISRC_none} ucode_pchi_src;
-
-typedef enum {Status_SRC_RMEM, Status_SRC_none} ucode_status_src;
-
-typedef enum {Branch_Depend_0, Branch_Depend_1, Branch_Depend_branch_bit, Branch_Depend_not_c_out} ucode_branch_depend;
-
-typedef enum {INSTR_CTRL_0, INSTR_CTRL_1, INSTR_CTRL_2} ucode_instr_ctrl;
-
-typedef enum {Enable_1, Enable_0} ucode_en;
-
-// enum for the state of the processor overall
-
-typedef enum {State_fetch, State_decode, State_ucode} processor_state;
-
-typedef struct {
-    ctrl_alu_op alu_op;
-    ctrl_alu_out_dst alu_out_dst;
-    ctrl_alu_src1 alu_src1;
-    ctrl_alu_src2 alu_src2;
-    ctrl_inv alu_src2_inv;
-    ctrl_alu_c_src alu_c_src;
-    ctrl_flag_src n_src;
-    ctrl_flag_src v_src;
-    ctrl_flag_src b_src;
-    ctrl_flag_src d_src;
-    ctrl_flag_src i_src;
-    ctrl_flag_src z_src;
-    ctrl_flag_src c_src;
-    ctrl_branch_bit branch_bit;
-    ctrl_inv branch_inv;
-    ctrl_store_reg store_reg;
-} instr_ctrl_signals;
-
-typedef struct 
-{
-    ucode_addr_lo_src addr_lo_src;
-    ucode_addr_hi_src addr_hi_src;
-    ucode_r_en r_en;
-    ucode_write_mem_src write_mem_src;
-    ctrl_alu_src1 alu_src1;
-    ctrl_alu_src2 alu_src2;
-    ctrl_alu_src2_inv alu_src2_inv;
-    ctrl_alu_c_src alu_c_src;
-    ctrl_alu_op alu_op;
-    ucode_sp_src sp_src;
-    ucode_pclo_src pclo_src;
-    ucode_plhi_src pchi_src;
-    ucode_status_src status_src;
-    ucode_branch_depend inc_pc;
-    ucode_instr_ctrl instr_ctrl;
-    ucode_en start_fetch;
-    ucode_branch_depend start_decode;
-    ucode_en skip_line;
-    ucode_branch_depend stop_ucode;
-} ucode_ctrl_signals;
-
 typedef struct {
     mem_addr PC;
     uint8_t A;
@@ -156,16 +67,19 @@ typedef struct {
 typedef struct {
     uint8_t src1;
     uint8_t src2;
+    uint8_t src2_invert;
     uint8_t alu_out;
-    alu_op op_sel;
+    ctrl_alu_op op_sel;
     uint8_t c_in;
     uint8_t c_out;
     uint8_t v_out;
+    uint8_t z_out;
+    uint8_t n_out;
 } alu_module;
 
 // todo: figure out the actual start PC
-cpu_state *init_cpu() {
-    cpu = calloc(sizeof(cpu_state));
+cpu_core *init_cpu() {
+    cpu = calloc(sizeof(cpu_core));
     cpu->status = DEFAULT_STATUS;
     cpu->SP = DEFAULT_SP;
     cpu->PC.full =  DEFAULT_PC;
@@ -185,15 +99,227 @@ alu_module *init_alu() {
     return alu;
 }
 
-void run_program(cpu_state *cpu, memory_module *mem) {
+void copy_alu_module(alu_module *src_alu, alu_module *dst_alu) {
+    dst_alu->src1 = src_alu->src1;
+    dst_alu->src2 = src_alu->src2;
+    dst_alu->src2_invert = src_alu->src2_invert;
+    dst_alu->alu_out = src_alu->alu_out;
+    dst_alu->op_sel = src_alu->op_sel;
+    dst_alu->c_in = src_alu->c_in;
+    dst_alu->c_out = src_alu->c_out;
+    dst_alu->v_out = src_alu->v_out;
+    dst_alu->z_out = src_alu->z_out;
+}
+
+uint8_t get_flag_bit(uint8_t status, uint8_t bit_position) {
+    return (status >> bit_position) & 1;
+}
+
+void get_new_alu_values(alu_module* alu, alu_module* next_alu, cpu_core* cpu, memory_module* mem, 
+                        processor_state* state, uint8_t ucode_index, uint8_t instr_ctrl_index) {
+
+    ucode_ctrl_signals ucode_vector = ucode_ctrl_signals_rom[ucode_index];
+    instr_ctrl_signals instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
+    ctrl_alu_op alu_op = ALUOP_hold;
+
+    switch (ucode_vector.alu_op) {
+        case ALUOP_add: {
+            
+            next_alu->op_sel = ALUOP_add;
+            
+            switch (ucode_vector.alu_src1) {
+                // SRC1_A, SRC1_X, SRC1_Y, SRC1_RMEM, SRC1_SP, SRC1_PCHI, SRC1_PCLO, SRC1_ALUOUT
+                // can be SP, X, Y, RMEM, PCLO, PCHI, ALUOUT
+                case SRC1_X: {next_alu->src1 = cpu->X; break;}
+                case SRC1_Y: {next_alu->src1 = cpu->Y; break;}
+                case SRC1_RMEM: {next_alu->src1 = mem->data_out; break;}
+                case SRC1_SP: {next_alu->src1 = cpu->SP; break;}
+                case SRC1_PCLO: {next_alu->src1 = cpu->PC.half[0]; break;}
+                case SRC1_PCHI: {next_alu->src1 = cpu->PC.half[1]; break;}
+                case SRC1_ALUOUT: {next_alu->src1 = alu->alu_out; break;}
+                default: { /* BOOM */ }
+            }
+
+            switch (ucode_vector.alu_src2) {
+                // SRC2_RMEM, SRC2_0
+                // can be both
+                case SRC2_0: {next_alu->src2 = 0; break;}
+                case SRC2_RMEM: {next_alu->src2 = mem->data_out; break;}
+            }
+
+            switch (ucode_vector.alu_c_src) {
+                // ALUC_C, ALUC_0, ALUC_1, ALUC_ALUCOUT
+                // can only be 0, 1, or ALUCOUT
+                case ALUC_0: {next_alu->c_in = 0; break;}
+                case ALUC_1: {next_alu->c_in = 1; break;}
+                case ALUC_ALUCOUT: {next_alu->c_in = alu->c_out; break;}
+                default: { /* BOOM */ }
+            }
+
+            next_alu->src2_invert = ucode_vector.alu_src2_inv;
+
+            break; 
+        }
+
+        case ALUOP_hold: {
+            // if ucode holds, but is in instr_ctrl phase 1, we case on their alu_op too
+            switch (ucode_vector.instr_ctrl) {
+                // INSTR_CTRL_0, INSTR_CTRL_1, INSTR_CTRL_2
+                // can be all of them
+                case INSTR_CTRL_1: {
+    
+                    // set src1, src2, c_in here
+
+                    switch (instr_ctrl_vector.alu_src1) {
+                        // SRC1_A, SRC1_X, SRC1_Y, SRC1_RMEM, SRC1_SP, SRC1_PCHI, SRC1_PCLO, SRC1_ALUOUT
+                        // can be SP, X, Y, RMEM, A
+                        case SRC1_A: {next_alu->src1 = cpu->A; break;}
+                        case SRC1_X: {next_alu->src1 = cpu->X; break;}
+                        case SRC1_Y: {next_alu->src1 = cpu->Y; break;}
+                        case SRC1_RMEM: {next_alu->src1 = mem->data_out; break;}
+                        case SRC1_SP: {next_alu->src1 = cpu->SP; break;}
+                        default: { /* BOOM */ }
+                    }
+
+                    switch (instr_ctrl_vector.alu_src2) {
+                        // SRC2_RMEM, SRC2_0
+                        // can be both
+                        case SRC2_0: {next_alu->src2 = 0; break;}
+                        case SRC2_RMEM: {next_alu->src2 = mem->data_out; break;}
+                    }
+
+                    switch (instr_ctrl_vector.alu_c_src) {
+                        // ALUC_C, ALUC_0, ALUC_1, ALUC_ALUCOUT
+                        // can only be 0, 1, or ALUCOUT
+                        case ALU_C: {next_alu->c_in = get_flag_bit(cpu->status, C_FLAG); break;}
+                        case ALUC_0: {next_alu->c_in = 0; break;}
+                        case ALUC_1: {next_alu->c_in = 1; break;}
+                        default: { /* BOOM */ }
+                    }
+
+                    next_alu->src2_invert = instr_ctrl_vector.alu_src2_inv;
+
+                    next_alu->op_sel = instr_ctrl_vector.alu_op;
+
+                    break;
+
+                }
+                default: {
+                    next_alu->op_sel = ALUOP_hold;
+                }
+            }
+        }
+
+        default: { /* BOOM */ }
+
+    }
+
+    // now we operate over the alu_op of next alu
+    // if hold, do nothing?
+    // if any other op, carry out the operation, setting the output and 3 bits
+
+    switch (next_alu->op_sel) {
+        // ALUOP_hold, ALUOP_add, ALUOP_and, ALUOP_or, ALUOP_xor, ALUOP_shift_left, ALUOP_shift_right
+        case ALUOP_hold: {
+            // basically just copy stuff over
+            copy_alu_module(alu, next_alu);
+            next_alu->op_sel = ALUOP_hold;
+            break;
+        }
+        // now check each of the other cases!
+        case ALUOP_add: {
+
+            uint8_t  alu_out_temp;
+            uint16_t alu_out_16;
+            uint16_t alu_src1_16 = (uint16_t) next_alu->alu_src1;
+            uint16_t alu_src2_16 = (uint16_t) next_alu->alu_src2;
+            uint16_t alu_c_in_16 = (uint16_t) next_alu->c_in;
+
+            if (next_alu->alu_src2_inv == Invert_1) {
+                alu_out_temp = (next_alu->alu_src1 & 0x7F) + ((~next_alu->alu_src2) & 0x7F) + next_alu->c_in;
+                alu_out_16 = alu_src1_16 + ~alu_src2_16 + alu_c_in_16;
+            }
+            else {
+                alu_out_temp = (next_alu->alu_src1 & 0x7F) + (next_alu->alu_src2 & 0x7F) + next_alu->c_in;
+                alu_out_16 = alu_src1_16 + alu_src2_16 + alu_c_in_16;
+            }
+
+            next_alu->alu_out = (uint8_t) alu_out_16;
+            next_alu->c_out = (uint8_t) ((alu_out_16 >> 8) & 1);
+            next_alu->v_out = next_alu->c_out ^ (alu_out_temp >> 7);
+
+            break;
+        }
+        case ALUOP_and: {
+            next_alu->alu_out = next_alu->alu_src1 & next_alu->alu_src2;
+            break;
+        }
+        case ALUOP_or: {
+            next_alu->alu_out = next_alu->alu_src1 | next_alu->alu_src2;
+            break;
+        }
+        case ALUOP_xor: {
+            next_alu->alu_out = next_alu->alu_src1 ^ next_alu->alu_src2;
+            break;
+        }
+        case ALUOP_shift_left: {
+            next_alu->c_out = next_alu->src1 >> 7;
+            next_alu->alu_out = (next_alu->src1 << 1) + next_alu->alu_c_in;
+            break;
+        }
+        case ALUOP_shift_right: {
+            next_alu->c_out = next_alu->src1 & 1;
+            next_alu->alu_out = (next_alu->src1 >> 1) + (next_alu->alu_c_in << 7);
+            break;
+        }
+
+    }
+
+    if (next_alu.alu_out == 0) {
+        next_alu.z_out = 1;
+    }
+    else {
+        next_alu.z_out = 0;
+    }
+
+    if (next_alu.alu_out >= 0x80) {
+        next_alu.n_out = 1;
+    }
+    else {
+        next_alu.n_out = 0;
+    }
+
+}
+
+void run_program(cpu_core *cpu, memory_module *mem) {
     alu_module *alu = init_alu();
+
+    alu_module next_alu = calloc(sizeof(alu_module));
+    // need to make a decoder struct?
+    // need to make a ROM struct to keep track of ucode activity and current line
+    processor_state state = State_fetch;
+
+    uint8_t ucode_index = 0;
+    uint8_t instr_ctrl_index = 0;
+
     while (1) {
+        
+        get_new_alu_values(alu, next_alu, cpu, mem, state, ucode_index, instr_ctrl_index);
+
+        // operate over memory
+            // what to set addresses to, r or w
+        // update the other arch regs
+            // find new values for pc, A, X, Y, SP, flags
+        // update the internal state
+            // based on ucode or decode signals if in decode, or go to decode if in fetch
+        // update ucode
+            // if in decode set it to a brand new line
 
     }
 }
 
 int main() {
-    cpu_state *cpu = init_cpu();
+    cpu_core *cpu = init_cpu();
     memory_module *mem = init_memory();
     // open file from command line args and run it
     run_program(cpu, mem);
