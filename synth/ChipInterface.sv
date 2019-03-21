@@ -12,25 +12,37 @@ module ChipInterface
 	assign rst_n = KEY[0];
 	
 	// 21.477272 MHz clock
-	logic areset, clk, locked;
-	pll pll_clk(.areset, .inclk0(CLOCK_50), .c0(clk), .locked);
+	logic areset, CLOCK_21, CLOCK_10, locked;
+	pll_mult pll_clk(.areset, .inclk0(CLOCK_50), .c0(CLOCK_21), .c1(CLOCK_10), .locked);
 	
 	// ppu
-	logic vblank;
-	logic [2:0] R, G;
-	logic [1:0] B;
-	ppu ppu_device(.clk, .rst_n, .vblank, 
-	               .vsync_n(VGA_VS), .hsync_n(VGA_HS), 
-						.vga_r(R), .vga_g(G), .vga_b(B)); 
+//	logic vblank;
+//	logic [2:0] R, G;
+//	logic [1:0] B;
+//	ppu ppu_device(.clk, .rst_n, .vblank, 
+//	               .vsync_n(VGA_VS), .hsync_n(VGA_HS), 
+//						.vga_r(R), .vga_g(G), .vga_b(B)); 
 						
 	// VGA signals
-	assign VGA_SYNC_N = 1'b1;
-	assign VGA_BLANK_N = 1'b1;
-	assign VGA_CLK = clk;
+	logic blank;
+	assign VGA_SYNC_N = 1'b0;
+	assign VGA_BLANK_N = ~blank;
+	assign VGA_CLK = ~CLOCK_10;
 	
-	assign VGA_R = 8'd0;
-	assign VGA_G = 8'd255;
-	assign VGA_B = 8'd255;
+	assign VGA_R = 8'h0;
+	assign VGA_G = 8'hff;
+	assign VGA_B = 8'h0;
+	
+	logic [2:0] vga_r, vga_g;
+	logic [1:0] vga_b;
+	logic [7:0] vga_buf_idx;
+	logic [5:0] vga_buf_out;
+	logic vsync_n, hsync_n;
+	
+	assign VGA_VS = vsync_n;
+	assign VGA_HS = hsync_n;
+	
+	vga v(.clk(CLOCK_10), .clk_en(1'b1), .rst_n, .vsync_n, .hsync_n, .vga_r, .vga_g, .vga_b, .blank, .vga_buf_idx, .vga_buf_out);
 
 
 endmodule: ChipInterface

@@ -12,6 +12,7 @@ module vga (
     output logic [2:0] vga_r, // vga red 
     output logic [2:0] vga_g, // vga green
     output logic [1:0] vga_b,  // vga blue
+	 output logic blank,        // vga blank
 
     // Scanline Buffer
     output logic [7:0] vga_buf_idx,
@@ -39,6 +40,9 @@ module vga (
             end 
         end
     end
+	 
+	 // blanking
+	 logic vblank_n, hblank_n;
 
     // Horizontal states
     vga_hs_states_t hs_curr_state, hs_next_state;
@@ -55,9 +59,11 @@ module vga (
 
     always_comb begin 
         hsync_n = 1'b1;
+		  hblank_n = 1'b1;
         case (hs_curr_state)
             VGA_HS_VIS_CYC: begin 
                 hs_next_state = (col < 10'd255) ? VGA_HS_VIS_CYC : VGA_HS_FP_CYC;
+					 hblank_n = 1'b0;
             end 
 
             VGA_HS_FP_CYC: begin 
@@ -95,6 +101,7 @@ module vga (
 
     always_comb begin
         vsync_n = 1'b1;
+		  vblank_n = 1'b1;
         case (vs_curr_state)
             VGA_VS_PRE_SL: begin 
                 vs_next_state = (row == 10'd3 && col == 10'd340) ? VGA_VS_VIS_SL : VGA_VS_PRE_SL;
@@ -102,6 +109,7 @@ module vga (
 
             VGA_VS_VIS_SL: begin 
                 vs_next_state = (row == 10'd483 && col == 10'd340) ? VGA_VS_FP_SL : VGA_VS_VIS_SL;
+					 vblank_n = 1'b0;
             end
 
             VGA_VS_FP_SL: begin 
@@ -118,9 +126,9 @@ module vga (
             end
         endcase
     end
-
-
-    // vertical states
+	 
+	 // set blank
+	 assign blank = vblank_n | hblank_n;
 
     // palette lookup table taken from Brian Benette's vga module"
     // https://github.com/brianbennett/fpga_nes/blob/master/hw/src/ppu/ppu_vga.v
