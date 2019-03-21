@@ -11,11 +11,11 @@ module vga (
     output logic hsync_n,     // vga hsync enable low
     output logic [2:0] vga_r, // vga red 
     output logic [2:0] vga_g, // vga green
-    output logic [1:0] vga_b  // vga blue
+    output logic [1:0] vga_b,  // vga blue
 
     // Scanline Buffer
-    logic [7:0] vga_buf_idx,
-    logic [5:0] vga_buf_out
+    output logic [7:0] vga_buf_idx,
+    input logic [5:0] vga_buf_out
 );
     // row, col logic
 
@@ -47,7 +47,7 @@ module vga (
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             hs_curr_state <= VGA_HS_VIS_CYC;
-        end else if(ppu_clk_en) begin
+        end else if(clk_en) begin
             hs_curr_state <= hs_next_state;
         end
     end
@@ -88,7 +88,7 @@ module vga (
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             vs_curr_state <= VGA_VS_PRE_SL;
-        end else if(ppu_clk_en) begin
+        end else if(clk_en) begin
             vs_curr_state <= vs_next_state;
         end
     end
