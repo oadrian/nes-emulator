@@ -16,7 +16,7 @@ module ppu (
     output logic [1:0] vga_b  // vga blue
 );
 
-    // VGA converter
+    // VGA clk
     logic vga_clk_en;  // Master / 2
     clock_div #(2) v_ck(.clk, .rst_n, .clk_en(vga_clk_en));
 
@@ -60,35 +60,9 @@ module ppu (
                .addr1(chr_rom_addr1), .addr2(chr_rom_addr2),
                .data_out1(chr_rom_out1), .data_out2(chr_rom_out2));
 
-
-    // Scanline buffer
-
-    logic [5:0] ppu_buffer[`SCREEN_WIDTH-1:0]; // 256 color indexes
-    logic ppu_buffer_wr;
-    logic [7:0] ppu_buf_idx;
-    logic [7:0] ppu_buf_in;
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if(~rst_n) begin
-            ppu_buf_idx <= 0;
-            for(int i = 0; i<`SCREEN_WIDTH; i++) begin 
-                ppu_buffer[i] <= 'h00; // black
-            end
-        end else if(ppu_clk_en && ppu_buffer_wr) begin
-            ppu_buffer[ppu_buf_idx] <= ppu_buf_in;
-            ppu_buf_idx <= ppu_buf_idx + 1;
-        end
-    end
-
-
-
-
     // row, col logic
 
     logic [8:0] row, col;
-    logic update_row;
-
-    assign update_row = (col == 9'd340);
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
@@ -103,7 +77,7 @@ module ppu (
 
             if(row == 9'd261 && col == 9'd340) begin
                 row <= 0;
-            end else if(update_row) begin
+            end else if(col == 9'd340) begin
                 row <= row + 9'd1;
             end 
         end
@@ -180,9 +154,60 @@ module ppu (
         endcase
     end
 
-    // write to ppu buffer
+
+    // Scanline buffer
+
+    logic [5:0] ppu_buffer[`SCREEN_WIDTH-1:0]; // 256 color indexes
+    logic ppu_buffer_wr;
+    logic [7:0] ppu_buf_idx;
+    logic [7:0] ppu_buf_in;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            ppu_buf_idx <= 0;
+            for(int i = 0; i<`SCREEN_WIDTH; i++) begin 
+                ppu_buffer[i] <= 6'h00; // black
+            end
+        end else if(ppu_clk_en && ppu_buffer_wr) begin
+            ppu_buffer[ppu_buf_idx] <= ppu_buf_in[5:0];
+            ppu_buf_idx <= ppu_buf_idx + 1;
+        end
+    end
+
+    // write to PPU's scanline buffer 
     assign ppu_buffer_wr = (hs_curr_state == SL_PRE_CYC && vs_curr_state == VIS_SL);
 
+
+    // VGA's scanline buffer
+
+    logic [5:0] vga_buffer[`SCREEN_WIDTH-1:0]; // 256 color indeces
+    logic vga_buffer_mv;
+    logic [7:0] vga_buf_idx;
+    logic [5:0] vga_buf_out;
+
+    assign vga_buf_out = vga_buffer[vga_buf_idx];
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            for (int i = 0; i < `SCREEN_WIDTH; i++) begin
+                vga_buffer[i] <= 6'h00;
+            end
+        end else if(ppu_clk_en && vga_buffer_mv) begin
+            for (int i = 0; i < `SCREEN_WIDTH; i++) begin
+                vga_buffer[i] <= ppu_buffer[i];
+            end
+        end
+    end
+
+    // transfer ppu_buffer to vga_buffer on last tick of current scanline to 
+    // be displayed throughout the next scanline
+    assign vga_buffer_mv = (col == 9'd340);
+
+    // VGA module
+
+    vga v(.clk, .clk_en(vga_clk_en), .rst_n, 
+          .vsync_n, .hsync_n, .vga_r, .vga_g, .vga_b, 
+          .vga_buf_idx, .vga_buf_out);
 
     /////////////////////   BACKGROUND  //////////////////////////
     // background pixel generation

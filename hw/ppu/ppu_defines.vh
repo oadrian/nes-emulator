@@ -17,7 +17,7 @@
 // Secondary OAM array size
 `define SEC_OAM_SIZE 8
 
-// Vertical scanline states
+// PPU Vertical scanline states
 typedef enum logic [1:0] {
     PRE_SL,  // 0
     VIS_SL,  // 1-240 
@@ -25,7 +25,7 @@ typedef enum logic [1:0] {
     VBLANK_SL // 242-261
 } vs_state_t;
 
-// Horizontal cycles states
+// PPU Horizontal cycles states
 typedef enum logic [2:0] {
     SL_PRE_CYC, // 0-255
     IDLE_CYC,    // 256
@@ -33,6 +33,24 @@ typedef enum logic [2:0] {
     TL_PRE_CYC,  // 321-336
     GARB_CYC     // 337-340
 } hs_state_t;
+
+// VGA vertical states 524 scanlines
+typedef enum logic [2:0] {
+    VGA_VS_PRE_SL,  // 0-3       4 sl of Back Porch
+    VGA_VS_VIS_SL,  // 4-483     480 sl of visible screen
+    VGA_VS_FP_SL,   // 484-493   10 sl of Front Porch
+    VGA_VS_PULSE_SL,// 494-495   2 sl of Sync Pulse
+    VGA_VS_BP_SL    // 496-523   28 sl of Back Porch
+} vga_vs_states_t; 
+
+// VGA horizontal states 341 cycles
+typedef enum logic [2:0] {
+    VGA_HS_VIS_CYC,  // 0-255    256 visible pixels
+    VGA_HS_FP_CYC,   // 256-262  7 cycles of fp
+    VGA_HS_PULSE_CYC,// 263-303  41 cycles of pulse
+    VGA_HS_BP_CYC,   // 304-323  20 cycles of bp
+    VGA_HS_IDLE_CYC  // 324-340  17 cycles of idle
+} vga_hs_states_t;
 
 
 // pattern table 
