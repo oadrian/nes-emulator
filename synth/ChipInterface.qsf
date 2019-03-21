@@ -1106,6 +1106,7 @@ set_location_assignment PIN_G24 -to HSMC_CLKOUT_N1
 set_instance_assignment -name IO_STANDARD LVDS -to HSMC_CLKOUT_N1
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name HEX_FILE "../hw/ppu/init-intel/chr_rom.hex"
 set_global_assignment -name QIP_FILE pll_mult.qip
 set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/vram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/vga.sv

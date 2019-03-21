@@ -11,9 +11,10 @@ module ppu (
     // VGA 
     output logic vsync_n,     // vga vsync enable low
     output logic hsync_n,     // vga hsync enable low
-    output logic [2:0] vga_r, // vga red 
-    output logic [2:0] vga_g, // vga green
-    output logic [1:0] vga_b  // vga blue
+    output logic [7:0] vga_r, // vga red 
+    output logic [7:0] vga_g, // vga green
+    output logic [7:0] vga_b,  // vga blue
+    output logic blank
 );
 
     // VGA clk
@@ -206,7 +207,7 @@ module ppu (
     // VGA module
 
     vga v(.clk, .clk_en(vga_clk_en), .rst_n, 
-          .vsync_n, .hsync_n, .vga_r, .vga_g, .vga_b, 
+          .vsync_n, .hsync_n, .vga_r, .vga_g, .vga_b, .blank,
           .vga_buf_idx, .vga_buf_out);
 
     /////////////////////   BACKGROUND  //////////////////////////
