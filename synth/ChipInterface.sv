@@ -15,14 +15,22 @@ module ChipInterface
 	logic areset, clk, locked;
 	pll pll_clk(.areset, .inclk0(CLOCK_50), .c0(clk), .locked);
 	
-	logic [7:0] counter;
+	// ppu
+	logic vblank;
+	logic [2:0] R, G;
+	logic [1:0] B;
+	ppu ppu_device(.clk, .rst_n, .vblank, 
+	               .vsync_n(VGA_VS), .hsync_n(VGA_HS), 
+						.vga_r(R), .vga_g(G), .vga_b(B)); 
+						
+	// VGA signals
+	assign VGA_SYNC_N = 1'b1;
+	assign VGA_BLANK_N = 1'b1;
+	assign VGA_CLK = clk;
 	
-	always_ff @(posedge clk) begin
-		if(rst_n)
-			counter <= 8'd0;
-		else 
-			counter <= counter + 8'd1;
-	end
-	
+	assign VGA_R = 8'd0;
+	assign VGA_G = 8'd255;
+	assign VGA_B = 8'd255;
+
 
 endmodule: ChipInterface

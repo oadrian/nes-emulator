@@ -51,8 +51,6 @@ set_global_assignment -name NOMINAL_CORE_SUPPLY_VOLTAGE 1.2V
 set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (Verilog)"
 set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
 set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
-set_global_assignment -name SYSTEMVERILOG_FILE ChipInterface.sv
-set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
@@ -1106,4 +1104,19 @@ set_location_assignment PIN_V24 -to HSMC_CLKOUT_N2
 set_instance_assignment -name IO_STANDARD LVDS -to HSMC_CLKOUT_N2
 set_location_assignment PIN_G24 -to HSMC_CLKOUT_N1
 set_instance_assignment -name IO_STANDARD LVDS -to HSMC_CLKOUT_N1
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/vram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/vga.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/sp_pixel.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/sp_eval.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/ppu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/pal_ram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/oam.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/Library.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/chr_rom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/bg_pixel.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ChipInterface.sv
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name QIP_FILE rom.qip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

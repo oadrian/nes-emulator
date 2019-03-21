@@ -205,7 +205,7 @@ module vga (
         (vs_curr_state == VGA_VS_VIS_SL && 
          hs_curr_state == VGA_HS_VIS_CYC && 
          row[0] == 1'b0) ? // CRT LOOK ENABLED
-         rgb : { 3'h0, 3'h0, 2'h0 };
+         rgb : { 3'h5, 3'h7, 2'h3 };
 
 
 
