@@ -8,3 +8,8 @@
 *inter.*
 *ucli*
 *__pycache__/
+*synth/db/
+*synth/greybox_tmp/
+*synth/incremental_db/
+*synth/output_files/
+*synth/simulation/
