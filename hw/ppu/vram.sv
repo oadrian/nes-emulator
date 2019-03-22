@@ -27,7 +27,7 @@ module vram (
                 mem[i] = 0;
             end
         `ifdef vram_init
-            $readmemh("init/vram_init.hex", mem);
+            $readmemh("init/vram_init.txt", mem);
         `endif
         end else if(clk_en) begin
             if(we1) begin

@@ -34,7 +34,7 @@ module chr_rom (
 //            end
 				mem <= 'd0;
         `ifdef chr_rom_init
-            $readmemh("init/chr_rom_init.hex", mem);
+            $readmemh("init/chr_rom_init.txt", mem);
         `endif
         end
     end

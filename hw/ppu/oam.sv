@@ -27,7 +27,7 @@ module oam (
                 mem[i] = 0;
             end
         `ifdef oam_init
-            $readmemh("init/oam_init.hex", mem);
+            $readmemh("init/oam_init.txt", mem);
         `endif
         end else if(we && clk_en) begin
             mem[addr] <= data_in;

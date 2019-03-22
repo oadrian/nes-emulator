@@ -3,10 +3,10 @@ import trace_lib
 
 # Takes a PPU memory trace 
 
-PATTBL_FILE = "init/chr_rom_init.hex"
-NAMETBL_FILE = "init/vram_init.hex"
-PAL_FILE = "init/pal_init.hex"
-OAM_FILE = "init/oam_init.hex"
+PATTBL_FILE = "init/chr_rom_init.txt"
+NAMETBL_FILE = "init/vram_init.txt"
+PAL_FILE = "init/pal_init.txt"
+OAM_FILE = "init/oam_init.txt"
 
 def main():
     filename = sys.argv[1]

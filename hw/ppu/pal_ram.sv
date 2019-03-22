@@ -27,7 +27,7 @@ module pal_ram (
                 mem[i] = 0;
             end
         `ifdef pal_init
-            $readmemh("init/pal_init.hex", mem);
+            $readmemh("init/pal_init.txt", mem);
         `endif
         end else if(we && clk_en) begin
             mem[addr] <= data_in;
