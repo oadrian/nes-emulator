@@ -1,6 +1,8 @@
 `default_nettype none
 `include "ppu_defines.vh"
 
+//`define CRT_LOOK
+
 module vga (
     input clk,    // Clock
     input clk_en, // Clock Enable
@@ -209,10 +211,17 @@ module vga (
     // index of ppu buffer
     assign vga_buf_idx = col[7:0];
 
+	 `ifdef CRT_LOOK
     assign {vga_r, vga_g, vga_b} = 
         (vs_curr_state == VGA_VS_VIS_SL && 
          hs_curr_state == VGA_HS_VIS_CYC && 
-         row[0] == 1'b0) ? // CRT LOOK ENABLED
+         row[0] == 1'b0) ? 
          rgb : { 8'd0, 8'd0, 8'd0 };
+		`else
+		assign {vga_r, vga_g, vga_b} = 
+        (vs_curr_state == VGA_VS_VIS_SL && 
+         hs_curr_state == VGA_HS_VIS_CYC) ? 
+         rgb : { 8'd0, 8'd0, 8'd0 };
+		`endif
 
 endmodule
