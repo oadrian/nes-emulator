@@ -102,7 +102,7 @@ module rom (
 `ifdef NO_PLI
 		altsyncram_component.init_file = "../hw/ppu/init/chr_rom_init.rif"
 `else
-		altsyncram_component.init_file = "../hw/ppu/init/chr_rom_init.hex"
+		altsyncram_component.init_file = "../hw/ppu/init-intel/chr_rom_init.hex"
 `endif
 ,
 		altsyncram_component.intended_device_family = "Cyclone IV E",
@@ -161,7 +161,7 @@ endmodule
 // Retrieval info: PRIVATE: MAXIMUM_DEPTH NUMERIC "0"
 // Retrieval info: PRIVATE: MEMSIZE NUMERIC "65536"
 // Retrieval info: PRIVATE: MEM_IN_BITS NUMERIC "0"
-// Retrieval info: PRIVATE: MIFfilename STRING "../hw/ppu/init/chr_rom_init.hex"
+// Retrieval info: PRIVATE: MIFfilename STRING "../hw/ppu/init/.hex"
 // Retrieval info: PRIVATE: OPERATION_MODE NUMERIC "3"
 // Retrieval info: PRIVATE: OUTDATA_ACLR_B NUMERIC "0"
 // Retrieval info: PRIVATE: OUTDATA_REG_B NUMERIC "1"

@@ -213,6 +213,6 @@ module vga (
         (vs_curr_state == VGA_VS_VIS_SL && 
          hs_curr_state == VGA_HS_VIS_CYC && 
          row[0] == 1'b0) ? // CRT LOOK ENABLED
-         rgb : { 8'd56, 8'd180, 8'd204 };
+         rgb : { 8'd0, 8'd0, 8'd0 };
 
 endmodule
