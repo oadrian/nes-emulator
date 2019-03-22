@@ -32,6 +32,7 @@ does incrementing the pc take 1 or 2 cycles if it crosses a boundary?
 #define N_FLAG 7
 #define V_FLAG 6
 // the 5th bit is always 1
+#define SPARE_FLAG 5
 #define B_FLAG 4
 #define D_FLAG 3
 #define I_FLAG 2
@@ -40,6 +41,9 @@ does incrementing the pc take 1 or 2 cycles if it crosses a boundary?
 #define DEFAULT_STATUS 0x34
 #define DEFAULT_SP 0xFD
 #define DEFAULT_PC 0x4020
+
+#define DECODE_INC_PC 0
+#define DECODE_START_FECTH 1
 
 typedef union {
     uint16_t full;
@@ -121,12 +125,48 @@ void copy_alu_module(alu_module *src_alu, alu_module *dst_alu) {
     dst_alu->z_out = src_alu->z_out;
 }
 
+void copy_cpu_module(cpu_core* src_cpu, cpu_core *dst_cpu) {
+    dst_cpu->PC.full = src_cpu->PC.full;
+    dst_cpu->A = src_cpu->A;
+    dst_cpu->X = src_cpu->X;
+    dst_cpu->Y = src_cpu->Y;
+    dst_cpu->SP = src_cpu->SP;
+    dst_cpu->status = src_cpu->status;
+}
+
 uint8_t get_flag_bit(uint8_t status, uint8_t bit_position) {
     return (status >> bit_position) & 1;
 }
 
+uint8_t get_branch_bit(ctrl_branch_bit branch_bit, ctrl_inv branch_inv, uint8_t status) {
+    uint8_t bit_pos = 0;
+    switch (branch_bit) {
+        //Branch_C, Branch_Z, Branch_N, Branch_V
+        case Branch_C: {bit_pos = C_FLAG; break;}
+        case Branch_Z: {bit_pos = Z_FLAG; break;}
+        case Branch_N: {bit_pos = N_FLAG; break;}
+        case Branch_V: {bit_pos = V_FLAG; break;} 
+    }
+
+    uint8_t flag_bit = get_flag_bit(status, bit_pos);
+
+    if (branch_inv == Invert_1) {
+        return ~flag_bit;
+    }
+    else {
+        return flag_bit;
+    }
+}
+
+uint8_t get_decode_signal(uint8_t decode_ctrl_vector, uint8_t bit_position) {
+    return (decode_ctrl_vector >> bit_position) & 1;
+}
+
 void get_new_alu_values(alu_module* alu, alu_module* next_alu, cpu_core* cpu, memory_module* mem, 
-                        processor_state* state, uint8_t ucode_index, uint8_t instr_ctrl_index) {
+                        processor_state state, uint8_t ucode_index, uint8_t instr_ctrl_index) {
+
+    // this doesn't check if ucode is active?
+    // not sure if it's necessarily a problem though
 
     ucode_ctrl_signals ucode_vector = ucode_ctrl_signals_rom[ucode_index];
     instr_ctrl_signals instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
@@ -300,8 +340,10 @@ void get_new_alu_values(alu_module* alu, alu_module* next_alu, cpu_core* cpu, me
 
 }
 
+
+/* TODO: need to figure out when an instr writes to mem */
 void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memory_module* next_mem, 
-                        processor_state* state, uint8_t ucode_index, uint8_t instr_ctrl_index) {
+                        processor_state state, processor_ucode_activity ucode_active, uint8_t ucode_index, uint8_t instr_ctrl_index) {
 
     ucode_ctrl_signals ucode_vector = ucode_ctrl_signals_rom[ucode_index];
     instr_ctrl_signals instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
@@ -318,7 +360,7 @@ void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memo
         // State_fetch, State_decode, State_neither
         // could be all 3, but do the same things in decode and fetch
         case State_neither: {
-            switch (ucode_vector.processor_ucode_activity) {
+            switch (ucode_active) {
                 // State_ucode_active, State_ucode_inactive
                 case State_ucode_active: {
 
@@ -386,21 +428,29 @@ void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memo
         // copy both data_out and data_out_buffer from old mem
     else {
 
-        switch (ucode_vector.write_mem_src) {
-            // WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status, WMEMSRC_instr_store, WMEMSRC_RMEM
-            case WMEMSRC_PCHI: {next_mem->data_in = cpu->PC.half[1]; break;}
-            case WMEMSRC_PCLO: {next_mem->data_in = cpu->PC.half[0]; break;}
-            case WMEMSRC_status: {next_mem->data_in = cpu->status; break;}
-            case WMEMSRC_RMEM: {next_mem->data_in = mem->data_out; break;}
-            case WMEMSRC_instr_store: {
-                switch (instr_ctrl_vector.store_reg) {
-                    // Store_A, Store_X, Store_Y, Store_status
-                    case Store_A: {next_mem->data_in = cpu->A; break;}
-                    case Store_X: {next_mem->data_in = cpu->X; break;}
-                    case Store_Y: {next_mem->data_in = cpu->Y; break;}
-                    case Store_status: {next_mem->data_in = cpu->status; break;}
+        // if the instr ctrl is writing a value to wmem, we need to use alu out as wmem
+        if (ucode_vector.instr_ctrl == INSTR_CTRL_2 && 
+            instr_ctrl_vector.alu_out_dst == ALUDST_WMEM) {
+            next_mem->data_in = alu->alu_out;
+        }
+        else {
+
+            switch (ucode_vector.write_mem_src) {
+                // WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status, WMEMSRC_instr_store, WMEMSRC_RMEM
+                case WMEMSRC_PCHI: {next_mem->data_in = cpu->PC.half[1]; break;}
+                case WMEMSRC_PCLO: {next_mem->data_in = cpu->PC.half[0]; break;}
+                case WMEMSRC_status: {next_mem->data_in = cpu->status; break;}
+                case WMEMSRC_RMEM: {next_mem->data_in = mem->data_out; break;}
+                case WMEMSRC_instr_store: {
+                    switch (instr_ctrl_vector.store_reg) {
+                        // Store_A, Store_X, Store_Y, Store_status
+                        case Store_A: {next_mem->data_in = cpu->A; break;}
+                        case Store_X: {next_mem->data_in = cpu->X; break;}
+                        case Store_Y: {next_mem->data_in = cpu->Y; break;}
+                        case Store_status: {next_mem->data_in = cpu->status; break;}
+                    }
+                    break;
                 }
-                break;
             }
         }
 
@@ -408,6 +458,225 @@ void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memo
         next_mem->data_out = mem->data_out;
         next_mem->data_out_buffer = mem->data_out_buffer;
 
+    }
+
+}
+
+void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memory_module* mem, 
+                        processor_state state, processor_ucode_activity ucode_active, 
+                        uint8_t ucode_index, uint8_t instr_ctrl_index, uint8_t decode_ctrl_index) {
+
+    ucode_ctrl_signals ucode_vector = ucode_ctrl_signals_rom[ucode_index];
+    instr_ctrl_signals instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
+    uint8_t decode_ctrl_vector = decode_ctrl_signals_rom[decode_ctrl_index];
+
+    // first put new values into PC if needed
+    switch (ucode_active) {
+        // State_ucode_active, State_ucode_inactive
+        case State_ucode_active: {
+            switch (ucode_vector.pclo_src) {
+                // PCLOSRC_RMEM, PCLOSRC_ALUOUT, PCLOSRC_RMEM_BUFFER, PCLOSRC_none
+                case PCLOSRC_RMEM: {next_cpu->PC.half[0] = mem->data_out; break;}
+                case PCLOSRC_ALUOUT: {next_cpu->PC.half[0] = alu->alu_out; break;}
+                case PCLOSRC_RMEM_BUFFER: {next_cpu->PC.half[0] = mem->data_out_buffer; break;}
+                case PCLOSRC_none: {next_cpu->PC.half[0] = cpu->PC.half[0]; break;}
+            }
+            switch (ucode_vector.phhi_src) {
+                // PCHISRC_RMEM, PCHISRC_ALUOUT, PCHISRC_none
+                case PCHISRC_RMEM: {next_cpu->PC.half[1] = mem->data_out; break;}
+                case PCHISRC_ALUOUT: {next_cpu->PC.half[1] = alu->alu_out; break;}
+                case PCHISRC_none: {next_cpu->PC.half[1] = cpu->PC.half[1]; break;}
+            }
+            break;
+        }
+        case State_ucode_inactive: {
+            next_cpu->PC.full = cpu->PC.full;
+            break;
+        }
+
+    }
+
+    // now increment PC if needed
+    switch (state) {
+        //State_fetch, State_decode, State_neither
+        case State_fetch: {next_cpu->PC.full++; break;}
+        case State_decode: {
+            if (get_decode_signal(decode_ctrl_vector, DECODE_INC_PC) == 1) {
+                next_cpu->PC.full++;
+            }
+            break;
+        }
+        case State_neither: {
+            if (ucode_active == State_ucode_active)
+                switch (ucode_vector.inc_pc) {
+                    // Branch_Depend_0, Branch_Depend_1, Branch_Depend_branch_bit, Branch_Depend_not_c_out
+                    case Branch_Depend_0: {break;}
+                    case Branch_Depend_1: {next_cpu->PC.full++; break;}
+                    case Branch_Depend_branch_bit: {
+                        branch_bit = get_branch_bit(instr_ctrl_vector.branch_bit, instr_ctrl_vector.branch_inv, cpu->status);
+                        if (branch_bit == 1) {
+                            next_cpu->PC.full++;   
+                        }
+                        break;
+                    }
+                    case Branch_Depend_not_c_out: {
+                        if (alu->c_out == 0) {
+                            next_cpu->PC.full++;   
+                        }
+                        break;
+                    }
+                }
+            break;
+        }
+    }
+
+    // now we've got PC!
+
+    // write A, X, Y
+    if (ucode_active == State_ucode_active &&
+        ucode_vector.instr_ctrl == INSTR_CTRL_2 &&
+        instr_ctrl_vector.alu_out_dst == ALUDST_A) {
+        next_cpu->A = alu->alu_out;
+    }
+    else {
+        next_cpu->A = cpu->A;
+    }
+
+    if (ucode_active == State_ucode_active &&
+        ucode_vector.instr_ctrl == INSTR_CTRL_2 &&
+        instr_ctrl_vector.alu_out_dst == ALUDST_X) {
+        next_cpu->X = alu->alu_out;
+    }
+    else {
+        next_cpu->X = cpu->X;
+    }
+
+    if (ucode_active == State_ucode_active &&
+        ucode_vector.instr_ctrl == INSTR_CTRL_2 &&
+        instr_ctrl_vector.alu_out_dst == ALUDST_Y) {
+        next_cpu->Y = alu->alu_out;
+    }
+    else {
+        next_cpu->Y = cpu->Y;
+    }
+
+    // write out SP
+    if (ucode_active == State_ucode_active &&
+        ((ucode_vector.instr_ctrl == INSTR_CTRL_2 && instr_ctrl_vector.alu_out_dst == ALUDST_SP) ||
+         (ucode_vector.sp_src == SPSRC_ALUOUT))) {
+        next_cpu->SP = alu->alu_out;
+    }
+    else {
+        next_cpu->SP = cpu->SP;
+    }
+
+    // figure out status
+    // decode status src can be rmem
+    // elif instr ctrl 2:
+        // if alu_out_src == status
+            // status just becomes alu out
+        // else
+        // check each of the 7 bits
+        // for the bit operation, copy bits from RMEM_BUFFER
+
+    if (ucode_active == State_ucode_active && ucode_vector.status_src = Status_SRC_RMEM) {
+        next_cpu->status = mem->data_out;
+    } 
+    else if (ucode_active == State_ucode_active && ucode_vector.instr_ctrl == INSTR_CTRL_2) {
+        if (instr_ctrl_vector.alu_out_dst == ALUDST_status) {
+            next_cpu->status = alu->alu_out;
+        }
+
+        else {
+            // now we gotta check each of the 8 bits
+            // NV-BDIZC
+
+            // N
+            uint8_t n_bit_value = 0;
+            switch (instr_ctrl_vector.n_src) {
+                // Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none
+                case Flag_alu: {n_bit_value = alu->n_out; break;}
+                case Flag_RMEM_BUFFER: {n_bit_value = get_flag_bit(mem->data_out_buffer, N_FLAG); break;}
+                case Flag_none: {n_bit_value = get_flag_bit(cpu->status, N_FLAG); break;}
+                default: { /* BOOM */ }
+            }
+
+            // V
+            uint8_t v_bit_value = 0;
+            switch (instr_ctrl_vector.v_src) {
+                // Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none
+                case Flag_alu: {v_bit_value = alu->v_out; break;}
+                case Flag_RMEM_BUFFER: {v_bit_value = get_flag_bit(mem->data_out_buffer, V_FLAG); break;}
+                case Flag_0: {v_bit_value = 0; break;}
+                case Flag_none: {v_bit_value = get_flag_bit(cpu->status, V_FLAG); break;}
+                default: { /* BOOM */ }
+            }
+
+            // Spare
+            uint8_t spare_bit_value = get_flag_bit(cpu->status, SPARE_FLAG);
+
+
+            // B
+            uint8_t b_bit_value = get_flag_bit(cpu->status, B_FLAG);
+
+            // D
+            uint8_t d_bit_value = 0;
+            switch (instr_ctrl_vector.d_src) {
+                // Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none
+                case Flag_0: {d_bit_value = 0; break;}
+                case Flag_1: {d_bit_value = 1; break;}
+                case Flag_none: {d_bit_value = get_flag_bit(cpu->status, D_FLAG); break;}
+                default: { /* BOOM */ }
+            }
+
+            // I
+            uint8_t i_bit_value = 0;
+            switch (instr_ctrl_vector.i_src) {
+                // Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none
+                case Flag_0: {i_bit_value = 0; break;}
+                case Flag_1: {i_bit_value = 1; break;}
+                case Flag_none: {i_bit_value = get_flag_bit(cpu->status, = I_FLAG); break;}
+                default: { /* BOOM */ }
+            }
+
+            // Z
+            uint8_t z_bit_value = 0;
+            switch (instr_ctrl_vector.z_src) {
+                // Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none
+                case Flag_alu: {z_bit_value = alu->z_out; break;}
+                case Flag_none: {z_bit_value = get_flag_bit(cpu->status, = Z_FLAG); break;}
+                default: { /* BOOM */ }
+            }
+
+            // C
+            uint8_t c_bit_value = 0;
+            switch (instr_ctrl_vector.c_src) {
+                // Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none
+                case Flag_alu: {c_bit_value = alu->c_out; break;}
+                case Flag_0: {c_bit_value = 0; break;}
+                case Flag_1: {c_bit_value = 1; break;}
+                case Flag_none: {c_bit_value = get_flag_bit(cpu->status, = c_FLAG); break;}
+                default: { /* BOOM */ }
+            }
+
+            
+            // putting it all together
+            // NV-BDIZC
+            uint8_t next_status = (n_bit_value << N_FLAG) +
+                                  (v_bit_value << V_FLAG) +
+                                  (spare_bit_value << SPARE_FLAG) +
+                                  (b_bit_value << B_FLAG) +
+                                  (d_bit_value << D_FLAG) +
+                                  (i_bit_value << I_FLAG) +
+                                  (z_bit_value << Z_FLAG) +
+                                  (c_bit_value << C_FLAG);
+
+            next_cpu->status = next_status;
+        }
+
+    }
+    else {
+        next_cpu->status = cpu->status;
     }
 
 }
@@ -420,25 +689,24 @@ void run_program(cpu_core *cpu, memory_module *mem) {
     // need to make a decoder struct?
     // need to make a ROM struct to keep track of ucode activity and current line
     processor_state state = State_fetch;
+    processor_ucode_activity ucode_active = State_ucode_inactive;
 
     uint8_t ucode_index = 0;
     uint8_t instr_ctrl_index = 0;
+    uint8_t decode_ctrl_index = 0;
 
     while (1) {
         
         get_new_alu_values(alu, next_alu, cpu, mem, state, ucode_index, instr_ctrl_index);
-        get_new_memory_values(alu, cpu, mem, next_mem, state, ucode_index, instr_ctrl_index);
+        get_new_memory_values(alu, cpu, mem, next_mem, state, ucode_active, ucode_index, instr_ctrl_index);
+        get_new_cpu_values(alu, cpu, next_cpu, mem, state, ucode_active, ucode_index, instr_ctrl_index, decode_ctrl_index);
 
-
-        // update the other arch regs
-            // find new values for pc, A, X, Y, SP, flags
-        // update the internal state
-            // based on ucode or decode signals if in decode, or go to decode if in fetch
-        // update ucode
-            // if in decode set it to a brand new line
+        // now we update the following:
+            // state ucode_active, ucode_index, instr_ctrl_index, decode_ctrl_index
 
         copy_alu_module(next_alu, alu);
         copy_mem_module(next_mem, mem);
+        copy_cpu_module(next_cpu, cpu);
 
     }
 }

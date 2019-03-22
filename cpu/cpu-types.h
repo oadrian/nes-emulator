@@ -15,7 +15,7 @@ typedef enum {Invert_1, Invert_0} ctrl_inv;
 
 typedef enum {ALUC_C, ALUC_0, ALUC_1, ALUC_ALUCOUT} ctrl_alu_c_src;
 
-typedef enum {Flag_alu, Flag_0, Flag_1, Flag_none} ctrl_flag_src;
+typedef enum {Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none} ctrl_flag_src;
 
 typedef enum {Branch_C, Branch_Z, Branch_N, Branch_V} ctrl_branch_bit;
 
@@ -78,7 +78,7 @@ typedef struct
     ucode_write_mem_src write_mem_src;
     ctrl_alu_src1 alu_src1;
     ctrl_alu_src2 alu_src2;
-    ctrl_alu_src2_inv alu_src2_inv;
+    ctrl_inv alu_src2_inv;
     ctrl_alu_c_src alu_c_src;
     ctrl_alu_op alu_op;
     ucode_sp_src sp_src;
