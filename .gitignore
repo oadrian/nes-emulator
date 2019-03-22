@@ -14,3 +14,4 @@
 *synth/output_files/
 *synth/simulation/
 *.bak
+*.qws
