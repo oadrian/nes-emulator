@@ -5,7 +5,7 @@
 
 `define chr_rom_init
 
-`define SYNTH
+// `define SYNTH
 
 // chr rom is 8KB 8 bit words
 `define CHR_ROM_WIDTH 13
@@ -29,10 +29,9 @@ module chr_rom (
 
     always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n) begin
-//            for (int i = 0; i < 1<<`CHR_ROM_WIDTH; i++) begin
-//                mem[i] = 0;
-//            end
-				mem <= 'd0;
+           for (int i = 0; i < 1<<`CHR_ROM_WIDTH; i++) begin
+               mem[i] = 0;
+           end
         `ifdef chr_rom_init
             $readmemh("init/chr_rom_init.txt", mem);
         `endif

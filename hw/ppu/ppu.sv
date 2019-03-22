@@ -326,15 +326,15 @@ module ppu (
 
     always_comb begin
         pal_addr = 5'd0;
-        if(bg_color_idx == 4'd0 && sp_color_idx == 4'd0) begin 
+        if(bg_color_idx[1:0] == 2'd0 && sp_color_idx[1:0] == 2'd0) begin 
             pal_addr = {1'b0, bg_color_idx};
-        end else if(bg_color_idx == 4'd0 && sp_color_idx != 4'd0) begin 
+        end else if(bg_color_idx[1:0] == 2'd0 && sp_color_idx[1:0] != 2'd0) begin 
             pal_addr = {1'b1, sp_color_idx};
-        end else if(bg_color_idx != 4'd0 && sp_color_idx == 4'd0) begin 
+        end else if(bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] == 2'd0) begin 
             pal_addr = {1'b0, bg_color_idx};
-        end else if(bg_color_idx != 4'd0 && sp_color_idx != 4'd0 && sp_prio == 1'b0) begin 
+        end else if(bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] != 2'd0 && sp_prio == 1'b0) begin 
             pal_addr = {1'b1, sp_color_idx};
-        end else if(bg_color_idx != 4'd0 && sp_color_idx != 4'd0 && sp_prio == 1'b1) begin 
+        end else if(bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] != 2'd0 && sp_prio == 1'b1) begin 
             pal_addr = {1'b0, bg_color_idx};
         end    
     end

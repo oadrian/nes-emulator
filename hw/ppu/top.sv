@@ -12,9 +12,10 @@ module top ();
     logic vblank;
     logic vsync_n;     // vga vsync enable low
     logic hsync_n;     // vga hsync enable low
-    logic [2:0] vga_r; // vga red 
-    logic [2:0] vga_g; // vga green
-    logic [1:0] vga_b; // vga blue
+    logic [7:0] vga_r; // vga red 
+    logic [7:0] vga_g; // vga green
+    logic [7:0] vga_b; // vga blue
+    logic blank;       // vga blank
 
     ppu dut(.*);
 
