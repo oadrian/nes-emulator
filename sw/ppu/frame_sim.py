@@ -208,11 +208,11 @@ def createBitmap(vram, palette_ram, oam):
     for row in range(HEIGHT):
         sprite_idxs = []
         if SPRITES_EN:
-            sprite_idxs = getSpritesInLine(row, oam)
+            sprite_idxs = getSpritesInLine(row-1, oam)
         for col in range(WIDTH):
             if SPRITES_EN:
                 bg_color, bg_color_idx = createBackgroundPixel(row, col, vram, palette_ram, NAMETABLE_0, PATTERN_TBL_1)
-                sp_color, sp_color_idx, sp_prio = createSpritePixel(row, col, vram, palette_ram, oam, sprite_idxs, PATTERN_TBL_0)
+                sp_color, sp_color_idx, sp_prio = createSpritePixel(row-1, col, vram, palette_ram, oam, sprite_idxs, PATTERN_TBL_0)
                 bitmap[row][col] = mergeBackgroundSprites(bg_color, bg_color_idx, sp_color, sp_color_idx, sp_prio)
             else:
                 bg_color, bg_color_idx = createBackgroundPixel(row, col, vram, palette_ram, NAMETABLE_0, PATTERN_TBL_1)
