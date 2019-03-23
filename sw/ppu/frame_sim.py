@@ -65,7 +65,7 @@ SECOND_OAM_LEN = 8
 
 
 # Enable Sprites
-SPRITES_EN = False
+SPRITES_EN = True
 
 #CRT TV look
 CRT_LOOK = False
@@ -234,8 +234,8 @@ def main():
     filename = sys.argv[1]
     vram, palette_ram, oam = parseMemory(filename)
     bitmap = createBitmap(vram, palette_ram, oam)
-    print(bitmap)
-    # trace_lib.createImage("my.png", bitmap)
+    # print(bitmap)
+    trace_lib.createImage("my.png", bitmap)
 
 if __name__ == '__main__':
     main()
