@@ -51,7 +51,7 @@ module sp_pixel (
     // 
     logic [7:0] sp_bitmap_hi, sp_bitmap_lo;
     logic [1:0] pal_idx, color_idx;
-    logic flip_hor, flip_ver;
+    logic flip_hor;
 
     logic [2:0] bit_idx;
     logic [7:0] col_within;
@@ -62,7 +62,6 @@ module sp_pixel (
         pal_idx = curr_sp.attribute[1:0];
         sp_prio = curr_sp.attribute[5];
         flip_hor = curr_sp.attribute[6];
-        flip_ver = curr_sp.attribute[7];
         
         bit_idx = 3'd0;
         color_idx = 2'd0;

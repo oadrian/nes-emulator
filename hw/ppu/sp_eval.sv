@@ -119,7 +119,7 @@ module sp_eval (
             SL_PRE_CYC: begin 
                 unique case (col[1:0])
                     2'd0: begin 
-                        if(oam_data <= next_row[7:0] && next_row[7:0] < oam_data + `SPRITE_WIDTH) begin 
+                        if({1'b0, oam_data} <= next_row && next_row < {1'b0, oam_data} + `SPRITE_WIDTH) begin 
                             curr_sprite_in.active = 1'b1;
                             curr_sprite_in.y_pos = oam_data;
                         end 
