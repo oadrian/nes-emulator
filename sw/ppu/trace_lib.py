@@ -81,3 +81,29 @@ def createImage(filename, bitmap):
     img = Image.fromarray(data, 'RGB')
     img.save(filename)
 
+def compareBitmaps(bitmap0, bitmap1):
+    w, h = len(bitmap0[0]), len(bitmap0)
+    w1, h1 = len(bitmap1[0]), len(bitmap1)
+    if(w!=w1 or h!=h1):
+        print("bitmaps did not match")
+        return -1, 1
+    good = 0
+    total = 0
+    for row in range(h):
+        for col in range(w):
+            if(bitmap0[row][col] == bitmap1[row][col]):
+                good += 1
+            total += 1
+    return good, total
+
+def image2Bitmap(filename):
+    img = Image.open(filename)
+    w, h = img.size
+    bitmap = [[0 for j in range(w)] for i in range(h)]
+    for row in range(h):
+        for col in range(w):
+            (r,g,b,a) = img.getpixel((col,row))
+            bitmap[row][col] = (r,g,b)
+    return bitmap
+
+

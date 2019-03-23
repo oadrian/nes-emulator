@@ -231,11 +231,13 @@ def createBitmap(vram, palette_ram, oam):
         return bitmap
 
 def main():
-    filename = sys.argv[1]
-    vram, palette_ram, oam = parseMemory(filename)
-    bitmap = createBitmap(vram, palette_ram, oam)
-    # print(bitmap)
-    trace_lib.createImage("my.png", bitmap)
+    trace = sys.argv[1]
+    vram, palette_ram, oam = parseMemory(trace+".txt")
+    bitmap0 = createBitmap(vram, palette_ram, oam)
+    bitmap1 = trace_lib.image2Bitmap(trace+".png")
+    good, total = trace_lib.compareBitmaps(bitmap0, bitmap1)
+    print("Matched: "+str(100*good/total)+"% (" + str(good) + "/" + str(total) + ") of pixels")
+    trace_lib.createImage("my.png", bitmap0)
 
 if __name__ == '__main__':
     main()
