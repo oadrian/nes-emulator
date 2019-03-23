@@ -47,7 +47,7 @@ module sp_eval (
     output logic chr_rom_re
 );
     logic [8:0] next_row;
-    assign next_row = row + 9'd1;
+    assign next_row = row;
 
     // register for current sprite information
     second_oam_t curr_sprite_in, curr_sprite;
@@ -75,6 +75,7 @@ module sp_eval (
     logic [12:0] pattbl_off, pattbl_idx;    
     logic [7:0] tile_lsb, tile_msb;
     logic [2:0] tile_row;
+    logic [8:0] norm_row;
     logic [7:0] tile_idx;
     logic flip_ver;
 
@@ -89,7 +90,8 @@ module sp_eval (
 
     assign tile_idx = temp_oam_rd_data.tile_idx;
     assign flip_ver = temp_oam_rd_data.attribute[7];
-    assign tile_row = (flip_ver) ? 3'd7 - next_row[2:0] : next_row[2:0]; 
+    assign norm_row = next_row - {1'b0, temp_oam_rd_data.y_pos};
+    assign tile_row = (flip_ver) ? 3'd7 - norm_row[2:0] : norm_row[2:0]; 
  
     assign pattbl_idx = {1'b0, tile_idx, 1'b0, tile_row};
     assign chr_rom_addr1 = pattbl_off + pattbl_idx;
