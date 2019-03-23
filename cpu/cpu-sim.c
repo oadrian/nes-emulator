@@ -513,7 +513,7 @@ void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memo
                     case Branch_Depend_0: {break;}
                     case Branch_Depend_1: {next_cpu->PC.full++; break;}
                     case Branch_Depend_branch_bit: {
-                        branch_bit = get_branch_bit(instr_ctrl_vector.branch_bit, instr_ctrl_vector.branch_inv, cpu->status);
+                        uint8_t branch_bit = get_branch_bit(instr_ctrl_vector.branch_bit, instr_ctrl_vector.branch_inv, cpu->status);
                         if (branch_bit == 1) {
                             next_cpu->PC.full++;   
                         }
@@ -681,34 +681,179 @@ void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memo
 
 }
 
+processor_state get_next_state(cpu_core *cpu, alu_module *alu, processor_state state, 
+                               uint8_t ucode_index, uint8_t instr_ctrl_index, uint8_t decode_ctrl_index,
+                               processor_ucode_activity ucode_active) {
+
+    ucode_ctrl_signals ucode_vector = ucode_ctrl_signals_rom[ucode_index];
+    instr_ctrl_signals instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
+    uint8_t decode_ctrl_vector = decode_ctrl_signals_rom[decode_ctrl_index];
+
+
+    switch (state) {
+        // State_fetch, State_decode, State_neither
+        case State_fetch: {
+            return State_decode;
+        }
+        case State_decode: {
+            if (get_decode_signal(decode_ctrl_vector, DECODE_START_FECTH) == 1) {
+                return State_fetch;
+            }
+            else {
+                return State_neither;
+            }
+        }
+        case State_neither: {
+            if (ucode_active == State_ucode_inactive) {
+                // should probably not be able to reach here
+                return State_neither;
+            }
+            else if (ucode_vector.start_fetch == Enable_1) {
+                return State_fetch;
+            }
+            switch (ucode_vector.start_decode) {
+                // Branch_Depend_0, Branch_Depend_1, Branch_Depend_branch_bit, Branch_Depend_not_c_out
+                case Branch_Depend_0: {
+                    return State_neither;
+                }
+                case Branch_Depend_1: {
+                    return State_decode;
+                }
+                case Branch_Depend_branch_bit: {
+                    uint8_t branch_bit = get_branch_bit(instr_ctrl_vector.branch_bit, instr_ctrl_vector.branch_inv, cpu->status);
+                    if (branch_bit == 1) {
+                        return State_decode;
+                    }
+                    else {
+                        return State_neither;
+                    }
+                }
+                case Branch_Depend_not_c_out: {
+                    if (alu->c_out == 0) {
+                        return State_decode;
+                    }
+                    else {
+                        return State_neither;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/*
+processor_ucode_activity get_next_ucode_active(cpu_core *cpu, alu_module *alu, memory_module *mem, 
+                                               processor_state state, processor_ucode_activity ucode_active, 
+                                               uint8_t ucode_index, uint8_t instr_ctrl_index) {
+
+    ucode_ctrl_signals ucode_vector = ucode_ctrl_signals_rom[ucode_index];
+    instr_ctrl_signals instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
+
+}
+*/
+
+uint8_t get_next_ucode_active(cpu_core *cpu, alu_module *alu, memory_module *mem, 
+                              processor_state state, processor_ucode_activity ucode_active, 
+                              uint8_t ucode_index, uint8_t instr_ctrl_index) {
+
+    ucode_ctrl_signals ucode_vector = ucode_ctrl_signals_rom[ucode_index];
+    instr_ctrl_signals instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
+
+    // if ucode index is 0, then only decode can change it
+    // if ucode index is not zero, check the line and see what is says to do
+
+    // no matter what, if we're in decode, the next ucode index is based on the opcode
+    if (state == State_decode) {
+        return ucode_ctrl_signals_indices[mem->data_out];
+    }
+
+    // if c-skip is enabled
+    else if (ucode_vector.skip_line == Enable_1) {
+        return ucode_index + 2;
+    }
+
+    // if stopu_code is enabled - return 0
+    switch (ucode_vector.stop_ucode) {
+        //Branch_Depend_0, Branch_Depend_1, Branch_Depend_branch_bit, Branch_Depend_not_c_out
+        case Branch_Depend_0: {
+            return ucode_index + 1;
+        }
+        case Branch_Depend_1: {
+            return 0;
+        }
+        case Branch_Depend_branch_bit: {
+            uint8_t branch_bit = get_branch_bit(instr_ctrl_vector.branch_bit, instr_ctrl_vector.branch_inv, cpu->status);
+            if (branch_bit == 1) {
+                return 0;
+            }
+            else {
+                return ucode_index + 1;
+            }
+        }
+        case Branch_Depend_not_c_out: {
+            if (alu->c_out == 0) {
+                return 0;
+            }
+            else {
+                return ucode_index + 1;
+            }
+        }
+    }
+}
+
 void run_program(cpu_core *cpu, memory_module *mem) {
     alu_module *alu = init_alu();
 
-    alu_module next_alu = calloc(sizeof(alu_module));
-    memory_module next_mem = calloc(sizeof(memory_module));
-    // need to make a decoder struct?
-    // need to make a ROM struct to keep track of ucode activity and current line
+    alu_module *next_alu = calloc(sizeof(alu_module));
+    memory_module *next_mem = calloc(sizeof(memory_module));
+    cpu_core *next_cpu = calloc(sizeof(cpu_core));
+
     processor_state state = State_fetch;
-    processor_ucode_activity ucode_active = State_ucode_inactive;
+    processor_ucode_activity ucode_active = State_ucode_active;
 
     uint8_t ucode_index = 0;
     uint8_t instr_ctrl_index = 0;
     uint8_t decode_ctrl_index = 0;
 
+    processor_state next_state;
+    //processor_ucode_activity next_ucode_active;
+
+    uint8_t next_ucode_index;
+    uint8_t next_instr_ctrl_index;
+
     while (1) {
+
+        if (state = State_decode) {
+            decode_ctrl_index = mem->data_out;
+            next_instr_ctrl_index = instr_ctrl_signals_indices[mem->data_out];
+        }
         
         get_new_alu_values(alu, next_alu, cpu, mem, state, ucode_index, instr_ctrl_index);
         get_new_memory_values(alu, cpu, mem, next_mem, state, ucode_active, ucode_index, instr_ctrl_index);
         get_new_cpu_values(alu, cpu, next_cpu, mem, state, ucode_active, ucode_index, instr_ctrl_index, decode_ctrl_index);
 
         // now we update the following:
-            // state ucode_active, ucode_index, instr_ctrl_index, decode_ctrl_index
+            // ucode_active, ucode_index, instr_ctrl_index
+
+        next_state = get_next_state(cpu, alu, state, ucode_index, instr_ctrl_index, decode_ctrl_index, ucode_active);
+        //next_ucode_active = get_next_ucode_active(cpu, alu, mem, state, ucode_active, ucode_index, instr_ctrl_index);
+
+        next_ucode_index = get_next_ucode_index(cpu, alu, mem, state, ucode_active, ucode_index, instr_ctrl_index);
 
         copy_alu_module(next_alu, alu);
         copy_mem_module(next_mem, mem);
         copy_cpu_module(next_cpu, cpu);
 
+        state = next_state;
+        ucode_index = next_ucode_index;
+        instr_ctrl_index = next_instr_ctrl_index;
+
     }
+
+    free(alu);
+    free(next_alu);
+    free(next_mem);
+    free(next_cpu);
 }
 
 int main() {
@@ -716,5 +861,9 @@ int main() {
     memory_module *mem = init_memory();
     // open file from command line args and run it
     run_program(cpu, mem);
+
+    free(cpu);
+    free(mem);
+
     return 0;
 }
