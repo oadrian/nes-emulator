@@ -7,10 +7,8 @@ import split_ppu_mem as splitter
 import frame_gen as hw_gen
 
 def getTraceNames(trace_folder):
-    directory = os.fsencode(trace_folder)
     traces = []
-    for file in os.listdir(directory):
-        filename = os.fsdecode(file)
+    for filename in os.listdir(trace_folder):
         if(filename.endswith(".txt")):
             trace = filename[:-4]
             traces.append(trace)
