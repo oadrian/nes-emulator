@@ -1,7 +1,7 @@
 import sys
 import os
 import subprocess
-import frame_sw_sim as sw_sim 
+import frame_sim as sw_sim 
 import trace_lib as lib 
 import split_ppu_mem as splitter
 import frame_gen as hw_gen
