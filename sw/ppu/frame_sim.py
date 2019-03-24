@@ -152,31 +152,35 @@ def createBackgroundPixel(row, col, vram, palette_ram, nametbl_off, patterntbl_o
 
     color = getPaletteColor(palette_ram, BACKGROUND_PLT + bg_color_idx)
     return color, color_idx
-    
+
+def getPixelColorIdx(i, row, col, vram, oam, patterntbl_off):
+    sprite_y = oam[i + Y_OFF]
+    tile_idx = oam[i + TILE_IDX_OFF]
+    attr = oam[i + ATTR_OFF]
+    sprite_x = oam[i + X_OFF]
+
+    palette_idx = (attr & 0x3)
+    priority = ((attr >> OAM_PRIO) & 0x1)
+    flip_hor = ((attr >> OAM_FLIP_HOR) & 0x1) == 1
+    flip_ver = ((attr >> OAM_FLIP_VER) & 0x1) == 1 
+
+    if(sprite_x <= col and col < sprite_x + TILE_W):
+        tile_row = row - sprite_y
+        tile_col = col - sprite_x
+
+        color_idx = getTileColor(tile_idx, tile_row, tile_col, vram, patterntbl_off, flip_ver, flip_hor)
+
+        sp_color_idx = (palette_idx << 2) | color_idx
+
+        return sp_color_idx, priority
+    return 0, 0
 
 def createSpritePixel(row, col, vram, palette_ram, oam, sprite_idxs, patterntbl_off):
-    for i in sprite_idxs:
-        sprite_y = oam[i + Y_OFF]
-        tile_idx = oam[i + TILE_IDX_OFF]
-        attr = oam[i + ATTR_OFF]
-        sprite_x = oam[i + X_OFF]
-
-        palette_idx = (attr & 0x3)
-        priority = ((attr >> OAM_PRIO) & 0x1)
-        flip_hor = ((attr >> OAM_FLIP_HOR) & 0x1) == 1
-        flip_ver = ((attr >> OAM_FLIP_VER) & 0x1) == 1 
-
-        if(sprite_x <= col and col < sprite_x + TILE_W):
-            tile_row = row - sprite_y
-            tile_col = col - sprite_x
-
-            color_idx = getTileColor(tile_idx, tile_row, tile_col, vram, patterntbl_off, flip_ver, flip_hor)
-
-            sp_color_idx = (palette_idx << 2) | color_idx
-            
+    sprite_color_idxs = list(map(lambda i: getPixelColorIdx(i, row, col, vram, oam, patterntbl_off), sprite_idxs))
+    for (sp_color_idx, priority) in sprite_color_idxs:
+        if(sp_color_idx & 0x3 != 0):
             color = getPaletteColor(palette_ram, SPRITE_PLT + sp_color_idx)
-
-            return color, color_idx, priority
+            return color, sp_color_idx, priority
     return 0,0,0
 
 # return indexes of active sprites on next scanline
