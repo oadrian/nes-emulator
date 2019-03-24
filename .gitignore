@@ -15,3 +15,4 @@
 *synth/simulation/
 *.bak
 *.qws
+*.pyc 
