@@ -21,7 +21,7 @@ module sp_pixel (
     logic [7:0] sp_prios;
     genvar i;
     generate
-        for (i = 0; i < 8; i++) begin
+        for (i = 0; i < 8; i++) begin: sp_blocks_inst
             sp_pixel_h sp_inst(.row, .col, .sprite(sec_oam[i]), .sp_color_idx(sp_color_idxs[i]), .sp_prio(sp_prios[i]));
         end
     endgenerate
