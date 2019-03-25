@@ -46,7 +46,7 @@ module top ();
 
         while(!(dut.row == 9'd261 && dut.col == 9'd340)) begin 
             if(dut.ppu_clk_en) begin 
-                $display("row: %d, col: %d",dut.row, dut.col);
+                // $display("row: %d, col: %d",dut.row, dut.col);
                 if(dut.vs_curr_state == VIS_SL && dut.col == 9'd256) begin 
                     for (int i = 0; i < 256; i++) begin
                         $fwrite(f, "%X ", dut.ppu_buffer[i]);
