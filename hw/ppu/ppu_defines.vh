@@ -77,4 +77,16 @@ typedef struct packed{
     logic [7:0] bitmap_lo;
 } second_oam_t;
 
+typedef enum logic [3:0] {
+    PPUCTRL,     // CPU's 0x2000
+    PPUMASK,     // CPU's 0x2001
+    PPUSTATUS,   // CPU's 0x2002
+    OAMADDR,     // CPU's 0x2003
+    OAMDATA,     // CPU's 0x2004
+    PPUSCROLL,   // CPU's 0x2005
+    PPUADDR,     // CPU's 0x2006
+    PPUDATA,     // CPU's 0x2007
+    OAMDMA       // CPU's 0x4014
+} reg_t;
+
 `endif

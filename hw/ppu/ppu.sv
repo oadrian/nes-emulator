@@ -14,7 +14,15 @@ module ppu (
     output logic [7:0] vga_r, // vga red 
     output logic [7:0] vga_g, // vga green
     output logic [7:0] vga_b,  // vga blue
-    output logic blank
+    output logic blank,
+
+    // CPU Read/Write BUS
+    input logic cpu_clk_en,    // use to update register interface
+    input reg_t reg_sel,       // register to write to
+    input logic reg_en,        // 1 - write to register, 0 - do nothing
+    input logic reg_rw,        // 1 - write mode, 0 - read mode
+    input logic [7:0] reg_data_in,  // data to write
+    output logic [7:0] reg_data_out // data read
 );
 
     // VGA clk
@@ -60,6 +68,8 @@ module ppu (
     chr_rom cr(.clk, .clk_en(ppu_clk_en), .rst_n,
                .addr1(chr_rom_addr1), .addr2(chr_rom_addr2),
                .data_out1(chr_rom_out1), .data_out2(chr_rom_out2));
+
+    // CPU Register Interface
 
     // row, col logic
 
