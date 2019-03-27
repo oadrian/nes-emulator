@@ -5,7 +5,6 @@
 *.tcl*
 *DVEfiles/
 *csrc/
-*inter.*
 *ucli*
 *__pycache__/
 *synth/db/
