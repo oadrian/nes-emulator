@@ -22,19 +22,30 @@ module ppu (
     input logic reg_en,        // 1 - write to register, 0 - do nothing
     input logic reg_rw,        // 1 - write mode, 0 - read mode
     input logic [7:0] reg_data_in,  // data to write
-    output logic [7:0] reg_data_out // data read
+    output logic [7:0] reg_data_out, // data read
+
+    // CPU cycle parity
+    input logic cpu_cyc_par,  // used for exact DMA timing
+
+    // CPU suspend
+    output logic cpu_sus,     // suspend CPU when performing OAMDMA
+
+    // CPU MEM READ (SYNC)
+    output logic [15:0] cpu_addr,
+    output logic cpu_re,
+    input logic [7:0] cpu_rd_data
 );
 
-    // VGA clk
+    //////////// VGA clk   /////////////
     logic vga_clk_en;  // Master / 2
     clock_div #(2) v_ck(.clk, .rst_n, .clk_en(vga_clk_en));
 
-    // internal PPU clock
+    //////////// internal PPU clock   /////////////
     logic ppu_clk_en;  // Master / 4
     clock_div #(4) p_ck(.clk, .rst_n, .clk_en(ppu_clk_en));
 
 
-    // VRAM (ASYNC READ)
+    //////////// VRAM (ASYNC READ)   /////////////
     logic [10:0] vram_addr1, vram_addr2;
     logic vram_we1, vram_we2;
     logic [7:0] vram_d_in1, vram_d_in2, vram_d_out1, vram_d_out2;
@@ -45,7 +56,7 @@ module ppu (
             .data_in1(vram_d_in1), .data_in2(vram_d_in2), 
             .data_out1(vram_d_out1), .data_out2(vram_d_out2));
 
-    // OAM (ASYNC READ)
+    //////////// OAM (ASYNC READ)   /////////////
     logic [7:0] oam_addr;
     logic oam_we;
     logic [7:0] oam_d_in, oam_d_out;
@@ -53,7 +64,7 @@ module ppu (
     oam om(.clk, .clk_en(ppu_clk_en), .rst_n, .addr(oam_addr), .we(oam_we), 
             .data_in(oam_d_in), .data_out(oam_d_out));
 
-    // PAL_RAM (ASYNC READ)
+    //////////// PAL_RAM (ASYNC READ)   /////////////
     logic [4:0] pal_addr;
     logic pal_we;
     logic [7:0] pal_d_in, pal_d_out;
@@ -61,7 +72,7 @@ module ppu (
     pal_ram pr(.clk, .clk_en(ppu_clk_en), .rst_n, .addr(pal_addr), .we(pal_we), 
             .data_in(pal_d_in), .data_out(pal_d_out));
 
-    // CHR_ROM (ASYNC READ)
+    //////////// CHR_ROM (ASYNC READ)   /////////////
     logic [12:0] chr_rom_addr1, chr_rom_addr2;
     logic [7:0] chr_rom_out1, chr_rom_out2;
 
@@ -69,9 +80,49 @@ module ppu (
                .addr1(chr_rom_addr1), .addr2(chr_rom_addr2),
                .data_out1(chr_rom_out1), .data_out2(chr_rom_out2));
 
-    // CPU Register Interface
+    //////////// CPU Register Interface   /////////////
+    logic sp_over_set, sp_over_clr;
+    logic sp_zero_set, sp_zero_clr;
+    logic vblank_set, vblank_clr;
 
-    // row, col logic
+    logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
+
+    // OAM  (Async read)
+    logic [7:0] oam_addr_ri; 
+    logic oam_we_ri, oam_re_ri;
+    logic [7:0] oam_wr_data_ri, oam_rd_data_ri;
+
+    // VRAM (Async read)
+    logic [10:0] vram_addr_ri;
+    logic vram_we_ri, vram_re_ri;
+    logic [7:0] vram_wr_data_ri, vram_rd_data_ri;
+
+    // PAL RAM (ASYNC)
+    logic [4:0] pal_addr_ri;
+    logic pal_we_ri, pal_re_ri;
+    logic [7:0] pal_wr_data_ri, pal_rd_data_ri;
+
+    reg_inter ri(.clk, .cpu_clk_en, .ppu_clk_en, .rst_n,
+                 .reg_sel, .reg_en, .reg_rw, .reg_data_in, .reg_data_out,
+                 .cpu_cyc_par, .cpu_sus,
+                 .sp_over_set, .sp_over_clr, .sp_zero_set, .sp_zero_clr, .vblank_set, .vblank_clr,
+                 
+                 .oam_addr(oam_addr_ri), .oam_we(oam_we_ri), .oam_re(oam_re_ri),
+                 .oam_wr_data(oam_wr_data_ri), .oam_rd_data (oam_rd_data_ri),
+
+                 .vram_addr(vram_addr_ri), .vram_we(vram_we_ri), .vram_re(vram_re_ri),
+                 .vram_wr_data(vram_wr_data_ri), .vram_rd_data(vram_rd_data_ri),
+
+                 .pal_addr(pal_addr_ri), .pal_we(pal_we_ri), .pal_re(pal_re_ri),
+                 .pal_wr_data(pal_wr_data_ri), .pal_rd_data(pal_rd_data_ri),
+
+                 .cpu_addr, .cpu_re, .cpu_rd_data, 
+
+                 .ppuctrl_out(ppuctrl), .ppumask_out(ppumask), 
+                 .ppuscrollX_out(ppuscrollX), .ppuscrollY_out(ppuscrollY)
+                 );
+
+    //////////// row, col logic   /////////////
 
     logic [8:0] row, col;
 
@@ -94,7 +145,7 @@ module ppu (
         end
     end
 
-    // Horizontal states
+    //////////// Horizontal states   /////////////
     hs_state_t hs_curr_state, hs_next_state;
 
     
@@ -134,7 +185,7 @@ module ppu (
 
 
 
-    // Vertical states
+    //////////// Vertical states   /////////////
     vs_state_t vs_curr_state, vs_next_state;
 
     always_ff @(posedge clk or negedge rst_n) begin
@@ -165,8 +216,16 @@ module ppu (
         endcase
     end
 
+    // clear the ppustatus bits on the 1-st (second) dot of pre render scanline
+    assign sp_over_clr = (vs_curr_state == PRE_SL && col == 9'd0);
+    assign sp_zero_clr = (vs_curr_state == PRE_SL && col == 9'd0);
+    assign vblank_clr =  (vs_curr_state == PRE_SL && col == 9'd0);
 
-    // Scanline buffer
+    // set the blank bit in ppustatus at dot 1 of the post render scanline
+    assign vblank_set = (vs_curr_state == POST_SL && col == 9'd0);
+
+
+    //////////// Scanline buffer   /////////////
 
     logic [5:0] ppu_buffer[`SCREEN_WIDTH-1:0]; // 256 color indexes
     logic ppu_buffer_wr;
@@ -185,11 +244,11 @@ module ppu (
         end
     end
 
-    // write to PPU's scanline buffer 
+    //////////// write to PPU's scanline buffer    /////////////
     assign ppu_buffer_wr = (hs_curr_state == SL_PRE_CYC && vs_curr_state == VIS_SL);
 
 
-    // VGA's scanline buffer
+    //////////// VGA's scanline buffer   /////////////
 
     logic [5:0] vga_buffer[`SCREEN_WIDTH-1:0]; // 256 color indeces
     logic vga_buffer_mv;
@@ -214,7 +273,7 @@ module ppu (
     // be displayed throughout the next scanline
     assign vga_buffer_mv = (col == 9'd340);
 
-    // VGA module
+    //////////// VGA module  ////////////
 
     vga v(.clk, .clk_en(vga_clk_en), .rst_n, 
           .vsync_n, .hsync_n, .vga_r, .vga_g, .vga_b, .blank,
@@ -225,10 +284,25 @@ module ppu (
     logic [12:0] bg_chr_rom_addr1, bg_chr_rom_addr2;
     pattern_tbl_t bg_patt_tbl; // register info
     name_tbl_t bg_name_tbl;    // register info
-    logic [3:0] bg_color_idx;
+    logic [3:0] bg_color_idx, bg_color_idx_t, bg_color_idx_en;
 
-    assign bg_patt_tbl = RIGHT_TBL;
-    assign bg_name_tbl = TOP_L_TBL;
+    assign bg_patt_tbl = (ppuctrl[4]) ? RIGHT_TBL : LEFT_TBL;
+
+    always_comb begin
+        bg_name_tbl = TOP_L_TBL;        
+        case (ppuctrl[1:0])
+            2'b00: 
+                bg_name_tbl = TOP_L_TBL;
+            2'b01:  
+                bg_name_tbl = TOP_R_TBL;
+            2'b10: 
+                bg_name_tbl = BOT_L_TBL;
+            2'b11: 
+                bg_name_tbl = BOT_R_TBL;
+            default : /* default */;
+        endcase
+    
+    end
 
     // first row is garbage, used for prefetching sprites for first visible sl
     bg_pixel bg(.row(row-9'd1), .col, 
@@ -237,8 +311,10 @@ module ppu (
                 .vram_addr2, .vram_data2(vram_d_out2),
                 .chr_rom_addr1(bg_chr_rom_addr1), .chr_rom_addr2(bg_chr_rom_addr2), 
                 .chr_rom_data1(chr_rom_out1), .chr_rom_data2(chr_rom_out2),
-                .bg_color_idx);
+                .bg_color_idx(bg_color_idx_t));
 
+    assign bg_color_idx_en = (ppumask[3]) ? bg_color_idx_t : 4'b0000;
+    assign bg_color_idx = (!ppumask[1] && col < 9'd8) ? 4'b0000 : bg_color_idx_en;
 
     /////////////////////   SPRITE  //////////////////////////
     // Tempory OAM for Sprite eval
@@ -269,6 +345,8 @@ module ppu (
             temp_oam_cnt <= temp_oam_cnt + 4'd1;
         end
     end
+
+    assign sp_over_set = (temp_oam_cnt == 4'd8 && temp_oam_wr);
 
     // Secondary OAM for Sprite Rendering
     second_oam_t sec_oam [`SEC_OAM_SIZE-1:0];
@@ -302,7 +380,7 @@ module ppu (
     logic [12:0] sp_chr_rom_addr1, sp_chr_rom_addr2;
     logic sp_chr_rom_re;
 
-    assign sp_patt_tbl = LEFT_TBL; 
+    assign sp_patt_tbl = (ppuctrl[3]) ? RIGHT_TBL : LEFT_TBL; 
 
     sp_eval spe(.clk, .clk_en(ppu_clk_en), .rst_n,
                 .row(row-9'd1), .col, 
@@ -323,16 +401,22 @@ module ppu (
 
 
     // sprite pixel generation
-    logic [3:0] sp_color_idx;
-    logic sp_prio;
+    logic [3:0] sp_color_idx, sp_color_idx_t, sp_color_idx_en;
+    logic sp_prio, sp_zero;
 
     sp_pixel spp(.row(row-9'd1), .col,  
                 .sec_oam, 
-                .sp_color_idx, .sp_prio);
+                .sp_color_idx(sp_color_idx_t), .sp_prio, .sp_zero);
 
+    assign sp_color_idx_en = (ppumask[4]) ? sp_color_idx_t : 4'b0000;
+    assign sp_color_idx = (!ppumask[2] && col < 9'd8) ? 4'b0000 : sp_color_idx_en;
 
     /////////////////////   FINAL PIXEL  //////////////////////////
     // merge Background and Sprites using priority
+
+    // Sprite - zero hit
+    assign sp_zero_set = (vs_curr_state == VIS_SL && col < 9'd255 && 
+                          sp_zero && bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] != 2'd0);
 
     always_comb begin
         pal_addr = 5'd0;
@@ -346,10 +430,13 @@ module ppu (
             pal_addr = {1'b1, sp_color_idx};
         end else if(bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] != 2'd0 && sp_prio == 1'b1) begin 
             pal_addr = {1'b0, bg_color_idx};
-        end    
+        end
+
+
     end
 
-    assign ppu_buf_in = pal_d_out;
+    // greyscale
+    assign ppu_buf_in = (ppumask[0]) ? pal_d_out & 8'h30 : pal_d_out;
 
 
 endmodule

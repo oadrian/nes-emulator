@@ -52,12 +52,20 @@ module reg_inter (
     output logic pal_re,
 
     output logic [7:0] pal_wr_data,
-    input logic [7:0] pal_rd_data
-);
-    // DMA FSM
-    logic begin_dma;
+    input logic [7:0] pal_rd_data,
 
-    // ALL register definitions
+    // CPU MEM READ (SYNC)
+    output logic [15:0] cpu_addr,
+    output logic cpu_re,
+    input logic [7:0] cpu_rd_data,
+
+    // register interface
+    output logic [7:0] ppuctrl_out,
+    output logic [7:0] ppumask_out,
+    output logic [7:0] ppuscrollX_out,
+    output logic [7:0] ppuscrollY_out
+);
+    /////// ALL register definitions  ////////
 
     // write only
     logic [7:0] ppuctrl_out, ppuctrl_in;
@@ -71,12 +79,37 @@ module reg_inter (
     // read only
     logic [7:0] ppustatus_out, ppustatus_in, last_write;
 
-    // read/write 
-    logic [7:0] oamdata_out, oamdata_in;
-    logic [7:0] ppudata_out, ppudata_in;
+    // oam write wires for OAMDATA
+    logic oam_re_reg;
+    logic oam_we_reg;
+    logic [7:0] oam_wr_data_reg;
+
+    // oam write wires for OAMDMA process
+    logic oam_we_dma;
+    logic [7:0] oam_wr_data_dma;
+    logic [7:0] oam_addr_dma;
 
     // OAM address to read or write to
-    assign oam_addr = oamaddr_out;
+    assign oam_re = oam_re_reg;
+    assign oam_we = oam_we_dma || oam_we_reg;
+
+    always_comb begin
+        oam_addr = oamaddr_out;
+        if(oam_we_dma) begin 
+            oam_addr = oam_addr_dma;
+        end else if(oam_we_reg || oam_re_reg) begin 
+            oam_addr = oamaddr_out;
+        end
+    end
+
+    always_comb begin
+        oam_wr_data = 8'd0;
+        if(oam_we_dma) begin 
+            oam_wr_data = oam_wr_data_dma;
+        end else if(oam_we_reg) begin 
+            oam_wr_data = oam_wr_data_reg;
+        end
+    end
 
     // PPU VRAM address to read or write to
     assign vram_addr = ppuaddr_out[10:0];
@@ -84,14 +117,14 @@ module reg_inter (
     // PAL ram address to read or write to 
     assign pal_addr = ppuaddr_out[4:0];
 
-    // Write Only Registers
+    /////// Write Only Registers //////////
     logic ppustatus_rd_clr;
     logic oamaddr_inc;
     logic ppuaddr_inc;
     logic [15:0] ppuaddr_inc_amnt;
 
     // OAM increment logic
-    assign oamaddr_inc = (reg_sel == OAMDATA && reg_en);
+    assign oamaddr_inc = (reg_sel == OAMDATA && reg_en && reg_rw);
 
     // VRAM increment logic
     assign ppuaddr_inc = (reg_sel == PPUDATA && reg_en);
@@ -133,7 +166,7 @@ module reg_inter (
     end
     
 
-    // double writes 
+    ///////// double writes /////////
     enum logic {
         FIRST_WRITE,
         SECOND_WRITE
@@ -150,7 +183,7 @@ module reg_inter (
         end
     end
 
-    // read out register
+    ///////// read out register //////////
     logic [7:0] reg_data_out_next;
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
@@ -160,7 +193,7 @@ module reg_inter (
         end
     end
 
-    // READ ONLY registers
+    /////////// READ ONLY registers //////////
     logic force_vblank_clr0, force_vblank_clr1;
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
@@ -193,7 +226,99 @@ module reg_inter (
         end
     end
 
+    //////// OAMDMA FSM ////////
+    logic begin_dma;
+    enum logic [2:0] {
+        OAMDMA_IDLE,
+        OAMDMA_DUMMY1,
+        OAMDMA_DUMMY2,
+        OAMDMA_READ,
+        OAMDMA_WRITE
+    } oamdma_curr_state, oamdma_next_state;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            oamdma_curr_state <= OAMDMA_IDLE;
+        end else if(cpu_clk_en) begin
+            oamdma_curr_state <= oamdma_next_state;
+        end
+    end
+
+    logic [7:0] counter;
+    logic counter_en, counter_clr;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            counter <= 8'd0;
+        end else if(cpu_clk_en) begin
+            if(counter_clr)
+                counter <= 8'd0;
+            else if(counter_en)
+                counter <= counter + 8'd1;
+        end
+    end
+
+    // address to read from CPU RAM
+    assign cpu_addr = {oamdma_out, counter};
+
+    // address to write to in OAM
+    assign oam_addr_dma = counter;
+
+    // data to write to OAM
+    assign oam_wr_data_dma = cpu_rd_data;
+
+    always_comb begin
+        oamdma_next_state = oamdma_curr_state;
+
+        // suspend flag
+        cpu_sus = 1'b0;
+
+        // counter
+        counter_en = 1'b0;
+        counter_clr = 1'b0;
+
+        // CPU read 
+        cpu_re = 1'b0;
+
+        // OAM write
+        oam_we_dma = 1'b0;
+        case (oamdma_curr_state)
+            OAMDMA_IDLE: begin 
+                oamdma_next_state = (begin_dma) ? OAMDMA_DUMMY1 : OAMDMA_IDLE;
+                cpu_sus = (begin_dma) ? 1'b1 : 1'b0;
+            end
+            OAMDMA_DUMMY1: begin 
+                cpu_sus = 1'b1;
+                oamdma_next_state = (cpu_cyc_par) ? OAMDMA_DUMMY2 : OAMDMA_READ;
+                counter_clr = 1'b1;
+            end
+            OAMDMA_DUMMY2: begin 
+                cpu_sus = 1'b1;
+                oamdma_next_state = OAMDMA_READ;
+            end
+            OAMDMA_READ: begin 
+                cpu_sus = 1'b1;
+                oamdma_next_state = OAMDMA_WRITE;
+                cpu_re = 1'b1;
+            end
+            OAMDMA_WRITE: begin 
+                oam_we_dma = 1'b1;
+                if(counter == 8'd255) begin 
+                    oamdma_next_state = OAMDMA_IDLE;
+                    cpu_sus = 1'b0;
+                    counter_en = 1'b0;
+                end else begin 
+                    oamdma_next_state = OAMDMA_READ;
+                    cpu_sus = 1'b1;
+                    counter_en = 1'b1;
+                end
+            end
+            default : /* default */;
+        endcase
+    
+    end
+
     // handle reads and writes to ppu registers 
+    
     always_comb begin
         // registers written by cpu
         ppuctrl_in = ppuctrl_out;
@@ -215,10 +340,12 @@ module reg_inter (
         begin_dma = 1'b0;
 
         // OAM
-        oam_we = 1'b0;
-        oam_wr_data = 8'd0;
+        oam_re_reg = 1'b0;
+        oam_we_reg = 1'b0;
+        oam_wr_data_reg = 8'd0;
 
         // PPU VRAM
+        vram_re = 1'b0;
         vram_we = 1'b0;
         vram_wr_data = 8'd0;
 
@@ -281,14 +408,16 @@ module reg_inter (
                 end 
             end
 
+
             OAMDATA: begin     // read/write
                 if(reg_en && reg_rw) begin 
                     /* write */
-                    oam_we = 1'b1;
-                    oam_wr_data = reg_data_in;
+                    oam_we_reg = 1'b1;
+                    oam_wr_data_reg = reg_data_in;
                     last_write = reg_data_in;
                 end else if(reg_en && !reg_rw) begin
-                    /* read */
+                    oam_re_reg = 1'b1;
+                    reg_data_out_next = oam_rd_data;
                 end
             end
             PPUDATA: begin     // read/write 
@@ -310,9 +439,11 @@ module reg_inter (
                     // nametable 2 and 3 are in 0x2800 - 0x2FFF which are not used
                     // for mapper-0, mirrored adresses are also ignored
                 end else if(reg_en && !reg_rw) begin 
-                    /* read */
+                    vram_re = 1'b1;
+                    reg_data_out_next = vram_rd_data;
                 end
             end
+
 
             PPUSTATUS: begin       // read only 
                 if(reg_en && !reg_rw) begin 

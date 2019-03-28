@@ -12,7 +12,8 @@ module sp_pixel (
  
     // output pixel (pal_idx << 2 | color_idx)
     output logic [3:0] sp_color_idx,
-    output logic sp_prio
+    output logic sp_prio,
+    output logic sp_zero
 );
 
 
@@ -30,9 +31,11 @@ module sp_pixel (
     always_comb begin
         sp_color_idx = 4'd0;
         sp_prio = 1'b0;
+        sp_zero = 1'b0;
         if(sec_oam[0].active && sp_color_idxs[0][1:0] != 2'b00 && sec_oam[0].x_pos <= col && col < sec_oam[0].x_pos + `SPRITE_WIDTH) begin 
             sp_color_idx = sp_color_idxs[0];
             sp_prio = sp_prios[0];
+            sp_zero = 1'b1;
         end else if(sec_oam[1].active && sp_color_idxs[1][1:0] != 2'b00 && sec_oam[1].x_pos <= col && col < sec_oam[1].x_pos + `SPRITE_WIDTH) begin 
             sp_color_idx = sp_color_idxs[1];
             sp_prio = sp_prios[1];

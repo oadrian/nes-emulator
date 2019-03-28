@@ -17,6 +17,23 @@ module top ();
     logic [7:0] vga_b; // vga blue
     logic blank;       // vga blank
 
+    logic cpu_clk_en;    // use to update register interface  Master / 12
+    reg_t reg_sel;       // register to write to
+    logic reg_en;        // 1 - write to register, 0 - do nothing
+    logic reg_rw;        // 1 - write mode, 0 - read mode
+    logic [7:0] reg_data_in;  // data to write
+    logic [7:0] reg_data_out; // data read
+
+    logic cpu_cyc_par;  // used for exact DMA timing
+    logic cpu_sus;      // suspend CPU when performing OAMDMA
+
+    logic [15:0] cpu_addr;
+    logic cpu_re;
+    logic [7:0] cpu_rd_data;
+
+    // CPU clock enable
+    clock_div #(12) p_ck(.clk, .rst_n, .clk_en(cpu_clk_en));
+
     ppu dut(.*);
 
     // Conduct a system reset
