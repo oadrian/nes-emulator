@@ -260,7 +260,7 @@ module reg_inter (
     assign cpu_addr = {oamdma_out, counter};
 
     // address to write to in OAM
-    assign oam_addr_dma = counter;
+    assign oam_addr_dma = counter + oamaddr_out;
 
     // data to write to OAM
     assign oam_wr_data_dma = cpu_rd_data;

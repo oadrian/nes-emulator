@@ -104,26 +104,20 @@ module top ();
    class OAM;
         rand bit [7:0] mem[256];
         rand bit [7:0] offset;
+        rand bit [7:0] upper_addr;
+        rand bit cyc_par;
    endclass : OAM
-
-   class RAM;
-        rand bit [7:0] vram[1000];
-        rand bit [7:0] pal[32];
-   endclass : RAM
 
    logic [7:0] oam_test_read;
    logic [7:0] ram_test_read;
 
-    OAM oam;
-    RAM ram;
+    OAM oam, dma;
 
     logic [7:0] i;
 
     task oamdataTest(output logic passed);
         oam = new();
         oam.randomize();
-        ram = new();
-        ram.randomize();
         reg_sel = PPUCTRL;
         reg_en = 1'b0;
         reg_rw = 1'b0;
@@ -163,14 +157,80 @@ module top ();
             else $display("failed test for offset %d", oam.offset);
         end
     endtask : oamdataTest
+    
 
     task oamdmaTest(output logic passed);
+        dma = new();
+		dma.randomize();
 
+		reg_sel = PPUCTRL;
+        reg_en = 1'b1;
+        reg_rw = 1'b1;
+        reg_data_in = 8'd00000000;   // increment 1 going across
+        
+        cpu_cyc_par = 1'b0;
+
+        passed = 1;
+		@(posedge cpu_clk_en);
+		reg_sel = OAMADDR;
+		reg_en = 1'b1;
+		reg_rw = 1'b1;
+		reg_data_in = dma.offset;
+		if($test$plusargs("DEBUG")) begin
+            $display("offset : %d",dma.offset);
+        end
+        @(posedge cpu_clk_en);
+        reg_sel = OAMDMA;
+		reg_en = 1'b1;
+		reg_rw = 1'b1;
+		reg_data_in = dma.upper_addr;
+		
+		cpu_cyc_par = dma.cyc_par;
+		@(posedge cpu_clk_en);
+		reg_sel = PPUCTRL;
+        reg_en = 1'b0;
+        reg_rw = 1'b0;
+        reg_data_in = 8'd00000000;   // increment 1 going across
+		if(cpu_cyc_par) begin
+			@(posedge cpu_clk_en);
+			@(posedge cpu_clk_en);
+		end else begin
+			@(posedge cpu_clk_en);		
+		end
+		for(i = 8'd0; i != 8'd255; i++) begin
+			// read cycle
+			read_sus: assert(cpu_sus);
+			read_addr: assert(cpu_addr[15:8] == dma.upper_addr);
+			@(posedge cpu_clk_en);
+			// write cycle
+			write_sus: assert(cpu_sus);
+			cpu_rd_data = dma.mem[i];
+			@(posedge cpu_clk_en);
+		end
+		@(posedge cpu_clk_en);
+		@(posedge cpu_clk_en);
+		@(posedge cpu_clk_en);
+		
+		// check oam contents
+		for(i = 8'd0; i != 8'd255; i++) begin 
+            if(dma.mem[i] != dut.om.mem[i + dma.offset]) begin 
+                $display({"random oam did not match ppu's oam: ",
+                          "random mem[%d] = %h, ppu mem[%d] = %h\n"}, 
+                          i, dma.mem[i], i + dma.offset, dut.om.mem[i + dma.offset]);
+                passed = 0;
+            end
+        end
+
+        if($test$plusargs("DEBUG")) begin
+            if(passed) $display("passed test for offset %d", dma.offset);
+            else $display("failed test for offset %d", dma.offset);
+        end
+		
     endtask : oamdmaTest
 
 
     task ppudataTest(output logic passed);
-
+	
     endtask: ppudataTest
 
     int passes, tests;
@@ -186,10 +246,10 @@ module top ();
             frameTest;
         end 
 
-        if($test$plusargs("REGINTER")) begin 
+        if($test$plusargs("OAMDATA")) begin 
             $display({"\n",
                       "---------------------\n",
-                      "<Testing Register Interface Reads and Writes>\n",
+                      "<Testing OAMDATA Register Interface Writes>\n",
                       "---------------------\n" });
             doReset;
             @(posedge clk);
@@ -202,10 +262,36 @@ module top ();
             end
             $display("passed %d/%d tests", passes, tests);
         end
+        
+        if($test$plusargs("OAMDMA")) begin 
+            $display({"\n",
+                      "---------------------\n",
+                      "<Testing OAMDMA Register Interface Writes>\n",
+                      "---------------------\n" });
+            doReset;
+            @(posedge clk);
+            oamdmaTest(passed);
+            
+            passes = 0;
+            tests = 500;
+            for (int i = 0; i < tests; i++) begin
+                oamdmaTest(passed);
+                if(passed) passes++;
+                @(posedge clk);    
+            end
+            $display("passed %d/%d tests", passes, tests);
+           
+        end
         $finish;
 
     end
-
+    
+    /*
+    check_dma: assert property(
+    	@(posedge cpu_clk_en)  (reg_sel == OAMDMA && cpu_cyc_par == 1'b1) ##1 
+    ) else $error("dma failed");
+	*/
+	
     // Vertical States Assertions
     check_vs_pre: assert property(
         @(posedge clk) dut.vs_curr_state == PRE_SL |-> (dut.row == 0)
