@@ -18,3 +18,4 @@
 *hw/ppu/init/
 *hw/ppu/init-intel/
 *hw/ppu/my_frame.txt
+*.vpd
