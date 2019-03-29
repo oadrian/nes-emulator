@@ -50,17 +50,27 @@ module top ();
         forever #5 clk = ~clk;
     end
 
-   //  initial begin
-   //  	##1000000000;
-   //  	$finish;
-   // end
-
-
-    initial begin
-        doReset;
-
+   task frameTest();
         f = $fopen(filename, "w");
-
+        reg_sel = PPUCTRL;
+        reg_en = 1'b0;
+        reg_rw = 1'b1;
+        reg_data_in = 8'b00000000;
+        @(posedge cpu_clk_en);
+        reg_sel = PPUCTRL;
+        reg_en = 1'b1;
+        reg_rw = 1'b1;
+        reg_data_in = 8'b10010000;
+        @(posedge cpu_clk_en);
+        reg_sel = PPUMASK;
+        reg_en = 1'b1;
+        reg_rw = 1'b1;
+        reg_data_in = 8'b00011110;
+        @(posedge cpu_clk_en);
+        reg_sel = PPUCTRL;
+        reg_en = 1'b0;
+        reg_rw = 1'b1;
+        reg_data_in = 8'b00000000;
         while(!(dut.row == 9'd261 && dut.col == 9'd340)) begin 
             if(dut.ppu_clk_en) begin 
                 // $display("row: %d, col: %d",dut.row, dut.col);
@@ -89,6 +99,109 @@ module top ();
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
+   endtask : frameTest
+
+   class OAM;
+        rand bit [7:0] mem[256];
+        rand bit [7:0] offset;
+   endclass : OAM
+
+   class RAM;
+        rand bit [7:0] vram[1000];
+        rand bit [7:0] pal[32];
+   endclass : RAM
+
+   logic [7:0] oam_test_read;
+   logic [7:0] ram_test_read;
+
+    OAM oam;
+    RAM ram;
+
+    logic [7:0] i;
+
+    task oamdataTest(output logic passed);
+        oam = new();
+        oam.randomize();
+        ram = new();
+        ram.randomize();
+        reg_sel = PPUCTRL;
+        reg_en = 1'b0;
+        reg_rw = 1'b0;
+        reg_data_in = 8'd0;
+
+        passed = 1;
+        @(posedge cpu_clk_en)
+        reg_sel = OAMADDR;
+        reg_en = 1'b1;
+        reg_rw = 1'b1;
+        reg_data_in = oam.offset;
+        if($test$plusargs("DEBUG")) begin
+            $display("offset : %d",oam.offset);
+        end
+        @(posedge cpu_clk_en);
+        // test OAMDATA
+        for (i = 8'd0; i != 8'd255; i++) begin
+            reg_sel = OAMDATA;
+            reg_en = 1'b1;
+            reg_rw = 1'b1;
+            reg_data_in = oam.mem[i];
+            @(posedge cpu_clk_en);
+        end
+        @(posedge cpu_clk_en);
+
+        for(i = 8'd0; i != 8'd255; i++) begin 
+            if(oam.mem[i] != dut.om.mem[i + oam.offset]) begin 
+                $display({"random oam did not match ppu's oam: ",
+                          "random mem[%d] = %h, ppu mem[%d] = %h\n"}, 
+                          i, oam.mem[i], i + oam.offset, dut.om.mem[i + oam.offset]);
+                passed = 0;
+            end
+        end
+
+        if($test$plusargs("DEBUG")) begin
+            if(passed) $display("passed test for offset %d", oam.offset);
+            else $display("failed test for offset %d", oam.offset);
+        end
+    endtask : oamdataTest
+
+    task oamdmaTest(output logic passed);
+
+    endtask : oamdmaTest
+
+
+    task ppudataTest(output logic passed);
+
+    endtask: ppudataTest
+
+    int passes, tests;
+    logic passed;
+    initial begin
+        if($test$plusargs("FRAMETEST")) begin
+            $display({"\n",
+                      "---------------------\n",
+                      "<Testing Frame Generation>\n",
+                      "---------------------\n" });
+            doReset;
+            @(posedge clk);
+            frameTest;
+        end 
+
+        if($test$plusargs("REGINTER")) begin 
+            $display({"\n",
+                      "---------------------\n",
+                      "<Testing Register Interface Reads and Writes>\n",
+                      "---------------------\n" });
+            doReset;
+            @(posedge clk);
+            passes = 0;
+            tests = 500;
+            for (int i = 0; i < tests; i++) begin
+                oamdataTest(passed);
+                if(passed) passes++;
+                @(posedge clk);    
+            end
+            $display("passed %d/%d tests", passes, tests);
+        end
         $finish;
 
     end

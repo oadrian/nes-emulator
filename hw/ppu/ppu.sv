@@ -92,15 +92,27 @@ module ppu (
     logic oam_we_ri, oam_re_ri;
     logic [7:0] oam_wr_data_ri, oam_rd_data_ri;
 
+    assign oam_we = oam_we_ri;
+    assign oam_d_in = oam_wr_data_ri;
+    assign oam_rd_data_ri = oam_d_out;
+
     // VRAM (Async read)
     logic [10:0] vram_addr_ri;
     logic vram_we_ri, vram_re_ri;
     logic [7:0] vram_wr_data_ri, vram_rd_data_ri;
 
+    assign vram_we1 = vram_we_ri;
+    assign vram_d_in1 = vram_wr_data_ri;
+    assign vram_rd_data_ri = vram_d_out1;
+
     // PAL RAM (ASYNC)
     logic [4:0] pal_addr_ri;
     logic pal_we_ri, pal_re_ri;
     logic [7:0] pal_wr_data_ri, pal_rd_data_ri;
+
+    assign pal_we = pal_we_ri;
+    assign pal_d_in = pal_wr_data_ri;
+    assign pal_rd_data_ri = pal_d_out;
 
     reg_inter ri(.clk, .cpu_clk_en, .ppu_clk_en, .rst_n,
                  .reg_sel, .reg_en, .reg_rw, .reg_data_in, .reg_data_out,
@@ -305,16 +317,22 @@ module ppu (
     end
 
     // first row is garbage, used for prefetching sprites for first visible sl
+    logic [10:0] vram_addr1_bg, vram_addr2_bg;
     bg_pixel bg(.row(row-9'd1), .col, 
                 .patt_tbl(bg_patt_tbl), .name_tbl(bg_name_tbl), 
-                .vram_addr1, .vram_data1(vram_d_out1), 
-                .vram_addr2, .vram_data2(vram_d_out2),
+                .vram_addr1(vram_addr1_bg), .vram_data1(vram_d_out1), 
+                .vram_addr2(vram_addr2_bg), .vram_data2(vram_d_out2),
                 .chr_rom_addr1(bg_chr_rom_addr1), .chr_rom_addr2(bg_chr_rom_addr2), 
                 .chr_rom_data1(chr_rom_out1), .chr_rom_data2(chr_rom_out2),
                 .bg_color_idx(bg_color_idx_t));
 
+    // ppumask control bits
     assign bg_color_idx_en = (ppumask[3]) ? bg_color_idx_t : 4'b0000;
     assign bg_color_idx = (!ppumask[1] && col < 9'd8) ? 4'b0000 : bg_color_idx_en;
+
+    // share address bus with register interface
+    assign vram_addr1 = (vram_we_ri || vram_re_ri) ? vram_addr_ri : vram_addr1_bg;
+    assign vram_addr2 = vram_addr2_bg;
 
     /////////////////////   SPRITE  //////////////////////////
     // Tempory OAM for Sprite eval
@@ -379,13 +397,14 @@ module ppu (
     pattern_tbl_t sp_patt_tbl; // register info
     logic [12:0] sp_chr_rom_addr1, sp_chr_rom_addr2;
     logic sp_chr_rom_re;
+    logic [7:0] oam_addr_spe;
 
     assign sp_patt_tbl = (ppuctrl[3]) ? RIGHT_TBL : LEFT_TBL; 
 
     sp_eval spe(.clk, .clk_en(ppu_clk_en), .rst_n,
                 .row(row-9'd1), .col, 
                 .hs_state(hs_curr_state), .patt_tbl(sp_patt_tbl),
-                .oam_addr(oam_addr), .oam_data(oam_d_out),
+                .oam_addr(oam_addr_spe), .oam_data(oam_d_out),
                 
                 .temp_oam_clr, .temp_oam_wr, .temp_oam_wr_data(temp_oam_in),
                 .temp_oam_rd_idx, .temp_oam_rd_data(temp_oam_out), 
@@ -396,8 +415,12 @@ module ppu (
                 .chr_rom_data1(chr_rom_out1), .chr_rom_data2(chr_rom_out2),
                 .chr_rom_re(sp_chr_rom_re));
 
+    // background and sprite rendering share address lines for tile data
     assign chr_rom_addr1 = (sp_chr_rom_re) ? sp_chr_rom_addr1 : bg_chr_rom_addr1;
     assign chr_rom_addr2 = (sp_chr_rom_re) ? sp_chr_rom_addr2 : bg_chr_rom_addr2;
+
+    // share the OAM addr bus
+    assign oam_addr = (oam_we_ri || oam_re_ri) ? oam_addr_ri : oam_addr_spe;
 
 
     // sprite pixel generation
@@ -408,32 +431,35 @@ module ppu (
                 .sec_oam, 
                 .sp_color_idx(sp_color_idx_t), .sp_prio, .sp_zero);
 
+    // ppumask control bits
     assign sp_color_idx_en = (ppumask[4]) ? sp_color_idx_t : 4'b0000;
     assign sp_color_idx = (!ppumask[2] && col < 9'd8) ? 4'b0000 : sp_color_idx_en;
 
     /////////////////////   FINAL PIXEL  //////////////////////////
-    // merge Background and Sprites using priority
 
     // Sprite - zero hit
     assign sp_zero_set = (vs_curr_state == VIS_SL && col < 9'd255 && 
                           sp_zero && bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] != 2'd0);
 
+    // merge Background and Sprites using priority
+    logic [4:0] pal_addr_merger;    
     always_comb begin
-        pal_addr = 5'd0;
+        pal_addr_merger = 5'd0;
         if(bg_color_idx[1:0] == 2'd0 && sp_color_idx[1:0] == 2'd0) begin 
-            pal_addr = {1'b0, bg_color_idx};
+            pal_addr_merger = {1'b0, bg_color_idx};
         end else if(bg_color_idx[1:0] == 2'd0 && sp_color_idx[1:0] != 2'd0) begin 
-            pal_addr = {1'b1, sp_color_idx};
+            pal_addr_merger = {1'b1, sp_color_idx};
         end else if(bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] == 2'd0) begin 
-            pal_addr = {1'b0, bg_color_idx};
+            pal_addr_merger = {1'b0, bg_color_idx};
         end else if(bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] != 2'd0 && sp_prio == 1'b0) begin 
-            pal_addr = {1'b1, sp_color_idx};
+            pal_addr_merger = {1'b1, sp_color_idx};
         end else if(bg_color_idx[1:0] != 2'd0 && sp_color_idx[1:0] != 2'd0 && sp_prio == 1'b1) begin 
-            pal_addr = {1'b0, bg_color_idx};
+            pal_addr_merger = {1'b0, bg_color_idx};
         end
-
-
     end
+
+    // share addr line for pal memory
+    assign pal_addr = (pal_we_ri || pal_re_ri) ? pal_addr_ri : pal_addr_merger;
 
     // greyscale
     assign ppu_buf_in = (ppumask[0]) ? pal_d_out & 8'h30 : pal_d_out;

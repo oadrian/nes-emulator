@@ -164,8 +164,9 @@ module BCDtoSevenSegment
    output logic [6:0] segment);
   
   always_comb begin
-    unique case(bcd)
-      4'b0000: segment = 7'b1000000;
+    segment = 7'b1000000;
+    case(bcd)
+     4'b0000: segment = 7'b1000000;
      4'b0001: segment = 7'b1111001;
      4'b0010: segment = 7'b0100100;
      4'b0011: segment = 7'b0110000;
@@ -181,6 +182,7 @@ module BCDtoSevenSegment
      4'b1101: segment = 7'b0100001;
      4'b1110: segment = 7'b0000110;
      4'b1111: segment = 7'b0001110;
+     default: ;
     endcase
   end
 

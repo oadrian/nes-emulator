@@ -130,7 +130,7 @@ module reg_inter (
     assign ppuaddr_inc = (reg_sel == PPUDATA && reg_en);
     assign ppuaddr_inc_amnt = (ppuctrl_out[2]) ? 16'd32 : 16'd1;
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
         if(~rst_n) begin
             ppuctrl_out <= 8'd0;
             ppumask_out <= 8'd0;
@@ -139,7 +139,7 @@ module reg_inter (
             ppuscrollY_out <= 8'd0;
             ppuaddr_out <= 16'd0;
             oamdma_out <= 8'd0;
-        end else if(cpu_clk_en) begin
+        end else begin
             ppuctrl_out <= ppuctrl_in;
             ppumask_out <= ppumask_in;
             oamdma_out <= oamdma_in;
@@ -161,7 +161,6 @@ module reg_inter (
                 ppuscrollY_out <= 8'd0;
                 ppuaddr_out <= 16'd0;
             end
-
         end
     end
     
@@ -173,11 +172,11 @@ module reg_inter (
     } scroll_wr_curr_state, scroll_wr_next_state,
       addr_wr_curr_state, addr_wr_next_state;
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
         if(~rst_n) begin
             scroll_wr_curr_state <= FIRST_WRITE;
             addr_wr_curr_state <= FIRST_WRITE;
-        end else if(cpu_clk_en) begin
+        end else begin
             scroll_wr_curr_state <= scroll_wr_next_state;
             addr_wr_curr_state <= addr_wr_next_state;
         end
@@ -185,22 +184,22 @@ module reg_inter (
 
     ///////// read out register //////////
     logic [7:0] reg_data_out_next;
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
         if(~rst_n) begin
             reg_data_out <= 8'd0;
-        end else if(cpu_clk_en) begin
+        end else begin
             reg_data_out <= reg_data_out_next;
         end
     end
 
     /////////// READ ONLY registers //////////
     logic force_vblank_clr0, force_vblank_clr1;
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge ppu_clk_en or negedge rst_n) begin
         if(~rst_n) begin
             ppustatus_out <= 8'd0;
             force_vblank_clr0 <= 1'b0;
             force_vblank_clr1 <= 1'b0;
-        end else if(ppu_clk_en) begin
+        end else begin
             ppustatus_out[4:0] <= last_write[4:0];
 
             force_vblank_clr0 <= ppustatus_rd_clr;
@@ -236,20 +235,20 @@ module reg_inter (
         OAMDMA_WRITE
     } oamdma_curr_state, oamdma_next_state;
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
         if(~rst_n) begin
             oamdma_curr_state <= OAMDMA_IDLE;
-        end else if(cpu_clk_en) begin
+        end else begin
             oamdma_curr_state <= oamdma_next_state;
         end
     end
 
     logic [7:0] counter;
     logic counter_en, counter_clr;
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
         if(~rst_n) begin
             counter <= 8'd0;
-        end else if(cpu_clk_en) begin
+        end else begin
             if(counter_clr)
                 counter <= 8'd0;
             else if(counter_en)

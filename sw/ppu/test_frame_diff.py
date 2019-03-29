@@ -64,7 +64,7 @@ def testALL(traces, trace_folder):
 
         # run ./simv 
         FNULL = open(os.devnull, 'w')
-        subprocess.call(["./simv"], stdout=FNULL, stderr=FNULL)
+        subprocess.call(["./simv", "+FRAMETEST"], stdout=FNULL, stderr=FNULL)
 
         # convert generated frame data to bitmap
         bitmap_hw = hw_gen.createBitmap("my_frame.txt")

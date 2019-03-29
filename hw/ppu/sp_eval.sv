@@ -117,9 +117,9 @@ module sp_eval (
 
         chr_rom_re = 1'b0;
 
-        unique case (hs_state)
+        case (hs_state)
             SL_PRE_CYC: begin 
-                unique case (col[1:0])
+                case (col[1:0])
                     2'd0: begin 
                         if({1'b0, oam_data} <= next_row && next_row < {1'b0, oam_data} + `SPRITE_WIDTH) begin 
                             curr_sprite_in.active = 1'b1;
@@ -153,6 +153,7 @@ module sp_eval (
                             temp_oam_wr = 1'b1;
                         end
                     end
+                    default: ;
                 endcase
             end
             IDLE_CYC: begin 
@@ -174,6 +175,7 @@ module sp_eval (
             GARB_CYC: begin 
                 temp_oam_clr = 1'b1;
             end
+            default: ;
         endcase
     
     end
