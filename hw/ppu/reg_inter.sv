@@ -68,11 +68,11 @@ module reg_inter (
     /////// ALL register definitions  ////////
 
     // write only
-    logic [7:0] ppuctrl_out, ppuctrl_in;
-    logic [7:0] ppumask_out, ppumask_in;
+    logic [7:0] ppuctrl_in;
+    logic [7:0] ppumask_in;
     logic [7:0] oamaddr_out, oamaddr_in;
-    logic [7:0] ppuscrollX_out, ppuscrollX_in;
-    logic [7:0] ppuscrollY_out, ppuscrollY_in;
+    logic [7:0] ppuscrollX_in;
+    logic [7:0] ppuscrollY_in;
     logic [15:0] ppuaddr_out, ppuaddr_in;
     logic [7:0] oamdma_out, oamdma_in;
 
