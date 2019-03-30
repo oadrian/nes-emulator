@@ -40,9 +40,9 @@ def split2hex(filename):
     text2bin.write2file(OAM_BIN, oam_str)
 
     if(sys.platform == 'linux2'):
-        subprocess.call(["./objcopy", "--input-target=binary", "--output-target=ihex", PATTBL_BIN, PATTBL_HEX])
-        subprocess.call(["./objcopy", "--input-target=binary", "--output-target=ihex", NAMETBL_BIN, NAMETBL_HEX])
-        subprocess.call(["./objcopy", "--input-target=binary", "--output-target=ihex", OAM_BIN, OAM_HEX])
+        subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", PATTBL_BIN, PATTBL_HEX])
+        subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", NAMETBL_BIN, NAMETBL_HEX])
+        subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", OAM_BIN, OAM_HEX])
     elif(sys.platform == 'win32'):
         subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", PATTBL_BIN, PATTBL_HEX])
         subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", NAMETBL_BIN, NAMETBL_HEX])
