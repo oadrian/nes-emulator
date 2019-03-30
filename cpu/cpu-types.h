@@ -1,4 +1,7 @@
 
+#ifndef CPU_TYPES
+#define CPU_TYPES
+
 #include <stdint.h>
 
 // enums used for instr ctrl signals
@@ -23,13 +26,13 @@ typedef enum {Store_A, Store_X, Store_Y, Store_status} ctrl_store_reg;
 
 // enums used for addressing mode ucode
 
-typedef enum {ADDRLO_1, ADDRLO_FF, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_0, ADDRLO_ALUOUT, ADDRLO_hold} ucode_addr_lo_src;
+typedef enum {ADDRLO_1, ADDRLO_FF, ADDRLO_FE, ADDRLO_FD, ADDRLO_FC, ADDRLO_FB, ADDRLO_FA, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_0, ADDRLO_ALUOUT, ADDRLO_hold} ucode_addr_lo_src;
 
-typedef enum {ADDRHI_SP, ADDRHI_FE, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM, ADDRHI_ALUOUT, ADDRHI_hold} ucode_addr_hi_src;
+typedef enum {ADDRHI_SP, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM, ADDRHI_ALUOUT, ADDRHI_hold} ucode_addr_hi_src;
 
 typedef enum {ReadEn_R, ReadEn_W, ReadEn_none} ucode_r_en;
 
-typedef enum {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status, WMEMSRC_instr_store, WMEMSRC_RMEM} ucode_write_mem_src;
+typedef enum {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status_b, WMEMSRC_status_i, WMEMSRC_instr_store, WMEMSRC_RMEM} ucode_write_mem_src;
 
 typedef enum {SPSRC_ALUOUT, SPSRC_none} ucode_sp_src;
 
@@ -83,7 +86,7 @@ typedef struct
     ctrl_alu_op alu_op;
     ucode_sp_src sp_src;
     ucode_pclo_src pclo_src;
-    ucode_plhi_src pchi_src;
+    ucode_pchi_src pchi_src;
     ucode_status_src status_src;
     ucode_branch_depend inc_pc;
     ucode_instr_ctrl instr_ctrl;
@@ -92,3 +95,5 @@ typedef struct
     ucode_en skip_line;
     ucode_branch_depend stop_ucode;
 } ucode_ctrl_signals;
+
+#endif

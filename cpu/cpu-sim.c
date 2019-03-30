@@ -8,7 +8,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "cpu-types.h"
+#include "ucode_ctrl.h"
 
 /* 
 
@@ -21,6 +23,8 @@ does incrementing the pc take 1 or 2 cycles if it crosses a boundary?
  change chars and shorts to uints bc im a good boy
 
 */
+
+
 
 // how many bytes of memory we have (whole 16 bit address space)
 #define MEMSIZE 0x10000
@@ -83,7 +87,7 @@ typedef struct {
 
 // todo: figure out the actual start PC
 cpu_core *init_cpu() {
-    cpu = calloc(sizeof(cpu_core));
+    cpu_core *cpu = calloc(1, sizeof(cpu_core));
     cpu->status = DEFAULT_STATUS;
     cpu->SP = DEFAULT_SP;
     cpu->PC.full =  DEFAULT_PC;
@@ -91,16 +95,16 @@ cpu_core *init_cpu() {
 }
 
 memory_module *init_memory() {
-    mem = calloc(sizeof(memory_module));
+    memory_module *mem = calloc(1, sizeof(memory_module));
     mem->data_in = 1; // should not be writing 0s anywhere
     mem->read_enable = Enable_1;
-    mem->M = calloc(sizeof(uint8_t) * MEMSIZE);
+    mem->M = calloc(MEMSIZE, sizeof(uint8_t));
     return mem;
 }
 
 alu_module *init_alu() {
-    alu = calloc(sizeof(alu_module));
-    alu->op_sel = ALU_hold;
+    alu_module *alu = calloc(1, sizeof(alu_module));
+    alu->op_sel = ALUOP_hold;
     return alu;
 }
 
@@ -136,6 +140,18 @@ void copy_cpu_module(cpu_core* src_cpu, cpu_core *dst_cpu) {
 
 uint8_t get_flag_bit(uint8_t status, uint8_t bit_position) {
     return (status >> bit_position) & 1;
+}
+
+uint8_t set_flag_bit(uint8_t status, uint8_t bit_position, uint8_t bit_value) {
+    uint8_t mask;
+    if (bit_value == 1) {
+        mask = 1 << bit_position;
+        return status | mask;
+    }
+    else {
+        mask = ~(1 << bit_position);
+        return status & mask;
+    }
 }
 
 uint8_t get_branch_bit(ctrl_branch_bit branch_bit, ctrl_inv branch_inv, uint8_t status) {
@@ -240,7 +256,7 @@ void get_new_alu_values(alu_module* alu, alu_module* next_alu, cpu_core* cpu, me
                     switch (instr_ctrl_vector.alu_c_src) {
                         // ALUC_C, ALUC_0, ALUC_1, ALUC_ALUCOUT
                         // can only be 0, 1, or ALUCOUT
-                        case ALU_C: {next_alu->c_in = get_flag_bit(cpu->status, C_FLAG); break;}
+                        case ALUC_C: {next_alu->c_in = get_flag_bit(cpu->status, C_FLAG); break;}
                         case ALUC_0: {next_alu->c_in = 0; break;}
                         case ALUC_1: {next_alu->c_in = 1; break;}
                         default: { /* BOOM */ }
@@ -280,16 +296,16 @@ void get_new_alu_values(alu_module* alu, alu_module* next_alu, cpu_core* cpu, me
 
             uint8_t  alu_out_temp;
             uint16_t alu_out_16;
-            uint16_t alu_src1_16 = (uint16_t) next_alu->alu_src1;
-            uint16_t alu_src2_16 = (uint16_t) next_alu->alu_src2;
+            uint16_t alu_src1_16 = (uint16_t) next_alu->src1;
+            uint16_t alu_src2_16 = (uint16_t) next_alu->src2;
             uint16_t alu_c_in_16 = (uint16_t) next_alu->c_in;
 
-            if (next_alu->alu_src2_inv == Invert_1) {
-                alu_out_temp = (next_alu->alu_src1 & 0x7F) + ((~next_alu->alu_src2) & 0x7F) + next_alu->c_in;
+            if (next_alu->src2_invert == Invert_1) {
+                alu_out_temp = (next_alu->src1 & 0x7F) + ((~next_alu->src2) & 0x7F) + next_alu->c_in;
                 alu_out_16 = alu_src1_16 + ~alu_src2_16 + alu_c_in_16;
             }
             else {
-                alu_out_temp = (next_alu->alu_src1 & 0x7F) + (next_alu->alu_src2 & 0x7F) + next_alu->c_in;
+                alu_out_temp = (next_alu->src1 & 0x7F) + (next_alu->src2 & 0x7F) + next_alu->c_in;
                 alu_out_16 = alu_src1_16 + alu_src2_16 + alu_c_in_16;
             }
 
@@ -300,49 +316,82 @@ void get_new_alu_values(alu_module* alu, alu_module* next_alu, cpu_core* cpu, me
             break;
         }
         case ALUOP_and: {
-            next_alu->alu_out = next_alu->alu_src1 & next_alu->alu_src2;
+            next_alu->alu_out = next_alu->src1 & next_alu->src2;
             break;
         }
         case ALUOP_or: {
-            next_alu->alu_out = next_alu->alu_src1 | next_alu->alu_src2;
+            next_alu->alu_out = next_alu->src1 | next_alu->src2;
             break;
         }
         case ALUOP_xor: {
-            next_alu->alu_out = next_alu->alu_src1 ^ next_alu->alu_src2;
+            next_alu->alu_out = next_alu->src1 ^ next_alu->src2;
             break;
         }
         case ALUOP_shift_left: {
             next_alu->c_out = next_alu->src1 >> 7;
-            next_alu->alu_out = (next_alu->src1 << 1) + next_alu->alu_c_in;
+            next_alu->alu_out = (next_alu->src1 << 1) + next_alu->c_in;
             break;
         }
         case ALUOP_shift_right: {
             next_alu->c_out = next_alu->src1 & 1;
-            next_alu->alu_out = (next_alu->src1 >> 1) + (next_alu->alu_c_in << 7);
+            next_alu->alu_out = (next_alu->src1 >> 1) + (next_alu->c_in << 7);
             break;
         }
 
     }
 
-    if (next_alu.alu_out == 0) {
-        next_alu.z_out = 1;
+    if (next_alu->alu_out == 0) {
+        next_alu->z_out = 1;
     }
     else {
-        next_alu.z_out = 0;
+        next_alu->z_out = 0;
     }
 
-    if (next_alu.alu_out >= 0x80) {
-        next_alu.n_out = 1;
+    if (next_alu->alu_out >= 0x80) {
+        next_alu->n_out = 1;
     }
     else {
-        next_alu.n_out = 0;
+        next_alu->n_out = 0;
     }
 
 }
 
 
-/* TODO: need to figure out when an instr writes to mem */
-void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memory_module* next_mem, 
+// memory mapping for cpu
+/*
+
+ 0x0000 - 0x07ff 2KB ram
+ 0x0800 - 0x17ff mirrors of 2KB ram
+
+ 0x2000 - 0x2007 ppu registers
+ 0x2008 - 0x3fff mirrors of ppu registers
+
+ 0x4000 - 0x4017 apu/io regs
+ 0x4018 - 0x401f disbaled io and apu functionality
+
+ 0x4020 - 0xffff cartridge space
+
+*/
+
+uint16_t get_nes_cpu_addr(uint16_t addr) {
+
+
+    if (addr < 0x2000) {
+        // in 2KB ram
+        return addr % 0x800;
+    }
+    else if (addr < 0x4000) {
+        // in 8 PPU regs
+        return (addr % 0x8) + 0x2000;
+    }
+
+    // APU/IO/ROM - addr is the same
+    return addr;
+
+}
+
+
+void get_new_memory_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memory_module* next_mem, 
                         processor_state state, processor_ucode_activity ucode_active, uint8_t ucode_index, uint8_t instr_ctrl_index) {
 
     ucode_ctrl_signals ucode_vector = ucode_ctrl_signals_rom[ucode_index];
@@ -365,9 +414,14 @@ void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memo
                 case State_ucode_active: {
 
                     switch(ucode_vector.addr_lo_src) {
-                    // ADDRLO_1, ADDRLO_FF, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_0, ADDRLO_ALUOUT, ADDRLO_hold
+                    // ADDRLO_1, ADDRLO_FF, ADDRLO_FE, ADDRLO_FD, ADDRLO_FC, ADDRLO_FB, ADDRLO_FA, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_0, ADDRLO_ALUOUT, ADDRLO_hold
                         case ADDRLO_1: {next_mem->addr.half[0] = 1; break;}
                         case ADDRLO_FF: {next_mem->addr.half[0] = 0xFF; break;}
+                        case ADDRLO_FE: {next_mem->addr.half[0] = 0xFE; break;}
+                        case ADDRLO_FD: {next_mem->addr.half[0] = 0xFD; break;}
+                        case ADDRLO_FC: {next_mem->addr.half[0] = 0xFC; break;}
+                        case ADDRLO_FB: {next_mem->addr.half[0] = 0xFB; break;}
+                        case ADDRLO_FA: {next_mem->addr.half[0] = 0xFA; break;}
                         case ADDRLO_PCLO: {next_mem->addr.half[0] = cpu->PC.half[0]; break;}
                         case ADDRLO_RMEMBUFFER: {next_mem->addr.half[0] = mem->data_out_buffer; break;}
                         case ADDRLO_0: {next_mem->addr.half[0] = 0; break;}
@@ -376,9 +430,8 @@ void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memo
                     }
 
                     switch(ucode_vector.addr_hi_src) {
-                    // ADDRHI_SP, ADDRHI_FE, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM, ADDRHI_ALUOUT, ADDRHI_hold
+                    // ADDRHI_SP, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM, ADDRHI_ALUOUT, ADDRHI_hold
                         case ADDRHI_SP: {next_mem->addr.half[1] = cpu->SP; break;}
-                        case ADDRHI_FE: {next_mem->addr.half[1] = 0xFE; break;}
                         case ADDRHI_FF: {next_mem->addr.half[1] = 0xFF; break;}
                         case ADDRHI_PCHI: {next_mem->addr.half[1] = cpu->PC.half[1]; break;}
                         case ADDRHI_RMEM: {next_mem->addr.half[1] = mem->data_out; break;}
@@ -417,7 +470,8 @@ void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memo
         // copy data_in or 0 it
     if (next_mem->read_enable == Enable_1) {
         next_mem->data_out_buffer = mem->data_out;
-        next_mem->data_out = next_mem->M[next_mem->addr.full];
+        uint16_t real_addr = get_nes_cpu_addr(next_mem->addr.full);
+        next_mem->data_out = next_mem->M[real_addr];
         next_mem->data_in = mem->data_in;
     }
 
@@ -436,10 +490,12 @@ void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memo
         else {
 
             switch (ucode_vector.write_mem_src) {
-                // WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status, WMEMSRC_instr_store, WMEMSRC_RMEM
+                // WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status_b, WMEMSRC_status_i, WMEMSRC_instr_store, WMEMSRC_RMEM
                 case WMEMSRC_PCHI: {next_mem->data_in = cpu->PC.half[1]; break;}
                 case WMEMSRC_PCLO: {next_mem->data_in = cpu->PC.half[0]; break;}
-                case WMEMSRC_status: {next_mem->data_in = cpu->status; break;}
+                //need to make sure the pushed status bits have proper flag set
+                case WMEMSRC_status_i: {next_mem->data_in = set_flag_bit(cpu->status, I_FLAG, 1); break;}
+                case WMEMSRC_status_b: {next_mem->data_in = set_flag_bit(cpu->status, B_FLAG, 1); break;}
                 case WMEMSRC_RMEM: {next_mem->data_in = mem->data_out; break;}
                 case WMEMSRC_instr_store: {
                     switch (instr_ctrl_vector.store_reg) {
@@ -454,7 +510,8 @@ void get_new_mem_values(alu_module* alu, cpu_core* cpu, memory_module* mem, memo
             }
         }
 
-        next_mem->M[next_mem->addr.full] = next_mem->data_in;
+        uint16_t real_addr = get_nes_cpu_addr(next_mem->addr.full);
+        next_mem->M[real_addr] = next_mem->data_in;
         next_mem->data_out = mem->data_out;
         next_mem->data_out_buffer = mem->data_out_buffer;
 
@@ -481,7 +538,7 @@ void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memo
                 case PCLOSRC_RMEM_BUFFER: {next_cpu->PC.half[0] = mem->data_out_buffer; break;}
                 case PCLOSRC_none: {next_cpu->PC.half[0] = cpu->PC.half[0]; break;}
             }
-            switch (ucode_vector.phhi_src) {
+            switch (ucode_vector.pchi_src) {
                 // PCHISRC_RMEM, PCHISRC_ALUOUT, PCHISRC_none
                 case PCHISRC_RMEM: {next_cpu->PC.half[1] = mem->data_out; break;}
                 case PCHISRC_ALUOUT: {next_cpu->PC.half[1] = alu->alu_out; break;}
@@ -579,7 +636,7 @@ void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memo
         // check each of the 7 bits
         // for the bit operation, copy bits from RMEM_BUFFER
 
-    if (ucode_active == State_ucode_active && ucode_vector.status_src = Status_SRC_RMEM) {
+    if (ucode_active == State_ucode_active && ucode_vector.status_src == Status_SRC_RMEM) {
         next_cpu->status = mem->data_out;
     } 
     else if (ucode_active == State_ucode_active && ucode_vector.instr_ctrl == INSTR_CTRL_2) {
@@ -617,7 +674,10 @@ void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memo
 
 
             // B
-            uint8_t b_bit_value = get_flag_bit(cpu->status, B_FLAG);
+            uint8_t b_bit_value = 0;
+            // b-bit doesn't actually exist in the register
+            // we just put enable it on some pushes to the stack
+            //get_flag_bit(cpu->status, B_FLAG);
 
             // D
             uint8_t d_bit_value = 0;
@@ -635,7 +695,7 @@ void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memo
                 // Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none
                 case Flag_0: {i_bit_value = 0; break;}
                 case Flag_1: {i_bit_value = 1; break;}
-                case Flag_none: {i_bit_value = get_flag_bit(cpu->status, = I_FLAG); break;}
+                case Flag_none: {i_bit_value = get_flag_bit(cpu->status, I_FLAG); break;}
                 default: { /* BOOM */ }
             }
 
@@ -644,7 +704,7 @@ void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memo
             switch (instr_ctrl_vector.z_src) {
                 // Flag_alu, Flag_0, Flag_1, Flag_RMEM_BUFFER, Flag_none
                 case Flag_alu: {z_bit_value = alu->z_out; break;}
-                case Flag_none: {z_bit_value = get_flag_bit(cpu->status, = Z_FLAG); break;}
+                case Flag_none: {z_bit_value = get_flag_bit(cpu->status, Z_FLAG); break;}
                 default: { /* BOOM */ }
             }
 
@@ -655,7 +715,7 @@ void get_new_cpu_values(alu_module* alu, cpu_core* cpu, cpu_core* next_cpu, memo
                 case Flag_alu: {c_bit_value = alu->c_out; break;}
                 case Flag_0: {c_bit_value = 0; break;}
                 case Flag_1: {c_bit_value = 1; break;}
-                case Flag_none: {c_bit_value = get_flag_bit(cpu->status, = c_FLAG); break;}
+                case Flag_none: {c_bit_value = get_flag_bit(cpu->status, C_FLAG); break;}
                 default: { /* BOOM */ }
             }
 
@@ -752,7 +812,7 @@ processor_ucode_activity get_next_ucode_active(cpu_core *cpu, alu_module *alu, m
 }
 */
 
-uint8_t get_next_ucode_active(cpu_core *cpu, alu_module *alu, memory_module *mem, 
+uint8_t get_next_ucode_index(cpu_core *cpu, alu_module *alu, memory_module *mem, 
                               processor_state state, processor_ucode_activity ucode_active, 
                               uint8_t ucode_index, uint8_t instr_ctrl_index) {
 
@@ -804,14 +864,14 @@ uint8_t get_next_ucode_active(cpu_core *cpu, alu_module *alu, memory_module *mem
 void run_program(cpu_core *cpu, memory_module *mem) {
     alu_module *alu = init_alu();
 
-    alu_module *next_alu = calloc(sizeof(alu_module));
-    memory_module *next_mem = calloc(sizeof(memory_module));
-    cpu_core *next_cpu = calloc(sizeof(cpu_core));
+    alu_module *next_alu = calloc(1, sizeof(alu_module));
+    memory_module *next_mem = calloc(1, sizeof(memory_module));
+    cpu_core *next_cpu = calloc(1, sizeof(cpu_core));
 
-    processor_state state = State_fetch;
+    processor_state state = State_neither;
     processor_ucode_activity ucode_active = State_ucode_active;
 
-    uint8_t ucode_index = 0;
+    uint8_t ucode_index = reset_ucode_index;
     uint8_t instr_ctrl_index = 0;
     uint8_t decode_ctrl_index = 0;
 
@@ -867,3 +927,8 @@ int main() {
 
     return 0;
 }
+
+
+// how to actually run this bad boy?
+// memory!!!
+// polling for interupts?
