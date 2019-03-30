@@ -5,6 +5,8 @@
 
 `define oam_init
 
+`define SYNTH
+
 // oam is 256 bytes  (64 sprites each of 4 bytes)
 `define OAM_WIDTH 8
 
@@ -18,7 +20,9 @@ module oam (
     input logic [7:0] data_in,
     output logic [7:0] data_out
 );
-
+    `ifdef SYNTH
+    oam_synth o_sy(.address(addr), .clock(clk), .data(data_in), .wren(we), .q(data_out));
+    `else 
     logic [7:0] mem[2**`OAM_WIDTH-1:0]; //64 sprites each 4 bytes 
 
     always_ff @(posedge clk, negedge rst_n) begin
@@ -36,4 +40,5 @@ module oam (
 
     assign data_out = mem[addr];
 
+    `endif
 endmodule
