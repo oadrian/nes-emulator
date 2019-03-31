@@ -65,16 +65,51 @@ module reg_inter (
     output logic [7:0] ppuscrollX_out,
     output logic [7:0] ppuscrollY_out
 );
+    // update flops
+    logic update0, update1, update2, update3,
+          update4, update5, update6, update7,
+          update8, update9, update_flops;  
+
+    always_ff @(posedge clk or negedge rst_n) begin
+           if(~rst_n) begin
+               update0 <= 0;
+               update1 <= 0;
+               update2 <= 0;
+               update3 <= 0;
+               update4 <= 0;
+               update5 <= 0;
+               update6 <= 0;
+               update7 <= 0;
+               update8 <= 0;
+               update9 <= 0;
+               update_flops <= 0;
+           end else begin
+                update0 <= cpu_clk_en;
+                update1 <= update0;
+                update2 <= update1;
+                update3 <= update2;
+                update4 <= update3;
+                update5 <= update4;
+                update6 <= update5;
+                update7 <= update6;
+                update8 <= update7;
+                update9 <= update8;
+                update_flops <= update9;
+           end
+       end 
+
     /////// ALL register definitions  ////////
 
     // write only
     logic [7:0] ppuctrl_in;
     logic [7:0] ppumask_in;
-    logic [7:0] oamaddr_out, oamaddr_in;
     logic [7:0] ppuscrollX_in;
     logic [7:0] ppuscrollY_in;
-    logic [15:0] ppuaddr_out, ppuaddr_in;
     logic [7:0] oamdma_out, oamdma_in;
+
+    // need to pipeline them 12 stages so that increment doesn't happen to early
+    logic [15:0] ppuaddr_out, ppuaddr_in;
+    logic [7:0] oamaddr_out, oamaddr_in;
 
     // read only
     logic [7:0] ppustatus_out, last_write;
@@ -91,7 +126,7 @@ module reg_inter (
 
     // OAM address to read or write to
     assign oam_re = oam_re_reg;
-    assign oam_we = oam_we_dma || oam_we_reg;
+    assign oam_we = (oam_we_dma || oam_we_reg);
 
     always_comb begin
         oam_addr = oamaddr_out;
@@ -112,9 +147,13 @@ module reg_inter (
     end
 
     // PPU VRAM address to read or write to
+    logic vram_we_reg;
+    assign vram_we = vram_we_reg;
     assign vram_addr = ppuaddr_out[10:0];
 
-    // PAL ram address to read or write to 
+    // PAL ram address to read or write to
+    logic pal_we_reg;
+    assign pal_we = pal_we_reg; 
     assign pal_addr = ppuaddr_out[4:0];
 
     /////// Write Only Registers //////////
@@ -124,13 +163,13 @@ module reg_inter (
     logic [15:0] ppuaddr_inc_amnt;
 
     // OAM increment logic
-    assign oamaddr_inc = (reg_sel == OAMDATA && reg_en && reg_rw);
+    assign oamaddr_inc = (reg_sel == OAMDATA) && reg_en && reg_rw;
 
     // VRAM increment logic
-    assign ppuaddr_inc = (reg_sel == PPUDATA && reg_en);
-    assign ppuaddr_inc_amnt = (ppuctrl_out[2]) ? 16'd32 : 16'd1;
+    assign ppuaddr_inc = (reg_sel == PPUDATA) && reg_en;
+    assign ppuaddr_inc_amnt = (ppuctrl_out[2]) ? 16'd32 : 16'd1;  
 
-    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
+    always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             ppuctrl_out <= 8'd0;
             ppumask_out <= 8'd0;
@@ -139,7 +178,7 @@ module reg_inter (
             ppuscrollY_out <= 8'd0;
             ppuaddr_out <= 16'd0;
             oamdma_out <= 8'd0;
-        end else begin
+        end else if(update_flops) begin
             ppuctrl_out <= ppuctrl_in;
             ppumask_out <= ppumask_in;
             oamdma_out <= oamdma_in;
@@ -172,11 +211,11 @@ module reg_inter (
     } scroll_wr_curr_state, scroll_wr_next_state,
       addr_wr_curr_state, addr_wr_next_state;
 
-    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
+    always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             scroll_wr_curr_state <= FIRST_WRITE;
             addr_wr_curr_state <= FIRST_WRITE;
-        end else begin
+        end else if(update_flops) begin
             scroll_wr_curr_state <= scroll_wr_next_state;
             addr_wr_curr_state <= addr_wr_next_state;
         end
@@ -184,22 +223,22 @@ module reg_inter (
 
     ///////// read out register //////////
     logic [7:0] reg_data_out_next;
-    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
+    always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             reg_data_out <= 8'd0;
-        end else begin
+        end else if(update_flops) begin
             reg_data_out <= reg_data_out_next;
         end
     end
 
     /////////// READ ONLY registers //////////
     logic force_vblank_clr0, force_vblank_clr1;
-    always_ff @(posedge ppu_clk_en or negedge rst_n) begin
+    always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             ppustatus_out <= 8'd0;
             force_vblank_clr0 <= 1'b0;
             force_vblank_clr1 <= 1'b0;
-        end else begin
+        end else if(ppu_clk_en) begin
             ppustatus_out[4:0] <= last_write[4:0];
 
             force_vblank_clr0 <= ppustatus_rd_clr;
@@ -235,20 +274,20 @@ module reg_inter (
         OAMDMA_WRITE
     } oamdma_curr_state, oamdma_next_state;
 
-    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
+    always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             oamdma_curr_state <= OAMDMA_IDLE;
-        end else begin
+        end else if(update_flops) begin
             oamdma_curr_state <= oamdma_next_state;
         end
     end
 
     logic [7:0] counter;
     logic counter_en, counter_clr;
-    always_ff @(posedge cpu_clk_en or negedge rst_n) begin
+    always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             counter <= 8'd0;
-        end else begin
+        end else if(update_flops) begin
             if(counter_clr)
                 counter <= 8'd0;
             else if(counter_en)
@@ -345,12 +384,12 @@ module reg_inter (
 
         // PPU VRAM
         vram_re = 1'b0;
-        vram_we = 1'b0;
+        vram_we_reg = 1'b0;
         vram_wr_data = 8'd0;
 
         // PAL RAM
         pal_re = 1'b0;
-        pal_we = 1'b0;
+        pal_we_reg = 1'b0;
         pal_wr_data = 8'd0;
 
         // read register
@@ -424,16 +463,14 @@ module reg_inter (
                 if(reg_en && reg_rw) begin 
                     /* write */
                     last_write = reg_data_in;
-                    if(16'h0000 <= ppuaddr_out && ppuaddr_out <= 16'h1fff) begin 
-                        // do nothing writing to chr_rom
-                    end else if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h27ff) begin 
-                        vram_we = 1'b1;
+                    if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h27ff) begin 
+                        vram_we_reg = 1'b1;
                         vram_wr_data = reg_data_in;
                     end else if(16'h3000 <= ppuaddr_out && ppuaddr_out <= 16'h37ff) begin 
-                        vram_we = 1'b1;
+                        vram_we_reg = 1'b1;
                         vram_wr_data = reg_data_in;
                     end else if(16'h3f00 <= ppuaddr_out && ppuaddr_out <= 16'h3fff) begin 
-                        pal_we = 1'b1;
+                        pal_we_reg = 1'b1;
                         pal_wr_data = reg_data_in;
                     end 
                     // nametable 2 and 3 are in 0x2800 - 0x2FFF which are not used

@@ -111,7 +111,21 @@ module top ();
         rand bit cyc_par;
     endclass : OAM
 
+    class VRAM;
+        rand bit [7:0] mem[32];
+        rand bit I_mode;   // 0 - +1, 1 - +32
+        rand bit [15:0] offset;
+        constraint c {
+            // if(I_mode == 1'b1)
+            //     (16'h2000 <= offset && offset <= 16'h3C00);
+            // else 
+            //     (16'h2000 <= offset && offset <= 16'h3FE0);
+            offset == 16'h2000;
+        }
+    endclass : VRAM
+
     OAM oam, dma;
+    VRAM vram;
 
     logic [7:0] i;
 
@@ -124,7 +138,10 @@ module top ();
         reg_data_in = 8'd0;
 
         passed = 1;
-        @(posedge cpu_clk_en)
+        @(posedge cpu_clk_en);
+        if($test$plusargs("DEBUG")) begin
+            $display("Writing to OAM");
+        end
         reg_sel = OAMADDR;
         reg_en = 1'b1;
         reg_rw = 1'b1;
@@ -137,11 +154,36 @@ module top ();
         for (i = 8'd0; i != 8'd255; i++) begin
             reg_sel = OAMDATA;
             reg_en = 1'b1;
-            reg_rw = 1'b1;
+            reg_rw = 1'b1;   // write
             reg_data_in = oam.mem[i];
             @(posedge cpu_clk_en);
         end
         @(posedge cpu_clk_en);
+        if($test$plusargs("DEBUG")) begin
+            $display("Reading from OAM");
+        end
+        // test OAMDATA
+        for (i = 8'd0; i != 8'd255; i++) begin
+            reg_sel = OAMADDR;
+            reg_en = 1'b1;
+            reg_rw = 1'b1;
+            reg_data_in = oam.offset + i;
+            @(posedge cpu_clk_en);
+            reg_sel = OAMDATA;
+            reg_en = 1'b1;
+            reg_rw = 1'b0;  // read
+            @(posedge cpu_clk_en);
+            #1; // simulation uses values in preponed region for reg_data_out otherwise lul
+            if(oam.mem[i] != reg_data_out) begin 
+                $display({"random oam did not match ppu's oam: ",
+                          "random mem[%d] = %h, ppu mem[%d] = %h\n"}, 
+                          i, oam.mem[i], i + oam.offset, reg_data_out);
+                passed = 0;
+            end
+        end
+        @(posedge cpu_clk_en);
+
+
 
         for(i = 8'd0; i != 8'd255; i++) begin 
             if(oam.mem[i] != dut.om.mem[i + oam.offset]) begin 
@@ -158,7 +200,6 @@ module top ();
         end
     endtask : oamdataTest
     
-
     task oamdmaTest(output logic passed);
         dma = new();
 		dma.randomize();
@@ -190,7 +231,7 @@ module top ();
 		reg_sel = PPUCTRL;
         reg_en = 1'b0;
         reg_rw = 1'b0;
-        reg_data_in = 8'd00000000;   // increment 1 going across
+        reg_data_in = 8'd00000000;
 		if(cpu_cyc_par) begin
 			@(posedge cpu_clk_en);
 			@(posedge cpu_clk_en);
@@ -228,9 +269,72 @@ module top ();
 		
     endtask : oamdmaTest
 
-
+    logic [15:0] j, k, curr_addr;
     task ppudataTest(output logic passed);
-	
+        /////// VRAM READS/WRITES ////////
+        vram = new();
+        vram.randomize();
+
+        reg_sel = PPUCTRL;
+        reg_en = 1'b1;
+        reg_rw = 1'b1;
+        reg_data_in = {5'b00000, vram.I_mode ,2'b00};   // increment 1 going across
+        
+        cpu_cyc_par = 1'b0;
+
+        passed = 1;
+        @(posedge cpu_clk_en);
+        reg_sel = PPUADDR;
+        reg_en = 1'b1;
+        reg_rw = 1'b1;
+        reg_data_in = vram.offset[15:8];
+        @(posedge cpu_clk_en);
+        reg_sel = PPUADDR;
+        reg_en = 1'b1;
+        reg_rw = 1'b1;
+        reg_data_in = vram.offset[7:0];
+        @(posedge cpu_clk_en);
+        for (j = 16'd0; j < 16'd32; j++) begin
+            reg_sel = PPUDATA;
+            reg_en = 1'b1;
+            reg_rw = 1'b1;   // write
+            reg_data_in = vram.mem[j];
+            @(posedge cpu_clk_en);
+        end
+        @(posedge cpu_clk_en);
+        @(posedge cpu_clk_en);
+        k = 16'd0;
+        if(vram.I_mode) begin
+            $display("I_mode was +32");
+        end else begin 
+            $display("I_mode was +1");
+        end
+        for(j = 16'd0; j < 16'd32 ; j++) begin 
+            curr_addr = k + vram.offset;
+            if(16'h2000 <= curr_addr && curr_addr <= 16'h27ff) begin
+                if(vram.mem[j] != dut.vr.mem[curr_addr[10:0]]) begin 
+                    $display({"random vram did not match ppu's vram: ",
+                              "random mem[%d] = %h, ppu's mem[%d] = %h\n"}, 
+                              j, vram.mem[j], curr_addr[10:0], dut.vr.mem[curr_addr[10:0]]);
+                    passed = 0;
+                end
+            end else if(16'h3000 <= curr_addr && curr_addr <= 16'h37ff) begin 
+                if(vram.mem[j] != dut.vr.mem[curr_addr[10:0]]) begin 
+                    $display({"random vram did not match ppu's vram: ",
+                              "random mem[%d] = %h, ppu mem[%d] = %h\n"}, 
+                              j, vram.mem[j], curr_addr[10:0], dut.vr.mem[curr_addr[10:0]]);
+                    passed = 0;
+                end
+            end else if(16'h3f00 <= curr_addr && curr_addr <= 16'h3fff) begin 
+                if(vram.mem[j] != dut.pr.mem[curr_addr[4:0]]) begin 
+                    $display({"random vram did not match ppu's vram: ",
+                              "random mem[%d] = %h, ppu mem[%d] = %h\n"}, 
+                              j, vram.mem[j], curr_addr[10:0], dut.pr.mem[curr_addr[10:0]]);
+                    passed = 0;
+                end
+            end
+            k = (vram.I_mode) ? k+16'd32 : k+16'd1;
+        end
     endtask: ppudataTest
 
     int passes, tests;
@@ -249,7 +353,7 @@ module top ();
         if($test$plusargs("OAMDATA")) begin 
             $display({"\n",
                       "---------------------\n",
-                      "<Testing OAMDATA Register Interface Writes>\n",
+                      "<Testing OAMDATA Register Interface Reads/Writes>\n",
                       "---------------------\n" });
             doReset;
             @(posedge clk);
@@ -258,7 +362,7 @@ module top ();
             for (int i = 0; i < tests; i++) begin
                 oamdataTest(passed);
                 if(passed) passes++;
-                @(posedge clk);    
+                @(posedge clk);
             end
             $display("passed %d/%d tests", passes, tests);
         end
@@ -270,8 +374,6 @@ module top ();
                       "---------------------\n" });
             doReset;
             @(posedge clk);
-            oamdmaTest(passed);
-            
             passes = 0;
             tests = 500;
             for (int i = 0; i < tests; i++) begin
@@ -281,6 +383,23 @@ module top ();
             end
             $display("passed %d/%d tests", passes, tests);
            
+        end
+
+        if($test$plusargs("PPUDATA")) begin
+            $display({"\n",
+                      "---------------------\n",
+                      "<Testing PPUDATA Register Interface Writes>\n",
+                      "---------------------\n" });
+            doReset;
+            @(posedge clk);
+            passes = 0;
+            tests = 100;
+            for (int i = 0; i < tests; i++) begin
+                ppudataTest(passed);
+                if(passed) passes++;
+                @(posedge clk);    
+            end
+            $display("passed %d/%d tests", passes, tests);
         end
         $finish;
 
