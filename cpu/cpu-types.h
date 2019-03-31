@@ -73,8 +73,7 @@ typedef struct {
     ctrl_store_reg store_reg;
 } instr_ctrl_signals;
 
-typedef struct 
-{
+typedef struct {
     ucode_addr_lo_src addr_lo_src;
     ucode_addr_hi_src addr_hi_src;
     ucode_r_en r_en;

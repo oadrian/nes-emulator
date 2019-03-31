@@ -359,7 +359,7 @@ void get_new_alu_values(alu_module* alu, alu_module* next_alu, cpu_core* cpu, me
             uint16_t alu_src2_16 = (uint16_t) src2_fixed;
             uint16_t alu_c_in_16 = (uint16_t) next_alu->c_in;
 
-            alu_out_temp = (next_alu->src1 & 0x7F) + (next_alu->src2 & 0x7F) + next_alu->c_in;
+            alu_out_temp = (next_alu->src1 & 0x7F) + (src2_fixed & 0x7F) + next_alu->c_in;
             alu_out_16 = alu_src1_16 + alu_src2_16 + alu_c_in_16;
 
             next_alu->alu_out = (uint8_t) alu_out_16;
@@ -834,6 +834,10 @@ processor_state get_next_state(cpu_core *cpu, alu_module *alu, processor_state s
             else if (ucode_vector.start_fetch == Enable_1) {
                 return State_fetch;
             }
+            else if (ucode_vector.skip_line == Enable_1 &&
+                     alu->c_out == 0) {
+                return State_fetch;
+            }
             switch (ucode_vector.start_decode) {
                 // Branch_Depend_0, Branch_Depend_1, Branch_Depend_branch_bit, Branch_Depend_not_c_out
                 case Branch_Depend_0: {
@@ -892,7 +896,14 @@ uint8_t get_next_ucode_index(cpu_core *cpu, alu_module *alu, memory_module *mem,
 
     // if c-skip is enabled
     else if (ucode_vector.skip_line == Enable_1) {
-        return ucode_index + 2;
+        // if there is a carry out, increment by 1!
+        if (alu->c_out == 1) {
+            return ucode_index + 1;
+        }
+        else {
+            return ucode_index + 2;
+        }
+        
     }
 
     // if stopu_code is enabled - return 0

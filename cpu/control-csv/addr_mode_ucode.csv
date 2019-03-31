@@ -87,7 +87,7 @@ ABSXW,PCLO,PCHI,R,,X,RMEM,0,0,+,,,,,1,0,,,,
 ABSYW,PCLO,PCHI,R,,Y,RMEM,0,0,+,,,,,1,0,,,,
 ,ALUOUT,RMEM,R,,RMEM,0,0,ALUCOUT,+,,,,,0,0,,,,
 ,,ALUOUT,W,instr_store,,,,,,,,,,0,0,1,,,1
-REL,PCLO,PCHI,R,,PCLO,RMEM,0,0,+,,,,,branch_bit,1,,branch_bit,,branch_bit
+REL,PCLO,PCHI,R,,PCLO,RMEM,0,0,+,,,,,branch_bit,0,,branch_bit,,branch_bit
 ,ALUOUT,PCHI,R,,PCHI,0,0,ALUCOUT,+,,ALUOUT,,,not_c_out,0,,not_c_out,,not_c_out
 ,,ALUOUT,R,,,,,,,,,ALUOUT,,1,0,,1,,1
 IXIDR,RMEM,0,R,,X,RMEM,0,0,+,,,,,0,0,,,,
@@ -125,7 +125,7 @@ IDIXW,RMEM,0,R,,RMEM,0,0,1,+,,,,,0,0,,,,
 ABSID,PCLO,PCHI,R,,RMEM,0,0,1,+,,,,,1,0,,,,
 ,RMEMBUFFER,RMEM,R,,,,,,,,,,,0,0,,,,
 ,ALUOUT,,R,,,,,,,,RMEM,,,0,0,,,,
-,PCLO,RMEM,R,,,,,,,,,RMEM,,1,0,1,,,1
+,PCLO,RMEM,R,,,,,,,,,RMEM,,1,0,,1,,1
 IRQ,PCLO,PCHI,R,,,,,,,,,,,0,0,,,,
 ,,,R,,,,,,,,,,,0,0,,,,
 ,SP,1,W,PCHI,SP,0,1,0,+,,,,,0,0,,,,
