@@ -77,7 +77,7 @@ module reg_inter (
     logic [7:0] oamdma_out, oamdma_in;
 
     // read only
-    logic [7:0] ppustatus_out, ppustatus_in, last_write;
+    logic [7:0] ppustatus_out, last_write;
 
     // oam write wires for OAMDATA
     logic oam_re_reg;
@@ -349,6 +349,7 @@ module reg_inter (
         vram_wr_data = 8'd0;
 
         // PAL RAM
+        pal_re = 1'b0;
         pal_we = 1'b0;
         pal_wr_data = 8'd0;
 

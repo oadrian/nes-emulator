@@ -50,12 +50,15 @@ module top ();
         forever #5 clk = ~clk;
     end
 
-   task frameTest();
+    task frameTest();
         f = $fopen(filename, "w");
         reg_sel = PPUCTRL;
         reg_en = 1'b0;
         reg_rw = 1'b1;
         reg_data_in = 8'b00000000;
+
+        cpu_cyc_par = 1'b0;
+        cpu_rd_data = 8'd0;
         @(posedge cpu_clk_en);
         reg_sel = PPUCTRL;
         reg_en = 1'b1;
@@ -99,17 +102,14 @@ module top ();
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
-   endtask : frameTest
+    endtask : frameTest
 
-   class OAM;
+    class OAM;
         rand bit [7:0] mem[256];
         rand bit [7:0] offset;
         rand bit [7:0] upper_addr;
         rand bit cyc_par;
-   endclass : OAM
-
-   logic [7:0] oam_test_read;
-   logic [7:0] ram_test_read;
+    endclass : OAM
 
     OAM oam, dma;
 

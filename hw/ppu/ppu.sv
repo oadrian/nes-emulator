@@ -50,6 +50,9 @@ module ppu (
     logic vram_we1, vram_we2;
     logic [7:0] vram_d_in1, vram_d_in2, vram_d_out1, vram_d_out2;
 
+    assign vram_we2 = 1'b0;
+    assign vram_d_in2 = 8'd0;
+
     vram vr(.clk, .clk_en(ppu_clk_en), .rst_n, 
             .addr1(vram_addr1), .addr2(vram_addr2),
             .we1(vram_we1), .we2(vram_we2),  

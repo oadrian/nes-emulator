@@ -28,3 +28,4 @@ clean :
 	-rm $(TARGET)
 	-rm -r $(TARGET).daidir
 	-rm ucli.key
+	-rm inter.vpd
