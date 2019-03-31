@@ -91,6 +91,6 @@ typedef struct packed {
     ucode_branch_depend_t start_decode;
     logic skip_line;
     ucode_branch_depend_t stop_ucode;
-} ucode_ctrl_signals;
+} ucode_ctrl_signals_t;
 
 //#endif

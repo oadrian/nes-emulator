@@ -64,6 +64,10 @@ def find_first_dif(golden_contents, output_contents):
             print("got:      %s" % output_log)
             return
 
+    print(len(golden_contents.splitlines()), len(output_contents.splitlines()))
+    for log in matching_lines[-5:]:
+        print(log)
+
     print("passed", len(matching_lines))
 
 
