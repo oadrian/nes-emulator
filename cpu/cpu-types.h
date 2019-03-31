@@ -26,13 +26,13 @@ typedef enum {Store_A, Store_X, Store_Y, Store_status} ctrl_store_reg;
 
 // enums used for addressing mode ucode
 
-typedef enum {ADDRLO_1, ADDRLO_FF, ADDRLO_FE, ADDRLO_FD, ADDRLO_FC, ADDRLO_FB, ADDRLO_FA, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_0, ADDRLO_ALUOUT, ADDRLO_hold} ucode_addr_lo_src;
+typedef enum {ADDRLO_FF, ADDRLO_FE, ADDRLO_FD, ADDRLO_FC, ADDRLO_FB, ADDRLO_FA, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_RMEM, ADDRLO_ALUOUT, ADDRLO_SP, ADDRLO_hold} ucode_addr_lo_src;
 
-typedef enum {ADDRHI_SP, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM, ADDRHI_ALUOUT, ADDRHI_hold} ucode_addr_hi_src;
+typedef enum {ADDRHI_1, ADDRHI_0, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM, ADDRHI_ALUOUT, ADDRHI_hold} ucode_addr_hi_src;
 
 typedef enum {ReadEn_R, ReadEn_W, ReadEn_none} ucode_r_en;
 
-typedef enum {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status_b, WMEMSRC_status_i, WMEMSRC_instr_store, WMEMSRC_RMEM} ucode_write_mem_src;
+typedef enum {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_status_bs, WMEMSRC_status_bc, WMEMSRC_instr_store, WMEMSRC_RMEM} ucode_write_mem_src;
 
 typedef enum {SPSRC_ALUOUT, SPSRC_none} ucode_sp_src;
 
