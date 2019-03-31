@@ -54,6 +54,14 @@ module top ();
         f = $fopen(filename, "w");
         reg_sel = PPUCTRL;
         reg_en = 1'b0;
+        reg_rw = 1'b0;
+        reg_data_in = 8'b00000000;
+
+        cpu_cyc_par = 1'b0;
+        cpu_rd_data = 8'd0;
+        @(posedge cpu_clk_en);
+        reg_sel = PPUCTRL;
+        reg_en = 1'b0;
         reg_rw = 1'b1;
         reg_data_in = 8'b00000000;
 
@@ -116,11 +124,10 @@ module top ();
         rand bit I_mode;   // 0 - +1, 1 - +32
         rand bit [15:0] offset;
         constraint c {
-            // if(I_mode == 1'b1)
-            //     (16'h2000 <= offset && offset <= 16'h3C00);
-            // else 
-            //     (16'h2000 <= offset && offset <= 16'h3FE0);
-            offset == 16'h2000;
+            if(I_mode == 1'b1)
+                (16'h2000 <= offset && offset <= 16'h3C00);
+            else 
+                (16'h2000 <= offset && offset <= 16'h3FE0);
         }
     endclass : VRAM
 
@@ -135,9 +142,17 @@ module top ();
         reg_sel = PPUCTRL;
         reg_en = 1'b0;
         reg_rw = 1'b0;
-        reg_data_in = 8'd0;
+        reg_data_in = 8'b00000000;
+
+        cpu_cyc_par = 1'b0;
+        cpu_rd_data = 8'd0;
 
         passed = 1;
+        @(posedge cpu_clk_en);
+        reg_sel = PPUCTRL;
+        reg_en = 1'b0;
+        reg_rw = 1'b0;
+        reg_data_in = 8'd0;
         @(posedge cpu_clk_en);
         if($test$plusargs("DEBUG")) begin
             $display("Writing to OAM");
@@ -203,15 +218,20 @@ module top ();
     task oamdmaTest(output logic passed);
         dma = new();
 		dma.randomize();
+        reg_sel = PPUCTRL;
+        reg_en = 1'b0;
+        reg_rw = 1'b0;
+        reg_data_in = 8'b00000000;
 
+        cpu_cyc_par = 1'b0;
+        cpu_rd_data = 8'd0;
+
+        passed = 1;
+        @(posedge cpu_clk_en);
 		reg_sel = PPUCTRL;
         reg_en = 1'b1;
         reg_rw = 1'b1;
         reg_data_in = 8'd00000000;   // increment 1 going across
-        
-        cpu_cyc_par = 1'b0;
-
-        passed = 1;
 		@(posedge cpu_clk_en);
 		reg_sel = OAMADDR;
 		reg_en = 1'b1;
@@ -274,15 +294,20 @@ module top ();
         /////// VRAM READS/WRITES ////////
         vram = new();
         vram.randomize();
+        reg_sel = PPUCTRL;
+        reg_en = 1'b0;
+        reg_rw = 1'b0;
+        reg_data_in = 8'b00000000;
 
+        cpu_cyc_par = 1'b0;
+        cpu_rd_data = 8'd0;
+
+        passed = 1;
+        @(posedge cpu_clk_en);
         reg_sel = PPUCTRL;
         reg_en = 1'b1;
         reg_rw = 1'b1;
         reg_data_in = {5'b00000, vram.I_mode ,2'b00};   // increment 1 going across
-        
-        cpu_cyc_par = 1'b0;
-
-        passed = 1;
         @(posedge cpu_clk_en);
         reg_sel = PPUADDR;
         reg_en = 1'b1;
@@ -329,7 +354,7 @@ module top ();
                 if(vram.mem[j] != dut.pr.mem[curr_addr[4:0]]) begin 
                     $display({"random vram did not match ppu's vram: ",
                               "random mem[%d] = %h, ppu mem[%d] = %h\n"}, 
-                              j, vram.mem[j], curr_addr[10:0], dut.pr.mem[curr_addr[10:0]]);
+                              j, vram.mem[j], curr_addr[4:0], dut.pr.mem[curr_addr[4:0]]);
                     passed = 0;
                 end
             end
@@ -393,7 +418,7 @@ module top ();
             doReset;
             @(posedge clk);
             passes = 0;
-            tests = 100;
+            tests = 500;
             for (int i = 0; i < tests; i++) begin
                 ppudataTest(passed);
                 if(passed) passes++;

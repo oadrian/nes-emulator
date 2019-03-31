@@ -474,7 +474,7 @@ module reg_inter (
                         pal_wr_data = reg_data_in;
                     end 
                     // nametable 2 and 3 are in 0x2800 - 0x2FFF which are not used
-                    // for mapper-0, mirrored adresses are also ignored
+                    // for mapper-0
                 end else if(reg_en && !reg_rw) begin 
                     vram_re = 1'b1;
                     reg_data_out_next = vram_rd_data;
