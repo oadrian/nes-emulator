@@ -14,13 +14,21 @@ module triangle_channel (
   output logic [3:0] wave);
 
 
-  logic [3:0] seq_out;
   logic timer_pulse;
+
+  logic gate1_out, gate2_out;
   logic [31:0][3:0] seq;
-  logic [4:0] seq_i;
+  logic [4:0] next_seq_i, seq_i;
 
   assign seq = 128'hFEDCBA98765432100123456789ABCDEF;
+  assign next_seq_i = seq_i + 5'b1;
   assign wave = seq[seq_i];
+
+  assign gate1_out = linear_non_zero ? timer_pulse : 1'b0;
+  assign gate2_out = length_non_zero ? gate1_out : 1'b0;
+
+  register #(.WIDTH(5), .RES_VAL(0)) seq_i_reg (
+    .clk(cpu_clk), .rst_l, .en(timer_pulse), .d(next_seq_i), .q(seq_i));
   
   divider #(.WIDTH(11), .RES_VAL(0)) triangle_timer (
     .clk(cpu_clk), .rst_l, .load(timer_load), .load_data(timer_load_data),
