@@ -20,9 +20,13 @@ template_dir = "templates"
 
 c_template_file = "ucode_ctrl_template.txt"
 h_template_file = "ucode_ctrl_h_template.txt"
+#vh_template_file = "ucode_ctrl_vh_template.txt"
 
 c_target_file = "ucode_ctrl.c"
 h_target_file = "ucode_ctrl.h"
+
+
+vh_target_file = "ucode_ctrl.vh"
 
 #ALUOUTDST,ALU1SRC,ALU2SRC,ALU2INV,ALUCINSRC,ALUOP,ZEROSRC,NEGSRC,CARSRC,OVRSRC,INTSRC,BRKSRC,DECSRC,BRANCHBIT,BRANCHINV,STORE
 class instr_ctrl_vector(object):
@@ -119,6 +123,23 @@ class instr_ctrl_vector(object):
         res += "Branch_%s, " % self.branch_bit
         res += "Invert_%s, " % self.branch_inv
         res += "Store_%s" %  self.store_tgt
+        return res + "}"
+
+    def vector_to_sv_struct(self):
+        res = "{"
+        res += "ALUOP_%s, " % self.alu_op
+        res += "ALUDST_%s, " % self.alu_out_dst
+        res += "SRC1_%s, " % self.alu_src1
+        res += "SRC2_%s, " % self.alu_src2
+        res += "1'b%s, " % self.invert_src2
+        res += "ALUC_%s, " % self.alu_c_in
+        for flag_str in self.get_flags():
+            res += "Flag_%s, " % flag_str
+        res += "Branch_%s, " % self.branch_bit
+        res += "1'b%s, " % self.branch_inv
+        res += "Store_%s" %  self.store_tgt
+        res = res.upper()
+        res = res.replace("'B", "'b")
         return res + "}"
 
     def __repr__(self):
@@ -237,6 +258,31 @@ class ucode_vector(object):
         res += "Branch_Depend_%s, " % self.start_decode
         res += "Enable_%s, " % self.carry_skip
         res += "Branch_Depend_%s" % self.stop_ucode
+        return res + "}"
+
+    def vector_to_sv_struct(self):
+        res = "{"
+        res += "ADDRLO_%s, " % self.addr_lo
+        res += "ADDRHI_%s, " % self.addr_hi
+        res += "ReadEn_%s, " % self.read_en
+        res += "WMEMSRC_%s, " % self.wmem_src
+        res += "SRC1_%s, " % self.alu_src1
+        res += "SRC2_%s, " % self.alu_src2
+        res += "1'b%s, " % self.invert_src2
+        res += "ALUC_%s, " % self.alu_c_in
+        res += "ALUOP_%s, " % self.alu_op
+        res += "SPSRC_%s, " % self.write_sp
+        res += "PCLOSRC_%s, " % self.write_pclo
+        res += "PCHISRC_%s, " % self.write_pchi
+        res += "Status_SRC_%s, " % self.write_status
+        res += "Branch_Depend_%s, " % self.inc_pc
+        res += "INSTR_CTRL_%s, " % self.instr_ctrl
+        res += "1'b%s, " % self.start_fetch
+        res += "Branch_Depend_%s, " % self.start_decode
+        res += "1'%s, " % self.carry_skip
+        res += "Branch_Depend_%s" % self.stop_ucode
+        res = res.upper()
+        res = res.replace("'B", "'b")
         return res + "}"
 
     def __repr__(self):
@@ -398,6 +444,12 @@ def get_c_struct_array(struct_name, vector_list):
         res += "  %s,\n" % str(vector)
     return res + "};\n"
 
+def get_sv_struct_array(struct_name, vector_list):
+    res = "`define %s_ROM {" % (struct_name.upper())
+    for vector in vector_list:
+        res += "%s, " % vector.vector_to_sv_struct()
+    return res + "}\n"
+
 def get_hex_byte(i):
     hex_chrs = "0123456789ABCDEF"
     i %= 256
@@ -428,6 +480,28 @@ def get_c_indices_array(struct_name, opcode_dict, index_dict):
 
     return res + "};\n"
 
+def get_sv_indices_array(struct_name, opcode_dict, index_dict):
+    if "ucode" in struct_name:
+        num_bits = 8
+    else:
+        num_bits = 6
+    res = "`define %s_INDICES {" % (struct_name.upper())
+
+    for i in range(256):
+        hex_i = get_hex_byte(i)
+        if hex_i in opcode_dict:
+            target_value = opcode_dict[hex_i]
+            if target_value in index_dict:
+                index = index_dict[target_value]
+            else:
+                index = 0
+        else:
+            index = 0
+
+        res += "%d'd%d, " % (num_bits, index)
+
+    return res + "}\n"
+
 def get_c_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals):
     res = "uint8_t decode_ctrl_signals_rom[] = {\n  "
     ct = 0
@@ -448,12 +522,36 @@ def get_c_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals):
 
     return res + "};\n"
 
+def get_sv_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals):
+    res = "`define DECODE_CTRL_SIGNALS_ROM {"
+
+    for i in range(256):
+        hex_i = get_hex_byte(i)
+        if hex_i in opcode_to_decode_ctrl_signals:
+            decode_ctrl_signals_byte = opcode_to_decode_ctrl_signals[hex_i].to_packed_int()
+        else:
+            decode_ctrl_signals_byte = default_decode_ctrl_signal_vector.to_packed_int()
+
+        res += "2'd%d, " % decode_ctrl_signals_byte
+
+    return res + "}\n"
+
+
 def get_c_special_ucode_indices(ucode_indices):
     special_signals = ["Reset", "IRQ", "NMI"]
     res = ""
     for signal in special_signals:
         index = ucode_indices[signal]
         line = "uint8_t %s_ucode_index = %d;\n" % (signal.lower(), index)
+        res += line
+    return res
+
+def get_sv_special_ucode_indices(ucode_indices):
+    special_signals = ["Reset", "IRQ", "NMI"]
+    res = ""
+    for signal in special_signals:
+        index = ucode_indices[signal]
+        line = "`define %s_UCODE_INDEX 8'd%d\n" % (signal.upper(), index)
         res += line
     return res
 
@@ -480,6 +578,19 @@ def write_h_code(instr_ctrl_size, ucode_rom_size):
     write_path = h_target_file
     writeFile(write_path, write_contents)
 
+def write_vh_code(new_sv_code, instr_ctrl_size, ucode_rom_size):
+
+    instr_ctrl_size_str = "`define INSTR_CTRL_SIZE %d\n" % instr_ctrl_size
+    ucode_rom_size_str = "`define UCODE_ROM_SIZE %d\n" % ucode_rom_size
+
+    contents = instr_ctrl_size_str + ucode_rom_size_str + new_sv_code
+
+    write_path = vh_target_file
+    writeFile(write_path, contents)
+
+
+
+
 
 
 def main():
@@ -498,16 +609,32 @@ def main():
     ucode_indices_array = get_c_indices_array(addr_mode_ucode_struct_name, opcode_to_addr_mode, ucode_indices)
     decode_ctrl_signals_array = get_c_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals)
 
-    # how to write to another file? will need to put the structs and enums in their own file?
     new_c_code = "\n\n%s\n%s\n%s\n%s\n%s\n%s" % (special_ucode_indices,
                                            instr_ctrl_signals_indices_array, instr_ctrl_signals_vector_array, 
                                            ucode_indices_array, ucode_vector_array, 
                                            decode_ctrl_signals_array)
-    write_c_code(new_c_code)
+    #write_c_code(new_c_code)
 
     instr_ctrl_size = len(instr_ctrl_signals)
     ucode_rom_size = len(ucode_rom)
 
-    write_h_code(instr_ctrl_size, ucode_rom_size)
+    #write_h_code(instr_ctrl_size, ucode_rom_size)
+
+
+    instr_ctrl_signals_vector_array = get_sv_struct_array(instr_ctrl_signals_struct_name, instr_ctrl_signals)
+    ucode_vector_array = get_sv_struct_array(addr_mode_ucode_struct_name, ucode_rom)
+
+    special_ucode_indices = get_sv_special_ucode_indices(ucode_indices)
+
+    instr_ctrl_signals_indices_array = get_sv_indices_array(instr_ctrl_signals_struct_name, opcode_to_instr, instr_indices)
+    ucode_indices_array = get_sv_indices_array(addr_mode_ucode_struct_name, opcode_to_addr_mode, ucode_indices)
+    decode_ctrl_signals_array = get_sv_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals)
+
+    new_sv_code = "\n%s\n%s\n%s\n%s\n%s\n%s" % (special_ucode_indices,
+                                           instr_ctrl_signals_indices_array, instr_ctrl_signals_vector_array, 
+                                           ucode_indices_array, ucode_vector_array, 
+                                           decode_ctrl_signals_array)
+
+    write_vh_code(new_sv_code, instr_ctrl_size, ucode_rom_size)
 
 main()

@@ -1,5 +1,142 @@
 `default_nettype none
 
+module #(WIDTH=8, RESET_VAL=0) cpu_register(
+    input  logic clock, clock_en, reset_n, data_en,
+    intput logic[WIDTH-1:0] data_in,
+    output logic[WIDTH-1:0] data_out);
+
+    always_ff @(posedge clock, negedge reset_n) begin
+        if (!reset_n) begin
+            data_out <= RESET_VAL;
+        end
+        else if (clock_en && data_en) begin
+            data_out <= data_in;
+        end
+    end
+
+endmodule : cpu_register
+
+
+module #(RESET_VAL=0) cpu_wide_counter_register(
+    input  logic clock, clock_en, reset_n, inc_en,
+    input  logic[1:0] data_en,
+    intput logic[15:0] data_in,
+    output logic[15:0] data_out);
+
+    always_ff @(posedge clock, negedge reset_n) begin
+        if (!reset_n) begin
+            data_out <= RESET_VAL;
+        end
+        else if (clock_en) begin
+            case (data_en)
+                2'b00: data_out <= data_out + {15'b0, inc_en};
+                2'b01: data_out <= {data_out[15:8], data_in[7:0]} + {15'b0, inc_en};
+                2'b10: data_out <= {data_in[15:8], data_out[7:0]} + {15'b0, inc_en};
+                2'b11: data_out <= data_in + {15'b0, inc_en};
+            endcase
+        end
+    end
+
+endmodule : cpu_wide_counter_register
+
+
+module #(RESET_VAL=0) cpu_wide_write_thru_register(
+    input  logic clock, clock_en, reset_n,
+    input  logic[1:0] data_en,
+    intput logic[15:0] data_in,
+    output logic[15:0] data_out);
+
+    logic [15:0] data_val;
+
+    always_comb begin
+        data_out = data_val;
+        if (data_en[0]) begin
+            data_out[7:0] = data_in[7:0];
+        end
+        if (data_en[1]) begin
+            data_out[15:8] = data_in[15:8];
+        end
+    end
+
+    always_ff @(posedge clock, negedge reset_n) begin
+        if (!reset_n) begin
+            data_out <= RESET_VAL;
+        end
+        else if (clock_en) begin
+            data_val <= data_out;
+        end
+    end
+
+endmodule : cpu_wide_write_thru_register
+
+
+module cpu_memory(
+    input  logic [15:0] addr,
+    input  logic r_en,
+    input  logic [7:0] w_data,
+    input  logic clock,
+    input  logic reset_n
+    output logic [7:0] r_data);
+
+    // addr is latched
+    // r_en and w_data are not latched
+    // r_data is latched
+
+    // FEDC_BA98_7654_3210
+
+    logic clock_en;
+    assign clock_en = 1'b1;
+
+    logic [0:8191][7:0] ram;
+    logic [0:7][7:0] ppu_regs;
+    logic [0:31][7:0] io_regs;
+    logic [16416:65535] cartridge_mem;
+
+    always_ff @(posedge clock, negedge reset_n) begin
+        if (!reset_n) begin
+            ram <= 'b0;
+            ppu_regs <= 'b0;
+            io_regs <= 'b0;
+            cartridge_mem <= 'b0;
+        end
+        else if (clock_en) begin
+            if (addr < 16'h2000) begin
+                if (r_en = 1'b1) begin
+                    r_data <= ram[addr[6:0]];
+                end
+                else begin
+                    ram[addr[6:0]] <= w_data;
+                end
+            end
+            else if (addr < 16'h4000) begin
+                if (r_en = 1'b1) begin
+                    r_data <= ppu_regs[addr[2:0]];
+                end
+                else begin
+                    ppu_regs[addr[2:0]] <= w_data;
+                end
+            end
+            else if (addr < 16'h4020) begin
+                if (r_en = 1'b1) begin
+                    r_data <= io_regs[addr[4:0]];
+                end
+                else begin
+                    io_regs[addr[4:0]] <= w_data;
+                end
+            end
+            else begin
+                if (r_en = 1'b1) begin
+                    r_data <= cartridge_mem[addr];
+                end
+                else begin
+                    cartridge_mem[addr] <= w_data;
+                end
+            end
+        end
+    end
+
+endmodule : cpu_memory
+
 module mem_inputs(
     input  instr_ctrl_signals_t instr_ctrl_vector,
     input  ucode_ctrl_signals_t ucode_vector,
@@ -76,7 +213,7 @@ module mem_inputs(
     always_comb begin
         w_data = 8'b0;
         
-        if (ucode_vector.instr_ctrl = INSTR_CTRL_2 &&
+        if (ucode_vector.instr_ctrl == INSTR_CTRL_2 &&
             instr_ctrl_vector.alu_out_dst == ALUDST_WMEM) begin
             w_data = alu_out;
         end

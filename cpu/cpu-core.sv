@@ -1,5 +1,16 @@
 `default_nettype none
 
+`define DEFAULT_SP 8'hFD
+
+`define DEFAULT_N 1'b0
+`define DEFAULT_V 1'b0
+`define DEFAULT_D 1'b0
+`define DEFAULT_I 1'b1
+`define DEFAULT_Z 1'b0
+`define DEFAULT_C 1'b0
+
+`define DEFAULT_PC 16'h4020
+
 module core(
     output logic [15:0] addr,
     output logic mem_r_en,
@@ -8,18 +19,33 @@ module core(
     input  logic clock,
     input  logic reset_n);
 
+    logic clock_en;
+    assign clock_en = 1'b1;
+
+    // roms
+    logic rom_en;
+
+    logic [0:255][5:0] instr_ctrl_signals_indices;
+    instr_ctrl_signals_t instr_ctrl_signals_rom [0:`INSTR_CTRL_SIZE-1];
+
+    logic [0:255][7:0] ucode_ctrl_signals_indices;
+    ucode_ctrl_signals_t ucode_ctrl_signals_rom[0:`UCODE_ROM_SIZE-1];
+
+    logic [0:255][1:0] decode_ctrl_signals_rom;
+
+
     // state and ctrl signals
     processor_state_t state;
     logic [7:0] ucode_index;
-    logic [6:0] instr_ctrl_index;
+    logic [5:0] instr_ctrl_index;
     logic decode_inc_pc, decode_start_fetch;
     instr_ctrl_signals_t instr_ctrl_vector;
     ucode_ctrl_signals_t ucode_vector;
 
     processor_state_t next_state;
     logic [7:0] next_ucode_index;
-    //instr_ctrl_signals_t next_instr_ctrl_vector;
-    //ucode_ctrl_signals_t next_ucode_vector;
+    logic [5:0] next_instr_ctrl_index;
+    logic instr_ctrl_index_en, state_en, ucode_index_en;
 
 
     // architecture signals
@@ -29,8 +55,10 @@ module core(
     logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag;
 
     logic [15:0] next_PC;
-    logic next_n_flag, next_v_flag, next_d_flag, next_i_flag, next_z_flag, next_c_flag;
+    logic next_n_flag, next_v_flag, next_d_flag,
+          next_i_flag, next_z_flag, next_c_flag;
     logic A_en, X_en, Y_en, SP_en, inc_PC;
+    logic [7:0] next_A, next_X, next_Y, next_SP;
     logic n_flag_en, v_flag_en, d_flag_en, i_flag_en, z_flag_en, c_flag_en;
     logic [1:0] PC_en;
 
@@ -41,7 +69,8 @@ module core(
     logic [7:0] r_data_buffer;
     logic [15:0] next_addr;
     logic [1:0] addr_en;
-    // logic [7:0] next_r_data_buffer;
+    logic [7:0] next_r_data_buffer;
+    logic r_data_buffer_en;
 
 
     // alu_signals
@@ -49,8 +78,68 @@ module core(
     logic [7:0] alu_src1, alu_src2, alu_out;
     ctrl_alu_op_t alu_op;
 
+    logic alu_en;
     logic next_alu_c_out, next_alu_v_out, next_alu_z_out, next_alu_n_out;
     logic [7:0] next_alu_out;
+
+
+////////////////////////////////////////////////////////////////////////////////
+// ROM //
+
+    assign rom_en = 1'b0;
+
+    cpu_register #(.WIDTH(256*6), .RESET_VAL(`INSTR_CTRL_SIGNALS_INDICES))
+        instr_ctrl_indices_reg(.data_en(rom_en), 
+                               .data_in(instr_ctrl_signals_indices), 
+                               .data_out(instr_ctrl_signals_indices), .*);
+    cpu_register #(.WIDTH($size(instr_ctrl_signals_t)*`INSTR_CTRL_SIZE),
+                   .RESET_VAL(`INSTR_CTRL_SIGNALS_ROM))
+        instr_ctrl_signals_rom_reg(.data_en(rom_en),
+                                   .data_in(instr_ctrl_signals_rom),
+                                   .data_out(instr_ctrl_signals_rom), .*);
+
+    cpu_register #(.WIDTH(256*8), .RESET_VAL(`UCODE_CTRL_SIGNALS_INDICES))
+        ucode_ctrl_signals_indices_reg(.data_en(rom_en),
+                                       .data_in(ucode_ctrl_signals_indices),
+                                       .data_out(ucode_ctrl_signals_indices), .*);
+    cpu_register #(.WIDTH($size(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE))
+        ucode_ctrl_signals_rom_reg(.data_en(rom_en),
+                                   .data_in(ucode_ctrl_signals_rom),
+                                   .data_out(ucode_ctrl_signals_rom), .*);
+
+    cpu_register #(.WIDTH(256*2), .RESET_VAL(DECODE_CTRL_SIGNALS_ROM))
+        decode_ctrl_signals_rom(.data_en(rom_en),
+                                .data_in(decode_ctrl_signals_rom),
+                                .data_out(decode_ctrl_signals_rom), .*);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// CTRL //
+    
+    cpu_next_state next_state_logic(.c_out(alu_c_out), .*);    
+    cpu_next_ucode_index next_ucode_index_logic(.c_out(alu_c_out), .*);
+
+    assign {decode_start_fetch, decode_inc_pc} = decode_ctrl_signals_rom[r_data];
+
+    assign state_en = 1'b1;
+    assign ucode_index_en = 1'b1;
+
+    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_NEITHER)) state_reg(
+        .data_en(state_en), .data_in(next_state), .data_out(state), .*);
+
+    cpu_register #(.RESET_VAL(`RESET_UCODE_INDEX)) ucode_index_reg(
+        .data_en(ucode_index_en), .data_in(next_ucode_index), 
+        .data_out(ucode_index), .*);
+
+    assign next_instr_ctrl_index = instr_ctrl_signals_indices[r_data];
+    assign instr_ctrl_index_en = state == STATE_DECODE;
+
+    cpu_register #(.WIDTH(6)) instr_ctrl_index_reg(
+        .data_en(instr_ctrl_index_en) .data_in(next_instr_ctr_index), 
+        .data_out(instr_ctrl_index), .*);
+
+    assign instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
+    assign ucode_vector = ucode_ctrl_signals_rom[ucode_index];
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -64,15 +153,51 @@ module core(
                       .d_flag(next_d_flag), .i_flag(next_i_flag),
                       .z_flag(next_z_flag), .c_flag(next_c_flag), .*);
 
-    cpu_next_state next_state_logic(.c_out(alu_c_out), .*);
+    assign next_A = alu_out;
+    assign next_X = alu_out;
+    assign next_Y = alu_out;
+    assign next_SP = alu_out;
 
-    cpu_next_ucode_index next_ucode_index_logic(.c_out(alu_c_out));
+    cpu_register A_reg(.data_en(A_en), .data_in(next_A), .data_out(A), .*);
+    cpu_register X_reg(.data_en(X_en), .data_in(next_X), .data_out(X), .*);
+    cpu_register Y_reg(.data_en(Y_en), .data_in(next_Y), .data_out(Y), .*);
+    
+    cpu_register #(.RESET_VAL(`DEFAULT_SP)) SP_reg(
+                        .data_en(SP_en), .data_in(next_SP), .data_out(SP), .*);
+    
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_N)) n_flag_reg(
+            .data_en(n_flag_en), .data_in(next_n_flag), .data_out(n_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_V)) v_flag_reg(
+            .data_en(v_flag_en), .data_in(next_v_flag), .data_out(v_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_D)) d_flag_reg(
+            .data_en(d_flag_en), .data_in(next_d_flag), .data_out(d_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_I)) i_flag_reg(
+            .data_en(i_flag_en), .data_in(next_i_flag), .data_out(i_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_Z)) z_flag_reg(
+            .data_en(z_flag_en), .data_in(next_z_flag), .data_out(z_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_C)) c_flag_reg(
+            .data_en(c_flag_en), .data_in(next_c_flag), .data_out(c_flag), .*);
+
+    cpu_wide_counter_register #(RESET_VAL(`DEFAULT_PC)) PC_reg(
+        .inc_en(inc_PC), .data_en(PC_en), .data_in(next_PC), .data_out(PC), .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // mem //
 
     mem_inputs mem_in(.addr(next_addr), .*);
+
+    // w_data and mem_r_en are not latched outputs,
+    // but addr is latched and write thru
+
+    assign next_r_data_buffer = r_data;
+    assign r_data_buffer_en = mem_r_en;
+
+    cpu_register r_data_buffer_reg(.data_en(mem_r_en),
+        .data_in(next_r_data_buffer), .data_out(r_data_buffer), .*);
+
+    cpu_wide_write_thru_register addr_reg(.data_en(addr_en), 
+        .data_in(next_addr), .data_out(addr), .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -87,8 +212,23 @@ module core(
                    .c_out(next_alu_c_out), .v_out(next_alu_v_out), 
                    .z_out(next_alu_z_out), .n_out(next_alu_n_out));
 
+    assign alu_en = alu_op != ALUOP_HOLD;
+
+    cpu_register alu_out_reg(.data_en(alu_en), .data_in(next_alu_out),
+                         .data_out(alu_out), .*);
+
+    cpu_register #(.WIDTH(1)) alu_c_out(
+        .data_en(alu_en), .data_in(next_alu_c_out), .data_out(alu_c_out), .*);
+    cpu_register #(.WIDTH(1)) alu_v_out(
+        .data_en(alu_en), .data_in(next_alu_v_out), .data_out(alu_v_out), .*);
+    cpu_register #(.WIDTH(1)) alu_z_out(
+        .data_en(alu_en), .data_in(next_alu_z_out), .data_out(alu_z_out), .*);
+    cpu_register #(.WIDTH(1)) alu_n_out(
+        .data_en(alu_en), .data_in(next_alu_n_out), .data_out(alu_n_out), .*);
+
 
 ////////////////////////////////////////////////////////////////////////////////
+
 
 endmodule : core
 
@@ -333,6 +473,7 @@ module cpu_next_ucode_index(
     input  processor_state_t state,
     input  logic[7:0] ucode_index, r_data,
     input  logic c_out, branch_bit,
+    input  logic[0:255][7:0] ucode_ctrl_signals_indices, 
 
     output logic[7:0] next_ucode_index);
 
@@ -340,7 +481,7 @@ module cpu_next_ucode_index(
         next_ucode_index = 8'b0;
 
         if (state == STATE_DECODE) begin
-            next_ucode_index = ucode_indices[r_data];
+            next_ucode_index = ucode_ctrl_signals_indices[r_data];
         end
         else if (ucode_vector.skip_line == 1'b1) begin
             next_ucode_index = (c_out) ? ucode_index + 8'd1 : ucode_index + 8'd2;
