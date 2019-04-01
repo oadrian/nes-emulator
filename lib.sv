@@ -49,7 +49,6 @@ module length_counter (
 
   always_comb
     if (~disable_l) next_count = 5'b0;
-    else if (halt) next_count = count;
     else if (load)
       case (load_data)
         5'h00: next_count = 8'd10;
@@ -85,6 +84,9 @@ module length_counter (
         5'h1E: next_count = 8'd32;
         5'h1F: next_count = 8'd30;
       endcase
+    else if (halt) next_count = count;
+    else if (!count)
+      next_count = 8'b0;
     else
       next_count = count - 1'b1;
         
