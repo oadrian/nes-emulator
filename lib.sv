@@ -14,7 +14,7 @@ module register #(parameter WIDTH=32, RES_VAL=0) (
 
 endmodule: register
 
-module linear_down_counter #(parameter WIDTH=32, RES_VAL=0) (
+module divider #(parameter WIDTH=32, RES_VAL=0) (
   input logic clk, rst_l,
   input logic load,
   input logic [WIDTH-1:0] load_data,
@@ -30,14 +30,12 @@ module linear_down_counter #(parameter WIDTH=32, RES_VAL=0) (
   register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
     .clk, .rst_l, .en(1'b1), .d(next_count), .q(count));
   
-endmodule: linear_down_counter
-
-
+endmodule: divider
 
 module linear_counter (
   input logic clk, rst_l,
-  input logic load,
   input logic clear_reload_l,
+  input logic load,
   input logic [6:0] load_data,
   output logic non_zero);
 
