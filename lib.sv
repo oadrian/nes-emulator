@@ -32,6 +32,46 @@ module linear_down_counter #(parameter WIDTH=32, RES_VAL=0) (
   
 endmodule: linear_down_counter
 
+
+
+module linear_counter (
+  input logic clk, rst_l,
+  input logic load,
+  input logic clear_reload_l,
+  input logic [6:0] load_data,
+  output logic non_zero);
+
+  logic next_reload_flag, reload_flag;
+  logic [6:0] next_count, count;
+
+  assign non_zero = count > 7'b0;
+
+  // Determine the next count
+  always_comb
+    if (reload_flag)
+      next_count = load_data;
+    else if (non_zero)
+      next_count = count - 7'b1;
+    else
+      next_count = count;
+
+  // Determine the next reload flag
+  always_comb
+    if (~clear_reload_l)
+      next_reload_flag = 1'b0;
+    else if (load | non_zero)
+      next_reload_flag = 1'b1;
+    else
+      next_reload_flag = reload_flag;
+
+  register #(.WIDTH(7), .RES_VAL(0)) count_reg (
+    .clk, .rst_l, .en(1'b1), .d(next_count), .q(count));
+
+  register #(.WIDTH(1), .RES_VAL(0)) reload_flag__reg (
+    .clk, .rst_l, .en(1'b1), .d(next_reload_flag), .q(reload_flag));
+
+endmodule: linear_counter
+
 module length_counter (
   input logic clk, rst_l,
   input logic halt,
