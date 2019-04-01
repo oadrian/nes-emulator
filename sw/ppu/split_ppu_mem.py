@@ -43,10 +43,19 @@ def split2hex(filename):
         subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", PATTBL_BIN, PATTBL_HEX])
         subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", NAMETBL_BIN, NAMETBL_HEX])
         subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", OAM_BIN, OAM_HEX])
+
+        subprocess.call(["rm", PATTBL_BIN])
+        subprocess.call(["rm", NAMETBL_BIN])
+        subprocess.call(["rm", OAM_BIN])
+
     elif(sys.platform == 'win32'):
         subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", PATTBL_BIN, PATTBL_HEX])
         subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", NAMETBL_BIN, NAMETBL_HEX])
         subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", OAM_BIN, OAM_HEX])
+
+        subprocess.call(["rm", PATTBL_BIN])
+        subprocess.call(["rm", NAMETBL_BIN])
+        subprocess.call(["rm", OAM_BIN])
     else:
         print("platform not recognized " + sys.platform)
 
