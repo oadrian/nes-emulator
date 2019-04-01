@@ -16,19 +16,19 @@ endmodule: register
 
 module linear_down_counter #(parameter WIDTH=32, RES_VAL=0) (
   input logic clk, rst_l,
-  input logic [WIDTH-1:0] load_val,
   input logic load,
+  input logic [WIDTH-1:0] load_data,
   output logic pulse);
 
-  logic [WIDTH-1:0] saved_val, cur_count, next_count;
+  logic [WIDTH-1:0] saved_data, next_count, count;
   
-  assign next_count = pulse ? saved_val : cur_count - 1'b1;
-  assign pulse = !cur_count;
+  assign next_count = (load | pulse) ? saved_data : count - 1'b1;
+  assign pulse = !count;
 
-  register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) load_val_reg (
-    .clk, .rst_l, .en(load), .d(load_val), .q(saved_val));
+  register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) data_reg (
+    .clk, .rst_l, .en(load), .d(load_data), .q(saved_data));
   register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
-    .clk, .rst_l, .en(1'b1), .d(next_count), .q(cur_count));
+    .clk, .rst_l, .en(1'b1), .d(next_count), .q(count));
   
 endmodule: linear_down_counter
 
