@@ -1,18 +1,18 @@
-`default nettype_none
+`default_nettype none
 
 module core(
-    output logic [15:0] address,
+    output logic [15:0] addr,
     output logic mem_r_en,
     output logic [7:0] w_data,
     input  logic [7:0] r_data,
     input  logic clock,
-    input  logic reset);
+    input  logic reset_n);
 
     // state and ctrl signals
     processor_state_t state;
     logic [7:0] ucode_index;
     logic [6:0] instr_ctrl_index;
-    logic [1:0] decode_ctrl_vector;
+    logic decode_inc_pc, decode_start_fetch;
     instr_ctrl_signals_t instr_ctrl_vector;
     ucode_ctrl_signals_t ucode_vector;
 
@@ -29,12 +29,18 @@ module core(
     logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag;
 
     logic [15:0] next_PC;
-    logic [7:0] next_A, next_X, next_Y, next_SP;
     logic next_n_flag, next_v_flag, next_d_flag, next_i_flag, next_z_flag, next_c_flag;
+    logic A_en, X_en, Y_en, SP_en, inc_PC;
+    logic n_flag_en, v_flag_en, d_flag_en, i_flag_en, z_flag_en, c_flag_en;
+    logic [1:0] PC_en;
+
+    logic branch_bit;
 
 
     // memory signals
     logic [7:0] r_data_buffer;
+    logic [15:0] next_addr;
+    logic [1:0] addr_en;
     // logic [7:0] next_r_data_buffer;
 
 
@@ -46,69 +52,308 @@ module core(
     logic next_alu_c_out, next_alu_v_out, next_alu_z_out, next_alu_n_out;
     logic [7:0] next_alu_out;
 
+
+////////////////////////////////////////////////////////////////////////////////
+// cpu //
+
+    branch_bit_module bbit(.branch_bit_type(instr_ctrl_vector.branch_bit),
+                           .branch_inv(instr_ctrl_vector.branch_inv), .*);
+
+    cpu_inputs cpu_in(.c_out(alu_c_out), .PC(next_PC), 
+                      .n_flag(next_n_flag), .v_flag(next_v_flag),
+                      .d_flag(next_d_flag), .i_flag(next_i_flag),
+                      .z_flag(next_z_flag), .c_flag(next_c_flag), .*);
+
+    cpu_next_state next_state_logic(.c_out(alu_c_out), .*);
+
+    cpu_next_ucode_index next_ucode_index_logic(.c_out(alu_c_out));
+
+
+////////////////////////////////////////////////////////////////////////////////
+// mem //
+
+    mem_inputs mem_in(.addr(next_addr), .*);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// ALU //
+
+    alu_inputs alu_in(.c_out(alu_c_out), .c_in(alu_c_in), 
+                      .src2_inv(alu_src2_inv), .src1(alu_src1),
+                      .src2(alu_src2), .op(alu_op), .*);
+
+    alu_module alu(.src1(alu_src1), .src2(alu_src2), .src2_inv(alu_src2_inv),
+                   .c_in(alu_c_in), .op(alu_op), .out(next_alu_out),
+                   .c_out(next_alu_c_out), .v_out(next_alu_v_out), 
+                   .z_out(next_alu_z_out), .n_out(next_alu_n_out));
+
+
+////////////////////////////////////////////////////////////////////////////////
+
 endmodule : core
 
-module alu(
-    input  logic [7:0] src1, src2,
-    input  logic src2_inv, c_in,
-    input  ctrl_alu_op_t op,
-    output logic [7:0] out,
-    output logic c_out, v_out, z_out, n_out);
 
-    logic [7:0] add_res, and_res, or_res, xor_res, ror_res, rol_res;
-    logic add_c_out, ror_c_out, rol_c_out;
-
-    logic [7:0] add_src2;
-    logic [7:0] partial_sum;
-    logic [8:0] full_sum;
-
-    // addition is special
-    assign add_src2 = (src2_inv) ? ~src2 : src2;
-    assign partial_sum = {1'b0, src1[6:0]} + {1'b0, add_src2[6:0]} + {7'b0, c_in};
-    assign full_sum = {1'b0, partial_sum} + {1'b0, src1[7], 7'b0} + {1'b0, add_src2[7], 7'b0};
-
-    assign add_res = full_sum[7:0];
-    assign add_c_out = full_sum[8];
-    assign v_out = add_c_out ^ partial_sum[7];
-
-    // logic operations are quite simple
-    assign and_res = src1 & src2;
-    assign or_res  = src1 | src2;
-    assign xor_res = src1 ^ src2;
-
-    // rotate operations need to figure out their carries
-    assign ror_res = {c_in, alu_src1[7:1]};
-    assign ror_c_out = alu_src1[0];
-    assign rol_res = {alu_src1[6:0], c_in};
-    assign rol_c_out = alu_src1[7];
+module branch_bit_module(
+    input  ctrl_branch_bit_t branch_bit_type, 
+    input  logic branch_inv,
+    input  logic c_flag, z_flag, n_flag, v_flag
+    output logic branch_bit);
 
     always_comb begin
-        out = 8'b0;
-        c_out = 1'b0;
-        case (op)
-            // ALUOP_HOLD, ALUOP_ADD, ALUOP_AND, ALUOP_OR, ALUOP_XOR, ALUOP_SHIFT_LEFT, ALUOP_SHIFT_RIGHT
-            ALUOP_ADD: begin
-                out = add_res;
-                c_out = add_c_out;
-            end
-            ALUOP_AND: out = and_res;
-            ALUOP_OR : out = or_res;
-            ALUOP_XOR: out = xor_res;
-            ALUOP_SHIFT_LEFT: begin
-                out = rol_res;
-                c_out = rol_c_out;
-            end
-            ALUOP_SHIFT_RIGHT: begin
-                out = ror_res;
-                c_out = ror_c_out;
+        branch_bit = 1'b0;
+        case (branch_bit_type)
+            // BRANCH_C, BRANCH_Z, BRANCH_N, BRANCH_V
+            BRANCH_C: branch_bit = branch_inv ^ c_flag;
+            BRANCH_Z: branch_bit = branch_inv ^ z_flag;
+            BRANCH_N: branch_bit = branch_inv ^ n_flag;
+            BRANCH_V: branch_bit = branch_inv ^ v_flag;
+    end
+
+endmodule: branch_bit_module
+
+
+module cpu_inputs(
+    input  instr_ctrl_signals_t instr_ctrl_vector,
+    input  ucode_ctrl_signals_t ucode_vector,
+    input  logic decode_inc_pc,
+
+    input logic[7:0] r_data, r_data_buffer, alu_out,
+    input logic branch_bit, c_out,
+
+    output logic[15:0] PC,
+    output logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag
+
+    output logic A_en, X_en, Y_en, SP_en, inc_PC, 
+                 n_flag_en, v_flag_en, d_flag_en, 
+                 i_flag_en, z_flag_en, c_flag_en,
+
+    output logic [1:0] PC_en);
+
+    // PC first
+    always_comb begin
+        PC = 16'b0;
+        PC_en = 2'b11;
+        
+        case (ucode_vector.pclo_src)
+            // PCLOSRC_RMEM, PCLOSRC_ALUOUT, PCLOSRC_RMEM_BUFFER, PCLOSRC_NONE
+            PCLOSRC_RMEM: PC[7:0] = r_data;
+            PCLOSRC_ALUOUT: PC[7:0] = alu_out;
+            PCLOSRC_RMEM_BUFFER: PC[7:0] = r_data_buffer;
+            PCLOSRC_NONE: PC_en[0] = 1'b0;
+        endcase
+
+        case (ucode_vector.pchi_src)
+            // PCHISRC_RMEM, PCHISRC_ALUOUT, PCHISRC_NONE
+            PCHISRC_RMEM: PC[15:8] = r_data;
+            PCHISRC_ALUOUT: PC[15:8] = alu_out;
+            PCHISRC_NONE: PC_en[1] = 1'b1;
+        endcase
+    end    
+
+    // inc PC
+    always_comb begin
+        inc_PC = 1'b0;
+        case (state)
+            // STATE_FETCH, STATE_DECODE, STATE_NEITHER
+            STATE_FETCH: inc_PC = 1'b1;
+            STATE_DECODE: inc_PC = decode_inc_pc;
+            STATE_NEITHER: begin
+                case (ucode_vector.inc_pc)
+                    // BRANCH_DEPEND_0, BRANCH_DEPEND_1, BRANCH_DEPEND_BRANCH_BIT, BRANCH_DEPEND_NOT_C_OUT
+                    BRANCH_DEPEND_0: inc_PC = 1'b0;
+                    BRANCH_DEPEND_1: inc_PC = 1'b1;
+                    BRANCH_DEPEND_BRANCH_BIT: inc_PC = ~branch_bit;
+                    BRANCH_DEPEND_NOT_C_OUT: inc_PC = ~c_out;
+                endcase
             end
         endcase
     end
 
-    assign z_out = out == 8'b0;
-    assign n_out = out[7];
+    //  A, X, Y always get loaded up with alu_out
+    always_comb begin
+        A_en = 1'b0;
+        X_en = 1'b0;
+        Y_en = 1'b0;
+        SP_en = 1'b0;
+        if (ucode_vector.instr_ctrl == INSTR_CTRL_2) begin
+            case (instr_ctrl_vector.alu_out_dest)
+                // ALUDST_A, ALUDST_X, ALUDST_Y, ALUDST_WMEM, ALUDST_status, ALUDST_SP, ALUDST_none
+                ALUDST_A: A_en = 1'b1;
+                ALUDST_X: X_en = 1'b1;
+                ALUDST_Y: Y_en = 1'b1;
+                ALUDST_SP: SP_en = 1'b1;
+            endcase
+        end
 
-endmodule : alu
+        if (ucode_vector.sp_src == SPSRC_ALUOUT) begin
+            SP_en = 1'b1;
+        end
+    end
+
+    // n_flag, v_flag, d_flag, i_flag, z_flag, c_flag
+    always_comb begin
+
+        {n_flag, v_flag, d_flag, i_flag, z_flag, c_flag} = 6'b0;
+        {n_flag_en, v_flag_en, d_flag_en, i_flag_en, z_flag_en, c_flag_en} = 6'b0;
+
+        if (ucode_vector.status_src == STATUS_SRC_RMEM) begin
+            {n_flag, v_flag, d_flag, i_flag, z_flag, c_flag} = {r_data[7:6], r_data[3:0]};
+            {n_flag_en, v_flag_en, d_flag_en, i_flag_en, z_flag_en, c_flag_en} = 6'b111_111;
+        end
+
+        else if (ucode_vector.instr_ctrl_vector == INSTR_CTRL_2) begin
+            if (instr_ctrl_vector.alu_out_dst == ALUDST_STATUS) begin
+                {n_flag, v_flag, d_flag, i_flag, z_flag, c_flag} = {alu_out[7:6], alu_out[3:0]};
+                {n_flag_en, v_flag_en, d_flag_en, i_flag_en, z_flag_en, c_flag_en} = 6'b111_111;
+            end
+            else 
+
+                case (instr_ctrl_vector.n_src)
+                    // FLAG_ALU, FLAG_0, FLAG_1, FLAG_RMEM_BUFFER, FLAG_NONE
+                    // alu, rmem_buffer, none
+                    FLAG_ALU: begin 
+                        n_flag = alu_n_out; 
+                        n_flag_en = 1'b1; 
+                    end
+                    FLAG_RMEM_BUFFER: begin
+                        n_flag = r_data_buffer;
+                        n_flag_en = 1'b1;
+                    end
+                endcase
+
+                case (instr_ctrl_vector.v_src)
+                    // alu ,rmem_buffer, 0
+                    FLAG_ALU: begin
+                        v_flag = alu_v_out;
+                        v_flag_en = 1'b1;
+                    end
+                    FLAG_RMEM_BUFFER: begin
+                        v_flag = r_data_buffer[6];
+                        v_flag_en = 1'b1;
+                    end
+                    FLAG_0: begin
+                        v_flag = 1'b0;
+                        v_flag_en = 1'b1;
+                    end
+                endcase
+
+                case (instr_ctrl_vector.d_src)
+                    // 0 and 1
+                    FLAG_0: begin
+                        d_flag = 1'b0;
+                        d_flag_en = 1'b1;
+                    end
+                    FLAG_1: begin
+                        d_flag = 1'b1;
+                        d_flag_en = 1'b1;
+                    end
+                endcase
+
+                case (instr_ctrl_vector.i_src)
+                    // 0 and 1
+                    FLAG_0: begin
+                        i_flag = 1'b0;
+                        i_flag_en = 1'b1;
+                    end
+                    FLAG_1: begin
+                        i_flag = 1'b1;
+                        i_flag_en = 1'b1;
+                    end
+                endcase
+
+                case (instr_ctrl_vector.z_src)
+                    // alu
+                    FLAG_ALU: begin
+                        z_flag = alu_z_out;
+                        z_flag_en = 1'b1;
+                    end
+                endcase
+
+                case (instr_ctrl_vector.c_src)
+                    // alu, 0, 1
+                    FLAG_ALU: begin
+                        c_flag = alu_c_out;
+                        c_flag_en = 1'b1;
+                    end
+                    FLAG_0: begin
+                        c_flag = 1'b0;
+                        c_flag_en = 1'b1;
+                    end
+                    FLAG_1: begin
+                        c_flag = 1'b1;
+                        c_flag_en = 1'b1;
+                    end
+                endcase
+
+        end
+    end 
+
+endmodule : cpu_inputs
 
 
+module cpu_next_state(
+    input  ucode_ctrl_signals_t ucode_vector,
+    input  processor_state_t state,
+    input  logic decode_start_fetch, branch_bit, c_out,
 
+    output processor_state_t next_state);
+
+    always_comb begin
+
+        next_state = STATE_NEITHER;
+        
+        case (state)
+            // STATE_FETCH, STATE_DECODE, STATE_NEITHER
+            STATE_FETCH: next_state = STATE_DECODE;
+            STATE_DECODE: next_state = (decode_start_fetch) ? STATE_FETCH : STATE_NEITHER;
+            STATE_NEITHER: begin
+                if (ucode_vector.start_fetch == 1'b1) begin
+                    next_state = STATE_FETCH;
+                end
+                else if (ucode_vector.skip_line == 1'b1 && c_out == 1'b1) begin
+                    next_state = STATE_FETCH;
+                end
+                else begin
+                    case (ucode_vector.start_decode)
+                        // BRANCH_DEPEND_0, BRANCH_DEPEND_1, BRANCH_DEPEND_BRANCH_BIT, BRANCH_DEPEND_NOT_C_OUT
+                        BRANCH_DEPEND_0: next_state = STATE_NEITHER;
+                        BRANCH_DEPEND_1: next_state = STATE_DECODE;
+                        BRANCH_DEPEND_BRANCH_BIT: next_state = (branch_bit) ? STATE_NEITHER : STATE_DECODE;
+                        BRANCH_DEPEND_NOT_C_OUT: next_state = (c_out) ? STATE_NEITHER : STATE_DECODE;
+                    endcase
+                end
+            end
+        endcase
+    end
+
+endmodule : cpu_next_state
+
+module cpu_next_ucode_index(
+    input  ucode_ctrl_signals_t ucode_vector,
+    input  processor_state_t state,
+    input  logic[7:0] ucode_index, r_data,
+    input  logic c_out, branch_bit,
+
+    output logic[7:0] next_ucode_index);
+
+    always_comb begin
+        next_ucode_index = 8'b0;
+
+        if (state == STATE_DECODE) begin
+            next_ucode_index = ucode_indices[r_data];
+        end
+        else if (ucode_vector.skip_line == 1'b1) begin
+            next_ucode_index = (c_out) ? ucode_index + 8'd1 : ucode_index + 8'd2;
+        end
+        else begin
+            case (ucode_vector.stop_ucode)
+                // BRANCH_DEPEND_0, BRANCH_DEPEND_1, BRANCH_DEPEND_BRANCH_BIT, BRANCH_DEPEND_NOT_C_OUT
+                BRANCH_DEPEND_0: next_ucode_index = ucode_index + 8'd1;
+                BRANCH_DEPEND_1: next_ucode_index = 8'd0;
+                BRANCH_DEPEND_BRANCH_BIT: next_ucode_index = (branch_bit) ? ucode_index + 8'd1 : 8'd0;
+                BRANCH_DEPEND_NOT_C_OUT: next_ucode_index = (c_out) ? ucode_index + 8'd1 : 8'd0;
+            endcase
+        end
+    end
+
+endmodule : cpu_next_ucode_index
