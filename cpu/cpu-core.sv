@@ -126,10 +126,10 @@ module core(
     assign state_en = 1'b1;
     assign ucode_index_en = 1'b1;
 
-    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_NEITHER)) state_reg(
+    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_FETCH)) state_reg(
         .data_en(state_en), .data_in(next_state), .data_out(state), .*);
 
-    cpu_register #(.RESET_VAL(`RESET_UCODE_INDEX)) ucode_index_reg(
+    cpu_register #(.RESET_VAL(0)) ucode_index_reg(
         .data_en(ucode_index_en), .data_in(next_ucode_index), 
         .data_out(ucode_index), .*);
 

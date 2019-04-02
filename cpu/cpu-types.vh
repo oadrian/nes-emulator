@@ -1,9 +1,6 @@
-/*
-#ifndef CPU_TYPES
-#define CPU_TYPES
+`ifndef CPU_TYPES_VH_
+`define CPU_TYPES_VH_
 
-#include <stdint.h>
-*/
 // enums used for instr ctrl signals
 
 typedef enum logic[2:0] {ALUOP_HOLD, ALUOP_ADD, ALUOP_AND, ALUOP_OR, ALUOP_XOR, ALUOP_SHIFT_LEFT, ALUOP_SHIFT_RIGHT} ctrl_alu_op_t;
@@ -93,4 +90,4 @@ typedef struct packed {
     ucode_branch_depend_t stop_ucode;
 } ucode_ctrl_signals_t;
 
-//#endif
+`endif

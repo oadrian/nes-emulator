@@ -1,5 +1,5 @@
 `default_nettype none
-`include "cpu-types.vh "
+`include "cpu-types.vh"
 `include "ucode_ctrl.vh"
 
 module top ();
@@ -16,8 +16,9 @@ module top ();
     logic [7:0] r_data;
     logic clock_en;
 
-    core cpu(.*);
+    assign clock_en = 1'b1;
 
+    core cpu(.*);
     cpu_memory mem(.addr, .r_en(mem_r_en), .w_data, 
                    .clock, .clock_en, .reset_n, .r_data);
 
@@ -35,15 +36,7 @@ module top ();
     endtask : doReset
 
     int fd;
-    logic [31:0] cnt;
-
-    always_ff @(posedge clock or negedge reset_n) begin
-        if(~reset_n) begin
-            cnt <= 0;
-        end else begin
-            cnt <= cnt+1;
-        end
-    end
+    int cnt;
 
     processor_state_t prev_state;
 
@@ -76,14 +69,24 @@ module top ();
         fd = $fopen(logFile,"w");
         doReset;
         @(posedge clock);
-        while(cnt < 32'd26555) begin 
-            if(state == STATE_DECODE) begin 
+        @(posedge clock);
+        @(posedge clock);
+        $display("%p",mem.cartridge_mem);
+        cnt = 0;
+        while(cnt < 26555) begin 
+            if(cpu.state == STATE_DECODE) begin 
                 $fwrite(fd,"%.4x %.2x", cpu.PC-1, r_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%d\n",
                         can_A, can_X, can_Y, can_status, can_SP, cnt);
             end
+            @(posedge clock);
+            cnt++;
         end
-
+        @(posedge clock);
+        @(posedge clock);
+        @(posedge clock);
+        @(posedge clock);
+        $finish;
     end
 
 endmodule

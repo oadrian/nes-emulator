@@ -124,20 +124,33 @@ module cpu_memory(
 
     // FEDC_BA98_7654_3210
 
-    logic [0:8191][7:0] ram;
-    logic [0:7][7:0] ppu_regs;
-    logic [0:31][7:0] io_regs;
-    logic [16416:65535][7:0] cartridge_mem;
+    logic [7:0] ram [8191:0];
+    logic [7:0] ppu_regs[7:0];
+    logic [7:0] io_regs[31:0];
+    logic [7:0] cartridge_mem [65535:16416];
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
-            ram <= 'b0;
-            ppu_regs <= 'b0;
-            io_regs <= 'b0;
-            cartridge_mem <= 'b0;
+            for (int i = 0; i < 8192; i++) begin
+                ram[i] <= 8'd0;
+            end
+            for (int i = 0; i < 8; i++) begin
+                ppu_regs[i] <= 8'd0;
+            end
+            for (int i = 0; i < 32; i++) begin
+                io_regs[i] <= 8'd0;
+            end
             `ifdef prg_rom_init
-                $readmemh("init/prg_rom_init.txt", mem);
-            `endif
+                for (int i = 16416; i < 65536; i++) begin
+                    cartridge_mem[i] = 8'd0;
+                end
+                $readmemh("init/prg_rom_init.txt", cartridge_mem, 49152, 65535);
+            `else
+                for (int i = 0; i < 49120; i++) begin
+                    cartridge_mem[i] <= 8'd0;
+                end
+            `endif 
+            r_data <= 8'd0;
         end
         else if (clock_en) begin
             if (addr < 16'h2000) begin
