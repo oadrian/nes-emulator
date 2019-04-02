@@ -16,11 +16,11 @@ module core(
     output logic mem_r_en,
     output logic [7:0] w_data,
     input  logic [7:0] r_data,
+    input  logic clock_en,
     input  logic clock,
     input  logic reset_n);
 
-    logic clock_en;
-    assign clock_en = 1'b1;
+    //assign clock_en = 1'b1;
 
     // roms
     logic rom_en;
