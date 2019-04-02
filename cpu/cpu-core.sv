@@ -9,7 +9,9 @@
 `define DEFAULT_Z 1'b0
 `define DEFAULT_C 1'b0
 
-`define DEFAULT_PC 16'h4020
+// `define DEFAULT_PC 16'h4020
+
+`define DEFAULT_PC 16'hC000
 
 module core(
     output logic [15:0] addr,

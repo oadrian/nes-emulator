@@ -1,5 +1,7 @@
 `default_nettype none
 
+`define prg_rom_init
+
 module cpu_register #(WIDTH=8, RESET_VAL=0) (
     input  logic clock, clock_en, reset_n, data_en,
     input logic[WIDTH-1:0] data_in,
@@ -133,6 +135,9 @@ module cpu_memory(
             ppu_regs <= 'b0;
             io_regs <= 'b0;
             cartridge_mem <= 'b0;
+            `ifdef prg_rom_init
+                $readmemh("init/prg_rom_init.txt", mem);
+            `endif
         end
         else if (clock_en) begin
             if (addr < 16'h2000) begin
