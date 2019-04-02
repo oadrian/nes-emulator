@@ -33,6 +33,22 @@ module divider #(parameter WIDTH=32, RES_VAL=0) (
   
 endmodule: divider
 
+module up_counter #(parameter WIDTH=32, RES_VAL=0) (
+  input logic clk, rst_l,
+  input logic clk_en, en,
+  input logic load,
+  input logic [WIDTH-1:0] load_data,
+  output [WIDTH-1:0] count);
+
+  logic [WIDTH-1:0] next_count;
+
+  assign next_count = load ? load_data : count + 'b1;
+
+  register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
+    .clk, .rst_l, .clk_en, .en(load | en), .d(next_count), .q(count));
+
+endmodule: up_counter
+
 module linear_counter (
   input logic clk, rst_l,
   input logic counter_clk_en,
