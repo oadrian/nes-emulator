@@ -20,8 +20,8 @@ module apu_registers (
     next_reg_array = reg_array;
     next_reg_array[reg_array_i] = reg_data_in;
 
-    next_reg_updates = reg_updates;
-    next_reg_updates[reg_array_i] = 1'b1;
+    next_reg_updates = 24'b0;
+    next_reg_updates[reg_array_i] = reg_en & reg_we;
   end
 
   register #(.WIDTH($bits(reg_array)), .RES_VAL(0)) registers (
@@ -29,7 +29,7 @@ module apu_registers (
     .d(next_reg_array), .q(reg_array));
 
   register #(.WIDTH($bits(reg_updates)), .RES_VAL(0)) address_register (
-    .clk, .rst_l, .clk_en(cpu_clk_en), .en(reg_en & reg_we), 
+    .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1), 
     .d(next_reg_updates), .q(reg_updates));
 
 endmodule: apu_registers
