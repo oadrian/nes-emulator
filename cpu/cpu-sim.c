@@ -306,7 +306,7 @@ void get_new_alu_values(alu_module* alu, alu_module* next_alu, cpu_core* cpu, me
 
                     switch (instr_ctrl_vector.alu_c_src) {
                         // ALUC_C, ALUC_0, ALUC_1, ALUC_ALUCOUT
-                        // can only be 0, 1, or ALUCOUT
+                        // can only be 0, 1, or ALUC
                         case ALUC_C: {next_alu->c_in = get_flag_bit(cpu->status, C_FLAG); break;}
                         case ALUC_0: {next_alu->c_in = 0; break;}
                         case ALUC_1: {next_alu->c_in = 1; break;}
