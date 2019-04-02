@@ -2,20 +2,21 @@
 
 module register #(parameter WIDTH=32, RES_VAL=0) (
   input logic clk, rst_l,
-  input logic en,
+  input logic clk_en, en,
   input logic [WIDTH-1:0] d,
   output logic [WIDTH-1:0] q);
 
   always_ff @(posedge clk, negedge rst_l)
     if (~rst_l)
       q <= RES_VAL;
-    else if (en)
+    else if (clk_en & en)
       q <= d;
 
 endmodule: register
 
 module divider #(parameter WIDTH=32, RES_VAL=0) (
   input logic clk, rst_l,
+  input logic clk_en,
   input logic load,
   input logic [WIDTH-1:0] load_data,
   output logic pulse);
@@ -26,14 +27,15 @@ module divider #(parameter WIDTH=32, RES_VAL=0) (
   assign pulse = !count;
 
   register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) data_reg (
-    .clk, .rst_l, .en(load), .d(load_data), .q(saved_data));
+    .clk, .rst_l, .clk_en, .en(load), .d(load_data), .q(saved_data));
   register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
-    .clk, .rst_l, .en(1'b1), .d(next_count), .q(count));
+    .clk, .rst_l, .clk_en, .en(1'b1), .d(next_count), .q(count));
   
 endmodule: divider
 
 module linear_counter (
   input logic clk, rst_l,
+  input logic counter_clk_en,
   input logic clear_reload_l,
   input logic load,
   input logic [6:0] load_data,
@@ -63,15 +65,18 @@ module linear_counter (
       next_reload_flag = reload_flag;
 
   register #(.WIDTH(7), .RES_VAL(0)) count_reg (
-    .clk, .rst_l, .en(1'b1), .d(next_count), .q(count));
+    .clk, .rst_l, .clk_en(counter_clk_en), .en(1'b1), .d(next_count), 
+    .q(count));
 
   register #(.WIDTH(1), .RES_VAL(0)) reload_flag__reg (
-    .clk, .rst_l, .en(1'b1), .d(next_reload_flag), .q(reload_flag));
+    .clk, .rst_l, .clk_en(counter_clk_en), .en(1'b1), .d(next_reload_flag), 
+    .q(reload_flag));
 
 endmodule: linear_counter
 
 module length_counter (
   input logic clk, rst_l,
+  input logic counter_clk_en,
   input logic halt,
   input logic disable_l,
   input logic load,
@@ -81,7 +86,7 @@ module length_counter (
   logic [7:0] next_count, count;
 
   register #(.WIDTH(8), .RES_VAL(0)) count_reg (
-    .clk, .rst_l, .en(1'b1), .d(next_count), .q(count));
+    .clk, .rst_l, .clk_en(counter_clk_en), .en(1'b1), .d(next_count), .q(count));
 
   assign non_zero = count > 5'b0;
 

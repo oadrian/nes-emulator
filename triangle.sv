@@ -1,7 +1,8 @@
 `default_nettype none
 
 module triangle_channel (
-  input logic cpu_clk, counter_clk,
+  input logic clk,
+  input logic cpu_clk_en, counter_clk_en,
   input logic rst_l,
   input logic disable_l,
   input logic control_flag,
@@ -28,19 +29,20 @@ module triangle_channel (
   assign gate2_out = length_non_zero ? gate1_out : 1'b0;
 
   register #(.WIDTH(5), .RES_VAL(0)) seq_i_reg (
-    .clk(cpu_clk), .rst_l, .en(timer_pulse), .d(next_seq_i), .q(seq_i));
+    .clk, .rst_l, .clk_en(cpu_clk_en), .en(timer_pulse), .d(next_seq_i), 
+    .q(seq_i));
   
   divider #(.WIDTH(11), .RES_VAL(0)) triangle_timer (
-    .clk(cpu_clk), .rst_l, .load(timer_load), .load_data(timer_load_data),
-    .pulse(timer_pulse));
+    .clk, .rst_l, .clk_en(cpu_clk_en), .load(timer_load), 
+    .load_data(timer_load_data), .pulse(timer_pulse));
   
   linear_counter triangle_linear_counter (
-    .clk(counter_clk), .rst_l, .clear_reload_l(control_flag), 
+    .clk, .rst_l, .counter_clk_en, .clear_reload_l(control_flag), 
     .load(linear_load), .load_data(linear_load_data), 
     .non_zero(linear_non_zero));
 
   length_counter triangle_length_counter (
-    .clk(counter_clk), .rst_l, .halt(control_flag), .disable_l, 
+    .clk, .rst_l, .counter_clk_en, .halt(control_flag), .disable_l, 
     .load(length_load), .load_data(length_load_data), 
     .non_zero(length_non_zero));
 
