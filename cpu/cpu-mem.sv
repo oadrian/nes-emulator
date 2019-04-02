@@ -60,7 +60,7 @@ module #(RESET_VAL=0) cpu_wide_write_thru_register(
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
-            data_out <= RESET_VAL;
+            data_val <= RESET_VAL;
         end
         else if (clock_en) begin
             data_val <= data_out;

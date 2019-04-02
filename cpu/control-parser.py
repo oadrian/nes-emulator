@@ -279,7 +279,7 @@ class ucode_vector(object):
         res += "INSTR_CTRL_%s, " % self.instr_ctrl
         res += "1'b%s, " % self.start_fetch
         res += "Branch_Depend_%s, " % self.start_decode
-        res += "1'%s, " % self.carry_skip
+        res += "1'b%s, " % self.carry_skip
         res += "Branch_Depend_%s" % self.stop_ucode
         res = res.upper()
         res = res.replace("'B", "'b")
@@ -448,7 +448,7 @@ def get_sv_struct_array(struct_name, vector_list):
     res = "`define %s_ROM {" % (struct_name.upper())
     for vector in vector_list:
         res += "%s, " % vector.vector_to_sv_struct()
-    return res + "}\n"
+    return res.strip(", ") + "}\n"
 
 def get_hex_byte(i):
     hex_chrs = "0123456789ABCDEF"
@@ -500,7 +500,7 @@ def get_sv_indices_array(struct_name, opcode_dict, index_dict):
 
         res += "%d'd%d, " % (num_bits, index)
 
-    return res + "}\n"
+    return res.strip(", ") + "}\n"
 
 def get_c_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals):
     res = "uint8_t decode_ctrl_signals_rom[] = {\n  "
@@ -534,7 +534,7 @@ def get_sv_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals):
 
         res += "2'd%d, " % decode_ctrl_signals_byte
 
-    return res + "}\n"
+    return res.strip(", ") + "}\n"
 
 
 def get_c_special_ucode_indices(ucode_indices):
