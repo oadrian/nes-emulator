@@ -1,11 +1,10 @@
 `default_nettype none
 
 module triangle_channel (
-  input logic clk,
+  input logic clk, rst_l,
   input logic cpu_clk_en, counter_clk_en,
-  input logic rst_l,
   input logic disable_l,
-  input logic control_flag,
+  input logic length_halt,
   input logic linear_load, timer_load, length_load,
   input logic [6:0] linear_load_data,
   input logic [10:0] timer_load_data,
@@ -37,12 +36,12 @@ module triangle_channel (
     .load_data(timer_load_data), .pulse(timer_pulse));
   
   linear_counter triangle_linear_counter (
-    .clk, .rst_l, .counter_clk_en, .clear_reload_l(control_flag), 
+    .clk, .rst_l, .counter_clk_en, .clear_reload_l(length_halt), 
     .load(linear_load), .load_data(linear_load_data), 
     .non_zero(linear_non_zero));
 
   length_counter triangle_length_counter (
-    .clk, .rst_l, .counter_clk_en, .halt(control_flag), .disable_l, 
+    .clk, .rst_l, .counter_clk_en, .halt(length_halt), .disable_l, 
     .load(length_load), .load_data(length_load_data), 
     .non_zero(length_non_zero));
 
