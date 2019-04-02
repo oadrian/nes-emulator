@@ -76,17 +76,19 @@ module cpu_memory(
     input  logic [7:0] w_data,
     input  logic clock,
     input  logic clock_en, 
-    input  logic reset_n
-    output logic [7:0] r_data,
+    input  logic reset_n,
+    output logic [7:0] r_data
 
     // PPU register interface
+    /*
     output reg_t reg_sel,
     output logic reg_en,
     output logic reg_rw,
     output logic [7:0] reg_data_wr,
     input logic [7:0] reg_data_rd
+    */
     );
-
+    /*
     // PPU regsiter interface
     assign reg_rw = ~r_en;  // if r_en - 0 read, re_n - 1 writes
     assign reg_data_wr = w_data;
@@ -106,14 +108,14 @@ module cpu_memory(
                 3'h5: reg_sel = PPUSCROLL;
                 3'h6: reg_sel = PPUADDR;
                 3'h7: reg_sel = PPUDATA;
-                default : /* default */;
+                default : /* default/;
             endcase
         end else if(addr == 16'h4014) begin 
             reg_en = 1'b1;
             reg_sel = OAMDMA;
         end
     end
-
+    */
     // addr is latched
     // r_en and w_data are not latched
     // r_data is latched
@@ -123,7 +125,7 @@ module cpu_memory(
     logic [0:8191][7:0] ram;
     logic [0:7][7:0] ppu_regs;
     logic [0:31][7:0] io_regs;
-    logic [16416:65535] cartridge_mem;
+    logic [16416:65535][7:0] cartridge_mem;
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
@@ -188,7 +190,6 @@ module mem_inputs(
     always_comb begin
 
         addr = 16'b0;
-        w_data = 8'b0;
         mem_r_en = 1'b1;
         addr_en = 2'b11;
 
