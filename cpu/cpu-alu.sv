@@ -3,7 +3,7 @@
 module alu_inputs(
     input  instr_ctrl_signals_t instr_ctrl_vector,
     input  ucode_ctrl_signals_t ucode_vector,
-    input  logic[7:0] X, Y, SP, r_data, alu_out,
+    input  logic[7:0] A, X, Y, SP, r_data, alu_out,
     input  logic[15:0] PC,
     input  logic c_out, c_flag,
     output logic c_in, src2_inv,
@@ -46,7 +46,7 @@ module alu_inputs(
                 // can be 0, 1, or ALUCOUT
                 ALUC_0: c_in = 1'b0;
                 ALUC_1: c_in = 1'b1;
-                ALUCOUT: c_in = c_out;
+                ALUC_ALUCOUT: c_in = c_out;
             endcase
         
         end
@@ -56,7 +56,7 @@ module alu_inputs(
             op = instr_ctrl_vector.alu_op;
             src2_inv = instr_ctrl_vector.alu_src2_inv;
 
-            case (instr_ctrl_vector.alu_src1) begin
+            case (instr_ctrl_vector.alu_src1)
                 // SRC1_A, SRC1_X, SRC1_Y, SRC1_RMEM, SRC1_SP, SRC1_PCHI, SRC1_PCLO, SRC1_ALUOUT
                 // can be SP, X, Y, RMEM, A
                 SRC1_A: src1 = A;
@@ -115,10 +115,10 @@ module alu_module(
     assign xor_res = src1 ^ src2;
 
     // rotate operations need to figure out their carries
-    assign ror_res = {c_in, alu_src1[7:1]};
-    assign ror_c_out = alu_src1[0];
-    assign rol_res = {alu_src1[6:0], c_in};
-    assign rol_c_out = alu_src1[7];
+    assign ror_res = {c_in, src1[7:1]};
+    assign ror_c_out = src1[0];
+    assign rol_res = {src1[6:0], c_in};
+    assign rol_c_out = src1[7];
 
     always_comb begin
         out = 8'b0;
@@ -146,4 +146,4 @@ module alu_module(
     assign z_out = out == 8'b0;
     assign n_out = out[7];
 
-endmodule : alu
+endmodule : alu_module

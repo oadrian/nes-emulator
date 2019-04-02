@@ -264,7 +264,7 @@ class ucode_vector(object):
         res = "{"
         res += "ADDRLO_%s, " % self.addr_lo
         res += "ADDRHI_%s, " % self.addr_hi
-        res += "ReadEn_%s, " % self.read_en
+        res += "Read_En_%s, " % self.read_en
         res += "WMEMSRC_%s, " % self.wmem_src
         res += "SRC1_%s, " % self.alu_src1
         res += "SRC2_%s, " % self.alu_src2

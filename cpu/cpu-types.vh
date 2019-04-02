@@ -32,7 +32,7 @@ typedef enum logic[2:0] {ADDRHI_1, ADDRHI_0, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM
 
 typedef enum logic[1:0] {READ_EN_R, READ_EN_W, READ_EN_NONE} ucode_r_en_t;
 
-typedef enum logic[2:0] {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_STATUS_BS, WMEMSRC_STATUS_BC, WMEMSRC_INSTER_STORE, WMEMSRC_RMEM} ucode_write_mem_src_t;
+typedef enum logic[2:0] {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_STATUS_BS, WMEMSRC_STATUS_BC, WMEMSRC_INSTR_STORE, WMEMSRC_RMEM} ucode_write_mem_src_t;
 
 typedef enum logic {SPSRC_ALUOUT, SPSRC_NONE} ucode_sp_src_t;
 
@@ -44,13 +44,13 @@ typedef enum logic {STATUS_SRC_RMEM, STATUS_SRC_NONE} ucode_status_src_t;
 
 typedef enum logic[1:0] {BRANCH_DEPEND_0, BRANCH_DEPEND_1, BRANCH_DEPEND_BRANCH_BIT, BRANCH_DEPEND_NOT_C_OUT} ucode_branch_depend_t;
 
-typedef enum logic [1:0] {INSTR_CTRL_0, INSTR_CTRL_1, INSTR_CTRL_2} ucode_instr_ctrl_t;
+typedef enum logic[1:0] {INSTR_CTRL_0, INSTR_CTRL_1, INSTR_CTRL_2} ucode_instr_ctrl_t;
 
 //typedef enum logic {ENABLE_1, ENABLE_0} ucode_en; // just make this 1/0
 
 // enum for the states of the processor overall
 
-typedef enum {STATE_FETCH, STATE_DECODE, STATE_NEITHER} processor_state_t;
+typedef enum logic[1:0] {STATE_FETCH, STATE_DECODE, STATE_NEITHER} processor_state_t;
 
 typedef struct packed {
     ctrl_alu_op_t alu_op;

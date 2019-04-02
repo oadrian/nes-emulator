@@ -26,10 +26,10 @@ module core(
     logic rom_en;
 
     logic [0:255][5:0] instr_ctrl_signals_indices;
-    instr_ctrl_signals_t instr_ctrl_signals_rom [0:`INSTR_CTRL_SIZE-1];
+    instr_ctrl_signals_t [0:`INSTR_CTRL_SIZE-1] instr_ctrl_signals_rom;
 
     logic [0:255][7:0] ucode_ctrl_signals_indices;
-    ucode_ctrl_signals_t ucode_ctrl_signals_rom[0:`UCODE_ROM_SIZE-1];
+    ucode_ctrl_signals_t [0:`UCODE_ROM_SIZE-1] ucode_ctrl_signals_rom;
 
     logic [0:255][1:0] decode_ctrl_signals_rom;
 
@@ -102,16 +102,15 @@ module core(
         ucode_ctrl_signals_indices_reg(.data_en(rom_en),
                                        .data_in(ucode_ctrl_signals_indices),
                                        .data_out(ucode_ctrl_signals_indices), .*);
-    cpu_register #(.WIDTH($size(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE),
-                   .RESET_VAL(`UCODE_CTRL_SIGNALS_ROM))
+    cpu_register #(.WIDTH($size(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE))
         ucode_ctrl_signals_rom_reg(.data_en(rom_en),
                                    .data_in(ucode_ctrl_signals_rom),
                                    .data_out(ucode_ctrl_signals_rom), .*);
 
-    cpu_register #(.WIDTH(256*2), .RESET_VAL(DECODE_CTRL_SIGNALS_ROM))
-        decode_ctrl_signals_rom(.data_en(rom_en),
-                                .data_in(decode_ctrl_signals_rom),
-                                .data_out(decode_ctrl_signals_rom), .*);
+    cpu_register #(.WIDTH(256*2), .RESET_VAL(`DECODE_CTRL_SIGNALS_ROM))
+        decode_ctrl_signals_rom_reg(.data_en(rom_en),
+                                    .data_in(decode_ctrl_signals_rom),
+                                    .data_out(decode_ctrl_signals_rom), .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -136,7 +135,7 @@ module core(
     assign instr_ctrl_index_en = state == STATE_DECODE;
 
     cpu_register #(.WIDTH(6)) instr_ctrl_index_reg(
-        .data_en(instr_ctrl_index_en) .data_in(next_instr_ctr_index), 
+        .data_en(instr_ctrl_index_en), .data_in(next_instr_ctrl_index), 
         .data_out(instr_ctrl_index), .*);
 
     assign instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
@@ -149,7 +148,7 @@ module core(
     branch_bit_module bbit(.branch_bit_type(instr_ctrl_vector.branch_bit),
                            .branch_inv(instr_ctrl_vector.branch_inv), .*);
 
-    cpu_inputs cpu_in(.c_out(alu_c_out), .PC(next_PC), 
+    cpu_inputs cpu_in(.PC(next_PC), 
                       .n_flag(next_n_flag), .v_flag(next_v_flag),
                       .d_flag(next_d_flag), .i_flag(next_i_flag),
                       .z_flag(next_z_flag), .c_flag(next_c_flag), .*);
@@ -179,7 +178,7 @@ module core(
     cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_C)) c_flag_reg(
             .data_en(c_flag_en), .data_in(next_c_flag), .data_out(c_flag), .*);
 
-    cpu_wide_counter_register #(RESET_VAL(`DEFAULT_PC)) PC_reg(
+    cpu_wide_counter_register #(.RESET_VAL(`DEFAULT_PC)) PC_reg(
         .inc_en(inc_PC), .data_en(PC_en), .data_in(next_PC), .data_out(PC), .*);
 
 
@@ -218,13 +217,13 @@ module core(
     cpu_register alu_out_reg(.data_en(alu_en), .data_in(next_alu_out),
                          .data_out(alu_out), .*);
 
-    cpu_register #(.WIDTH(1)) alu_c_out(
+    cpu_register #(.WIDTH(1)) alu_c_out_reg(
         .data_en(alu_en), .data_in(next_alu_c_out), .data_out(alu_c_out), .*);
-    cpu_register #(.WIDTH(1)) alu_v_out(
+    cpu_register #(.WIDTH(1)) alu_v_out_reg(
         .data_en(alu_en), .data_in(next_alu_v_out), .data_out(alu_v_out), .*);
-    cpu_register #(.WIDTH(1)) alu_z_out(
+    cpu_register #(.WIDTH(1)) alu_z_out_reg(
         .data_en(alu_en), .data_in(next_alu_z_out), .data_out(alu_z_out), .*);
-    cpu_register #(.WIDTH(1)) alu_n_out(
+    cpu_register #(.WIDTH(1)) alu_n_out_reg(
         .data_en(alu_en), .data_in(next_alu_n_out), .data_out(alu_n_out), .*);
 
 
@@ -237,7 +236,7 @@ endmodule : core
 module branch_bit_module(
     input  ctrl_branch_bit_t branch_bit_type, 
     input  logic branch_inv,
-    input  logic c_flag, z_flag, n_flag, v_flag
+    input  logic c_flag, z_flag, n_flag, v_flag,
     output logic branch_bit);
 
     always_comb begin
@@ -248,6 +247,7 @@ module branch_bit_module(
             BRANCH_Z: branch_bit = branch_inv ^ z_flag;
             BRANCH_N: branch_bit = branch_inv ^ n_flag;
             BRANCH_V: branch_bit = branch_inv ^ v_flag;
+        endcase
     end
 
 endmodule: branch_bit_module
@@ -256,13 +256,16 @@ endmodule: branch_bit_module
 module cpu_inputs(
     input  instr_ctrl_signals_t instr_ctrl_vector,
     input  ucode_ctrl_signals_t ucode_vector,
+    input  processor_state_t state,
     input  logic decode_inc_pc,
 
     input logic[7:0] r_data, r_data_buffer, alu_out,
-    input logic branch_bit, c_out,
+    input logic branch_bit,
+
+    input logic alu_n_out, alu_v_out, alu_z_out, alu_c_out,
 
     output logic[15:0] PC,
-    output logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag
+    output logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag,
 
     output logic A_en, X_en, Y_en, SP_en, inc_PC, 
                  n_flag_en, v_flag_en, d_flag_en, 
@@ -304,7 +307,7 @@ module cpu_inputs(
                     BRANCH_DEPEND_0: inc_PC = 1'b0;
                     BRANCH_DEPEND_1: inc_PC = 1'b1;
                     BRANCH_DEPEND_BRANCH_BIT: inc_PC = ~branch_bit;
-                    BRANCH_DEPEND_NOT_C_OUT: inc_PC = ~c_out;
+                    BRANCH_DEPEND_NOT_C_OUT: inc_PC = ~alu_c_out;
                 endcase
             end
         endcase
@@ -317,7 +320,7 @@ module cpu_inputs(
         Y_en = 1'b0;
         SP_en = 1'b0;
         if (ucode_vector.instr_ctrl == INSTR_CTRL_2) begin
-            case (instr_ctrl_vector.alu_out_dest)
+            case (instr_ctrl_vector.alu_out_dst)
                 // ALUDST_A, ALUDST_X, ALUDST_Y, ALUDST_WMEM, ALUDST_status, ALUDST_SP, ALUDST_none
                 ALUDST_A: A_en = 1'b1;
                 ALUDST_X: X_en = 1'b1;
@@ -342,7 +345,7 @@ module cpu_inputs(
             {n_flag_en, v_flag_en, d_flag_en, i_flag_en, z_flag_en, c_flag_en} = 6'b111_111;
         end
 
-        else if (ucode_vector.instr_ctrl_vector == INSTR_CTRL_2) begin
+        else if (ucode_vector.instr_ctrl == INSTR_CTRL_2) begin
             if (instr_ctrl_vector.alu_out_dst == ALUDST_STATUS) begin
                 {n_flag, v_flag, d_flag, i_flag, z_flag, c_flag} = {alu_out[7:6], alu_out[3:0]};
                 {n_flag_en, v_flag_en, d_flag_en, i_flag_en, z_flag_en, c_flag_en} = 6'b111_111;
