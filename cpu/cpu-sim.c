@@ -1045,7 +1045,7 @@ uint8_t *init_memory_bytes() {
 
     FILE *fptr;
 
-    if ((fptr = fopen("nestest.nes","rb")) == NULL){
+    if ((fptr = fopen("tests\\nestest.nes","rb")) == NULL){
        printf("Error! opening file");
 
        // Program exits if the file pointer returns NULL.

@@ -124,8 +124,8 @@ IDIXW,RMEM,0,R,,RMEM,0,0,1,+,,,,,0,0,,,,
 ,,ALUOUT,W,instr_store,,,,,,,,,,0,0,1,,,1
 ABSID,PCLO,PCHI,R,,RMEM,0,0,1,+,,,,,1,0,,,,
 ,RMEMBUFFER,RMEM,R,,,,,,,,,,,0,0,,,,
-,ALUOUT,,R,,,,,,,,RMEM,,,0,0,,,,
-,PCLO,RMEM,R,,,,,,,,,RMEM,,1,0,,1,,1
+,ALUOUT,,R,,,,,,,,RMEM,,,0,0,1,,,
+,,RMEM,,,,,,,,,,RMEM,,0,0,,,,1
 IRQ,PCLO,PCHI,R,,,,,,,,,,,0,0,,,,
 ,,,R,,,,,,,,,,,0,0,,,,
 ,SP,1,W,PCHI,SP,0,1,0,+,,,,,0,0,,,,
