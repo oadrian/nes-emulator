@@ -102,7 +102,8 @@ module core(
         ucode_ctrl_signals_indices_reg(.data_en(rom_en),
                                        .data_in(ucode_ctrl_signals_indices),
                                        .data_out(ucode_ctrl_signals_indices), .*);
-    cpu_register #(.WIDTH($size(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE))
+    cpu_register #(.WIDTH($size(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE),
+                   .RESET_VAL(`UCODE_CTRL_SIGNALS_ROM))
         ucode_ctrl_signals_rom_reg(.data_en(rom_en),
                                    .data_in(ucode_ctrl_signals_rom),
                                    .data_out(ucode_ctrl_signals_rom), .*);
