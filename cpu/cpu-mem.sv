@@ -75,17 +75,50 @@ module cpu_memory(
     input  logic r_en,
     input  logic [7:0] w_data,
     input  logic clock,
+    input  logic clock_en, 
     input  logic reset_n
-    output logic [7:0] r_data);
+    output logic [7:0] r_data,
+
+    // PPU register interface
+    output reg_t reg_sel,
+    output logic reg_en,
+    output logic reg_rw,
+    output logic [7:0] reg_data_wr,
+    input logic [7:0] reg_data_rd
+    );
+
+    // PPU regsiter interface
+    assign reg_rw = ~r_en;  // if r_en - 0 read, re_n - 1 writes
+    assign reg_data_wr = w_data;
+    assign r_data = reg_data_rd;
+
+    always_comb begin
+        reg_sel = PPUCTRL;
+        reg_en = 1'b0;
+        if(addr[15:12] == 4'h2 || addr[15:12] == 4'h3) begin 
+            reg_en = 1'b1;
+            case (addr[2:0]) 
+                3'h0: reg_sel = PPUCTRL;
+                3'h1: reg_sel = PPUMASK;
+                3'h2: reg_sel = PPUSTATUS;
+                3'h3: reg_sel = OAMADDR;
+                3'h4: reg_sel = OAMDATA;
+                3'h5: reg_sel = PPUSCROLL;
+                3'h6: reg_sel = PPUADDR;
+                3'h7: reg_sel = PPUDATA;
+                default : /* default */;
+            endcase
+        end else if(addr == 16'h4014) begin 
+            reg_en = 1'b1;
+            reg_sel = OAMDMA;
+        end
+    end
 
     // addr is latched
     // r_en and w_data are not latched
     // r_data is latched
 
     // FEDC_BA98_7654_3210
-
-    logic clock_en;
-    assign clock_en = 1'b1;
 
     logic [0:8191][7:0] ram;
     logic [0:7][7:0] ppu_regs;
@@ -106,14 +139,6 @@ module cpu_memory(
                 end
                 else begin
                     ram[addr[6:0]] <= w_data;
-                end
-            end
-            else if (addr < 16'h4000) begin
-                if (r_en = 1'b1) begin
-                    r_data <= ppu_regs[addr[2:0]];
-                end
-                else begin
-                    ppu_regs[addr[2:0]] <= w_data;
                 end
             end
             else if (addr < 16'h4020) begin
