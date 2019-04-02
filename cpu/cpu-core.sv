@@ -456,7 +456,7 @@ module cpu_next_state(
                 if (ucode_vector.start_fetch == 1'b1) begin
                     next_state = STATE_FETCH;
                 end
-                else if (ucode_vector.skip_line == 1'b1 && c_out == 1'b1) begin
+                else if (ucode_vector.skip_line == 1'b1 && c_out == 1'b0) begin
                     next_state = STATE_FETCH;
                 end
                 else begin
