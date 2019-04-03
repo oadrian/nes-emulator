@@ -104,7 +104,8 @@ module core(
         ucode_ctrl_signals_indices_reg(.data_en(rom_en),
                                        .data_in(ucode_ctrl_signals_indices),
                                        .data_out(ucode_ctrl_signals_indices), .*);
-    cpu_register #(.WIDTH($size(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE))
+    cpu_register #(.WIDTH($size(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE),
+                   .RESET_VAL(`UCODE_CTRL_SIGNALS_ROM))
         ucode_ctrl_signals_rom_reg(.data_en(rom_en),
                                    .data_in(ucode_ctrl_signals_rom),
                                    .data_out(ucode_ctrl_signals_rom), .*);
@@ -292,7 +293,7 @@ module cpu_inputs(
             // PCHISRC_RMEM, PCHISRC_ALUOUT, PCHISRC_NONE
             PCHISRC_RMEM: PC[15:8] = r_data;
             PCHISRC_ALUOUT: PC[15:8] = alu_out;
-            PCHISRC_NONE: PC_en[1] = 1'b1;
+            PCHISRC_NONE: PC_en[1] = 1'b0;
         endcase
     end    
 
@@ -362,7 +363,7 @@ module cpu_inputs(
                         n_flag_en = 1'b1; 
                     end
                     FLAG_RMEM_BUFFER: begin
-                        n_flag = r_data_buffer;
+                        n_flag = r_data_buffer[7];
                         n_flag_en = 1'b1;
                     end
                 endcase

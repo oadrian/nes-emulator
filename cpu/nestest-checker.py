@@ -76,7 +76,7 @@ def main():
     output_path = "logs/cpu-out.log.txt"
 
     golden_contents = readFile(golden_path)
-    output_contents = readFile(output_path)
+    output_contents = readFile(output_path).upper()
 
     find_first_dif(golden_contents, output_contents)
 

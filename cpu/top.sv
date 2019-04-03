@@ -38,13 +38,17 @@ module top ();
     int fd;
     int cnt;
 
+    logic check_07ff;
+
     processor_state_t prev_state;
 
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
-            prev_state <= STATE_NEITHER;
+            prev_state <= STATE_FETCH;
+            check_07ff <= 0;
         end else begin
             prev_state <= cpu.state;
+            check_07ff <= addr == 16'h07FF;
         end
     end
 
@@ -70,14 +74,26 @@ module top ();
         doReset;
         @(posedge clock);
         @(posedge clock);
-        @(posedge clock);
-        $display("%p",mem.cartridge_mem);
+        //@(posedge clock);
+        //$display("%p",mem.cartridge_mem);
         cnt = 0;
-        while(cnt < 26555) begin 
+        // should be 26555
+        while(cnt+7 < 26555) begin
+            //$display("lol"); 
+
+            if (addr == 16'h07FF) begin
+                //$display("d addr: 0x07FF, r:%b, r_data:%.2x, w_data:%.2x, CYC:%1.d", mem_r_en, r_data, w_data, cnt+7);
+                //$strobe("s addr: 0x07FF, r:%b, r_data:%.2x, w_data:%.2x, CYC:%1.d", mem_r_en, r_data, w_data, cnt+7);
+            end
+
+            if (check_07ff) begin
+                //$display("data 0x07FF:%.2x, r_data:%.2x CYC:%1.d", mem.ram[2047], r_data, cnt+7);
+            end
+
             if(cpu.state == STATE_DECODE) begin 
-                $fwrite(fd,"%.4x %.2x", cpu.PC-1, r_data);
-                $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%d\n",
-                        can_A, can_X, can_Y, can_status, can_SP, cnt);
+                $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, r_data);
+                $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d\n",
+                        can_A, can_X, can_Y, can_status, can_SP, cnt+7);
             end
             @(posedge clock);
             cnt++;

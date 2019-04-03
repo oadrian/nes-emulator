@@ -124,14 +124,14 @@ module cpu_memory(
 
     // FEDC_BA98_7654_3210
 
-    logic [7:0] ram [8191:0];
+    logic [7:0] ram [2047:0];
     logic [7:0] ppu_regs[7:0];
     logic [7:0] io_regs[31:0];
     logic [7:0] cartridge_mem [65535:16416];
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
-            for (int i = 0; i < 8192; i++) begin
+            for (int i = 0; i < 2048; i++) begin
                 ram[i] <= 8'd0;
             end
             for (int i = 0; i < 8; i++) begin
@@ -155,10 +155,10 @@ module cpu_memory(
         else if (clock_en) begin
             if (addr < 16'h2000) begin
                 if (r_en == 1'b1) begin
-                    r_data <= ram[addr[6:0]];
+                    r_data <= ram[addr[10:0]];
                 end
                 else begin
-                    ram[addr[6:0]] <= w_data;
+                    ram[addr[10:0]] <= w_data;
                 end
             end
             else if (addr < 16'h4000) begin
@@ -253,7 +253,8 @@ module mem_inputs(
 
             addr[7:0] = PC[7:0];
 
-            if (ucode_vector.addr_hi_src == ADDRHI_RMEM) begin
+            if (ucode_vector.addr_hi_src == ADDRHI_RMEM ||
+                ucode_vector.pchi_src == PCHISRC_RMEM) begin
                 addr[15:8] = r_data;
             end
             else begin
@@ -270,25 +271,27 @@ module mem_inputs(
             w_data = alu_out;
         end
 
-        case (ucode_vector.write_mem_src)
-            // WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_STATUS_BS, WMEMSRC_STATUS_BC, WMEMSRC_INSTER_STORE, WMEMSRC_RMEM
-            WMEMSRC_PCHI: w_data = PC[15:8];
-            WMEMSRC_PCLO: w_data = PC[7:0];
-            // NV-BDIZC
-            WMEMSRC_STATUS_BS: w_data = {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
-            WMEMSRC_STATUS_BC: w_data = {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag};
-            WMEMSRC_INSTR_STORE: begin
-                case (instr_ctrl_vector.store_reg)
-                    // STORE_A, STORE_X, STORE_Y, STORE_STATUS
-                    STORE_A: w_data = A;
-                    STORE_X: w_data = X;
-                    STORE_Y: w_data = Y;
-                    // PHP -> b set
-                    STORE_STATUS: w_data = {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
-                endcase
-            end
-            WMEMSRC_RMEM: w_data = r_data;
-        endcase
+        else begin
+            case (ucode_vector.write_mem_src)
+                // WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_STATUS_BS, WMEMSRC_STATUS_BC, WMEMSRC_INSTER_STORE, WMEMSRC_RMEM
+                WMEMSRC_PCHI: w_data = PC[15:8];
+                WMEMSRC_PCLO: w_data = PC[7:0];
+                // NV-BDIZC
+                WMEMSRC_STATUS_BS: w_data = {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
+                WMEMSRC_STATUS_BC: w_data = {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag};
+                WMEMSRC_INSTR_STORE: begin
+                    case (instr_ctrl_vector.store_reg)
+                        // STORE_A, STORE_X, STORE_Y, STORE_STATUS
+                        STORE_A: w_data = A;
+                        STORE_X: w_data = X;
+                        STORE_Y: w_data = Y;
+                        // PHP -> b set
+                        STORE_STATUS: w_data = {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
+                    endcase
+                end
+                WMEMSRC_RMEM: w_data = r_data;
+            endcase
+        end
 
     end
 

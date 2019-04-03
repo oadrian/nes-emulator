@@ -583,7 +583,7 @@ def write_vh_code(new_sv_code, instr_ctrl_size, ucode_rom_size):
     instr_ctrl_size_str = "`define INSTR_CTRL_SIZE %d\n" % instr_ctrl_size
     ucode_rom_size_str = "`define UCODE_ROM_SIZE %d\n" % ucode_rom_size
 
-    contents = instr_ctrl_size_str + ucode_rom_size_str + new_sv_code
+    contents = "`ifndef UCODE_CTRL_VH_\n`define UCODE_CTRL_VH_\n" + instr_ctrl_size_str + ucode_rom_size_str + new_sv_code
 
     write_path = vh_target_file
     writeFile(write_path, contents)
@@ -613,12 +613,12 @@ def main():
                                            instr_ctrl_signals_indices_array, instr_ctrl_signals_vector_array, 
                                            ucode_indices_array, ucode_vector_array, 
                                            decode_ctrl_signals_array)
-    #write_c_code(new_c_code)
+    write_c_code(new_c_code)
 
     instr_ctrl_size = len(instr_ctrl_signals)
     ucode_rom_size = len(ucode_rom)
 
-    #write_h_code(instr_ctrl_size, ucode_rom_size)
+    write_h_code(instr_ctrl_size, ucode_rom_size)
 
 
     instr_ctrl_signals_vector_array = get_sv_struct_array(instr_ctrl_signals_struct_name, instr_ctrl_signals)
@@ -630,7 +630,7 @@ def main():
     ucode_indices_array = get_sv_indices_array(addr_mode_ucode_struct_name, opcode_to_addr_mode, ucode_indices)
     decode_ctrl_signals_array = get_sv_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals)
 
-    new_sv_code = "\n%s\n%s\n%s\n%s\n%s\n%s" % (special_ucode_indices,
+    new_sv_code = "\n%s\n%s\n%s\n%s\n%s\n%s\n`endif" % (special_ucode_indices,
                                            instr_ctrl_signals_indices_array, instr_ctrl_signals_vector_array, 
                                            ucode_indices_array, ucode_vector_array, 
                                            decode_ctrl_signals_array)

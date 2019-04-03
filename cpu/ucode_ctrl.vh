@@ -1,6 +1,5 @@
 `ifndef UCODE_CTRL_VH_
-`define UCODE_CTRL_VH_ 
-
+`define UCODE_CTRL_VH_
 `define INSTR_CTRL_SIZE 55
 `define UCODE_ROM_SIZE 152
 
