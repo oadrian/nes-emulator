@@ -2,7 +2,7 @@
 TARGET = simv
 
 # Source files
-SRC = $(wildcard *.vh) $(wildcard *.sv)
+SRC = $(wildcard ../ppu/ppu_defines.vh) $(wildcard *.vh) $(wildcard *.sv)
 
 # Set the number of threads to use for parallel compilation (2 * cores)
 CORES = $(shell getconf _NPROCESSORS_ONLN)

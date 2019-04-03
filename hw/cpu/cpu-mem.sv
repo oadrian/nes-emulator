@@ -1,4 +1,5 @@
 `default_nettype none
+// `include "../ppu/ppu_defines.vh"
 
 // `define SYNTH
 `define prg_rom_init
@@ -80,7 +81,7 @@ module cpu_memory(
     input  logic clock,
     input  logic clock_en, 
     input  logic reset_n,
-    output logic [7:0] r_data
+    output logic [7:0] r_data,
 
     // PPU register interface
     

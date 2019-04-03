@@ -3,7 +3,11 @@ TARGET = simv
 
 # Source files
 SRC := $(wildcard ../ppu/*.vh) \
-	   $(wildcard ../cpu/*.sv)
+	   $(wildcard ../ppu/*.sv) \
+	   $(wildcard ../cpu/*.vh) \
+	   $(wildcard ../cpu/*.sv) \
+	   $(wildcard *.sv) \
+	   $(wildcard *.vh)
 
 SRC := $(filter-out ../ppu/top.sv, $(SRC))
 SRC := $(filter-out ../cpu/top.sv, $(SRC))

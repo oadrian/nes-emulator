@@ -1,5 +1,5 @@
 `default_nettype none
-`include "ppu_defines.vh"
+// `include "ppu_defines.vh"
 
 `define ATTR_TBL_OFF 11'h3C0
 

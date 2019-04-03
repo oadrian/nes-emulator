@@ -1,5 +1,5 @@
 `default_nettype none
-`include "ppu_defines.vh"
+// `include "ppu_defines.vh"
 
 module ppu (
     input clk,    // Master Clock
