@@ -17,6 +17,7 @@ module core(
     output logic [15:0] addr,
     output logic mem_r_en,
     output logic [7:0] w_data,
+    input  logic nmi,
     input  logic [7:0] r_data,
     input  logic clock_en,
     input  logic clock,
@@ -49,6 +50,10 @@ module core(
     logic [5:0] next_instr_ctrl_index;
     logic instr_ctrl_index_en, state_en, ucode_index_en;
 
+    logic nmi_active, nmi_active_en, next_nmi_active;
+
+    logic [7:0] opcode;
+
 
     // architecture signals
     logic [15:0] PC;
@@ -66,6 +71,7 @@ module core(
 
     logic branch_bit;
 
+    logic [15:0] fetched_PC, fetched_PC_en, next_fetched_PC;
 
     // memory signals
     logic [7:0] r_data_buffer;
@@ -122,7 +128,11 @@ module core(
     cpu_next_state next_state_logic(.c_out(alu_c_out), .*);    
     cpu_next_ucode_index next_ucode_index_logic(.c_out(alu_c_out), .*);
 
-    assign {decode_start_fetch, decode_inc_pc} = decode_ctrl_signals_rom[r_data];
+    assign opcode = (nmi_active) ? 8'h00 : r_data;
+
+    assign decode_start_fetch = decode_ctrl_signals_rom[opcode][1];
+    assign decode_inc_pc = decode_ctrl_signals_rom[opcode][0] & ~nmi_active;
+    //assign {decode_start_fetch, decode_inc_pc} = decode_ctrl_signals_rom[opcode];
 
     assign state_en = 1'b1;
     assign ucode_index_en = 1'b1;
@@ -134,7 +144,7 @@ module core(
         .data_en(ucode_index_en), .data_in(next_ucode_index), 
         .data_out(ucode_index), .*);
 
-    assign next_instr_ctrl_index = instr_ctrl_signals_indices[r_data];
+    assign next_instr_ctrl_index = instr_ctrl_signals_indices[opcode];
     assign instr_ctrl_index_en = state == STATE_DECODE;
 
     cpu_register #(.WIDTH(6)) instr_ctrl_index_reg(
@@ -143,6 +153,27 @@ module core(
 
     assign instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
     assign ucode_vector = ucode_ctrl_signals_rom[ucode_index];
+
+
+    always_comb begin
+        next_nmi_active = 1'b0;
+        nmi_active_en = 1'b0;
+
+        if (nmi_active == 1'b0 && !nmi) begin
+            next_nmi_active = 1'b1;
+            nmi_active_en = 1'b1;
+        end
+
+        if (nmi_active == 1'b1 && ucode_vector.addr_hi_src == ADDLO_BRKHI) begin
+            next_nmi_active = 1'b0;
+            nmi_active_en = 1'b1;
+        end
+
+    end
+
+    cpu_register #(.WIDTH(1)) nmi_active_reg(
+        .data_en(nmi_active_en), .data_in(next_nmi_active),
+        .data_out(nmi_active), .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -183,6 +214,12 @@ module core(
 
     cpu_wide_counter_register #(.RESET_VAL(`DEFAULT_PC)) PC_reg(
         .inc_en(inc_PC), .data_en(PC_en), .data_in(next_PC), .data_out(PC), .*);
+
+    assign fetched_PC_en = state == STATE_FETCH;
+    assign next_fetched_PC = PC;
+
+    cpu_register #(.WIDTH(16)) fetched_PC_reg(
+        .data_en(fetched_PC_en), .data_in(next_fetched_PC), .data_out(fetched_PC), .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -265,6 +302,9 @@ module cpu_inputs(
     input logic[7:0] r_data, r_data_buffer, alu_out,
     input logic branch_bit,
 
+    input logic nmi_active,
+    input logic [15:0] fetched_PC,
+
     input logic alu_n_out, alu_v_out, alu_z_out, alu_c_out,
 
     output logic[15:0] PC,
@@ -281,20 +321,29 @@ module cpu_inputs(
         PC = 16'b0;
         PC_en = 2'b11;
         
-        case (ucode_vector.pclo_src)
-            // PCLOSRC_RMEM, PCLOSRC_ALUOUT, PCLOSRC_RMEM_BUFFER, PCLOSRC_NONE
-            PCLOSRC_RMEM: PC[7:0] = r_data;
-            PCLOSRC_ALUOUT: PC[7:0] = alu_out;
-            PCLOSRC_RMEM_BUFFER: PC[7:0] = r_data_buffer;
-            PCLOSRC_NONE: PC_en[0] = 1'b0;
-        endcase
+        if (state == STATE_DECODE &&
+            nmi_active == 1'b1) begin
 
-        case (ucode_vector.pchi_src)
-            // PCHISRC_RMEM, PCHISRC_ALUOUT, PCHISRC_NONE
-            PCHISRC_RMEM: PC[15:8] = r_data;
-            PCHISRC_ALUOUT: PC[15:8] = alu_out;
-            PCHISRC_NONE: PC_en[1] = 1'b0;
-        endcase
+            PC = fetched_PC;
+
+        else begin
+
+            case (ucode_vector.pclo_src)
+                // PCLOSRC_RMEM, PCLOSRC_ALUOUT, PCLOSRC_RMEM_BUFFER, PCLOSRC_NONE
+                PCLOSRC_RMEM: PC[7:0] = r_data;
+                PCLOSRC_ALUOUT: PC[7:0] = alu_out;
+                PCLOSRC_RMEM_BUFFER: PC[7:0] = r_data_buffer;
+                PCLOSRC_NONE: PC_en[0] = 1'b0;
+            endcase
+
+            case (ucode_vector.pchi_src)
+                // PCHISRC_RMEM, PCHISRC_ALUOUT, PCHISRC_NONE
+                PCHISRC_RMEM: PC[15:8] = r_data;
+                PCHISRC_ALUOUT: PC[15:8] = alu_out;
+                PCHISRC_NONE: PC_en[1] = 1'b0;
+            endcase
+
+        end
     end    
 
     // inc PC
@@ -353,7 +402,7 @@ module cpu_inputs(
                 {n_flag, v_flag, d_flag, i_flag, z_flag, c_flag} = {alu_out[7:6], alu_out[3:0]};
                 {n_flag_en, v_flag_en, d_flag_en, i_flag_en, z_flag_en, c_flag_en} = 6'b111_111;
             end
-            else 
+            else begin
 
                 case (instr_ctrl_vector.n_src)
                     // FLAG_ALU, FLAG_0, FLAG_1, FLAG_RMEM_BUFFER, FLAG_NONE
@@ -432,7 +481,15 @@ module cpu_inputs(
                     end
                 endcase
 
+            end
+
         end
+
+        if (ucode_vector.addr_hi_src == ADDLO_BRKHI) begin
+            i_flag = 1'b1;
+            i_flag_en = 1'b1;
+        end
+
     end 
 
 endmodule : cpu_inputs
@@ -441,7 +498,7 @@ endmodule : cpu_inputs
 module cpu_next_state(
     input  ucode_ctrl_signals_t ucode_vector,
     input  processor_state_t state,
-    input  logic decode_start_fetch, branch_bit, c_out,
+    input  logic decode_start_fetch, branch_bit, c_out, nmi_active,
 
     output processor_state_t next_state);
 
@@ -452,6 +509,7 @@ module cpu_next_state(
         case (state)
             // STATE_FETCH, STATE_DECODE, STATE_NEITHER
             STATE_FETCH: next_state = STATE_DECODE;
+            // if nmi is active in decode, brk decode signals will be fetched, implying we don't start fetch next
             STATE_DECODE: next_state = (decode_start_fetch) ? STATE_FETCH : STATE_NEITHER;
             STATE_NEITHER: begin
                 if (ucode_vector.start_fetch == 1'b1) begin
@@ -479,6 +537,7 @@ module cpu_next_ucode_index(
     input  ucode_ctrl_signals_t ucode_vector,
     input  processor_state_t state,
     input  logic[7:0] ucode_index, r_data,
+    input  logic[7:0],
     input  logic c_out, branch_bit,
     input  logic[0:255][7:0] ucode_ctrl_signals_indices, 
 
@@ -488,7 +547,7 @@ module cpu_next_ucode_index(
         next_ucode_index = 8'b0;
 
         if (state == STATE_DECODE) begin
-            next_ucode_index = ucode_ctrl_signals_indices[r_data];
+            next_ucode_index = ucode_ctrl_signals_indices[opcode];
         end
         else if (ucode_vector.skip_line == 1'b1) begin
             next_ucode_index = (c_out) ? ucode_index + 8'd1 : ucode_index + 8'd2;

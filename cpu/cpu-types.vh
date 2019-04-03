@@ -23,13 +23,13 @@ typedef enum logic[1:0] {STORE_A, STORE_X, STORE_Y, STORE_STATUS} ctrl_store_reg
 
 // enums used for addressing mode ucode
 
-typedef enum logic[3:0] {ADDRLO_FF, ADDRLO_FE, ADDRLO_FD, ADDRLO_FC, ADDRLO_FB, ADDRLO_FA, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_RMEM, ADDRLO_ALUOUT, ADDRLO_SP, ADDRLO_HOLD} ucode_addr_lo_src_t;
+typedef enum logic[3:0] {ADDRLO_BRKHI, ADDRLO_BRKLO, ADDRLO_FD, ADDRLO_FC, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_RMEM, ADDRLO_ALUOUT, ADDRLO_SP, ADDRLO_HOLD} ucode_addr_lo_src_t;
 
 typedef enum logic[2:0] {ADDRHI_1, ADDRHI_0, ADDRHI_FF, ADDRHI_PCHI, ADDRHI_RMEM, ADDRHI_ALUOUT, ADDRHI_HOLD} ucode_addr_hi_src_t;
 
 typedef enum logic[1:0] {READ_EN_R, READ_EN_W, READ_EN_NONE} ucode_r_en_t;
 
-typedef enum logic[2:0] {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_STATUS_BS, WMEMSRC_STATUS_BC, WMEMSRC_INSTR_STORE, WMEMSRC_RMEM} ucode_write_mem_src_t;
+typedef enum logic[2:0] {WMEMSRC_PCHI, WMEMSRC_PCLO, WMEMSRC_STATUS_BRK, WMEMSRC_STATUS_BC, WMEMSRC_INSTR_STORE, WMEMSRC_RMEM} ucode_write_mem_src_t;
 
 typedef enum logic {SPSRC_ALUOUT, SPSRC_NONE} ucode_sp_src_t;
 

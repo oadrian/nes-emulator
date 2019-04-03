@@ -199,6 +199,8 @@ module mem_inputs(
     input  logic[7:0] A, X, Y, SP, r_data, r_data_buffer, alu_out,
     input  logic[15:0] PC,
     input  logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag,
+
+    input  logic nmi_active,
     
     output logic[15:0] addr,
     output logic[7:0] w_data,
@@ -215,12 +217,24 @@ module mem_inputs(
 
             case (ucode_vector.addr_lo_src)
                 // ADDRLO_FF, ADDRLO_FE, ADDRLO_FD, ADDRLO_FC, ADDRLO_FB, ADDRLO_FA, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_RMEM, ADDRLO_ALUOUT, ADDRLO_SP, ADDRLO_HOLD
-                ADDRLO_FF: addr[7:0] = 8'hFF;
-                ADDRLO_FE: addr[7:0] = 8'hFE;
+                ADDRLO_BRKLO: begin
+                    if (nmi_active) begin
+                        addr[7:0] = 8'hFA;
+                    end
+                    else begin
+                        addr[7:0] = 8'hFE;
+                    end
+                end
+                ADDRLO_BRKHI: begin
+                    if (nmi_active) begin
+                        addr[7:0] = 8'hFB;
+                    end
+                    else begin
+                        addr[7:0] = 8'hFF;
+                    end
+                end
                 ADDRLO_FD: addr[7:0] = 8'hFD;
                 ADDRLO_FC: addr[7:0] = 8'hFC;
-                ADDRLO_FB: addr[7:0] = 8'hFB;
-                ADDRLO_FA: addr[7:0] = 8'hFA;
                 ADDRLO_PCLO: addr[7:0] = PC[7:0];
                 ADDRLO_RMEMBUFFER: addr[7:0] = r_data_buffer;
                 ADDRLO_RMEM: addr[7:0] = r_data;
@@ -277,7 +291,7 @@ module mem_inputs(
                 WMEMSRC_PCHI: w_data = PC[15:8];
                 WMEMSRC_PCLO: w_data = PC[7:0];
                 // NV-BDIZC
-                WMEMSRC_STATUS_BS: w_data = {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
+                WMEMSRC_STATUS_BRK: w_data = (nmi_active) ? {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag} : {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
                 WMEMSRC_STATUS_BC: w_data = {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag};
                 WMEMSRC_INSTR_STORE: begin
                     case (instr_ctrl_vector.store_reg)
