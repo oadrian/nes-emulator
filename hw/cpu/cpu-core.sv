@@ -1,4 +1,6 @@
 `default_nettype none
+`include "cpu-types.vh"
+`include "ucode_ctrl.vh"
 
 `define DEFAULT_SP 8'hFD
 
@@ -9,9 +11,9 @@
 `define DEFAULT_Z 1'b0
 `define DEFAULT_C 1'b0
 
-`define DEFAULT_PC 16'h4020
+// `define DEFAULT_PC 16'h4020
 //  #nestest - change default PC 
-//`define DEFAULT_PC 16'hC000
+`define DEFAULT_PC 16'hC000
 
 module core(
     output logic [15:0] addr,
@@ -137,10 +139,6 @@ module core(
     assign state_en = 1'b1;
     assign ucode_index_en = 1'b1;
 
-    // #nestest - change state_neither to state_fetch
-    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_NEITHER)) state_reg(
-        .data_en(state_en), .data_in(next_state), .data_out(state), .*);
-
     // #nestest change default ucode index to 0
     cpu_register #(.RESET_VAL(`RESET_UCODE_INDEX)) ucode_index_reg(
     //cpu_register #(.RESET_VAL(0)) ucode_index_reg(
@@ -157,6 +155,9 @@ module core(
     assign instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
     assign ucode_vector = ucode_ctrl_signals_rom[ucode_index];
 
+	 // #nestest - change state_neither to state_fetch
+    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_NEITHER)) state_reg(
+        .data_en(state_en), .data_in(next_state[1:0]), .data_out(state[1:0]), .*);
 
     always_comb begin
         next_nmi_active = 1'b0;

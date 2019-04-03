@@ -1,7 +1,7 @@
 `default_nettype none
 // `include "../ppu/ppu_defines.vh"
 
-// `define SYNTH
+`define SYNTH
 `define prg_rom_init
 
 module cpu_register #(WIDTH=8, RESET_VAL=0) (
@@ -133,49 +133,41 @@ module cpu_memory(
     assign r_data = (prev_reg_en) ? reg_data_rd : mem_data_rd;
 
     `ifdef SYNTH
-    logic [14:0] prom_address;
-    logic prev_prom_rden, prom_rden;
+    logic [13:0] prom_address;
+    logic prom_rden;
     logic [7:0] prom_data_rd;
 
-    prg_rom prom(.address(prom_address), .clock, .clken(clock_en), 
-                 .rden(prom_rden), .q(prom_data_rd));
+    prg_rom_16 prom(.address(prom_address), .clock,  .q(prom_data_rd));
 
     logic [10:0]  cram_address;
     logic [7:0]  cram_data_wr;
-    logic prev_cram_rden, cram_rden;
+    logic cram_rden;
     logic cram_wren;
     logic  [7:0]  cram_data_rd;
 
-    cram cmem(.address(cram_address), .clock, .clken(clock_en), 
-              .data(cram_data_wr), .rden(cram_rden), 
+    cram cmem(.address(cram_address), .clock,
+              .data(cram_data_wr),
               .wren(cram_wren), .q(cram_data_rd));
 
-    assign prom_rden = (addr[15] && r_en);
-    assign prom_address = addr[14:0];
+    assign prom_rden = (addr[15:14] == 2'b11 && r_en);
+    assign prom_address = addr[13:0];
 
 
-    assign cram_rden = (16'h0000 <= addr && addr <= 16'h07FF && r_en);
-    assign cram_wren = (16'h0000 <= addr && addr <= 16'h07FF && !r_en);
+    assign cram_rden = (16'h0000 <= addr && addr < 16'h2000 && r_en);
+    assign cram_wren = (16'h0000 <= addr && addr < 16'h2000 && !r_en);
     assign cram_address = addr[10:0];
     assign cram_data_wr = w_data;
 
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
-            prev_prom_rden <= 0;
-            prev_cram_rden <= 0;
+            mem_data_rd <= 8'd0;
         end else if(clock_en) begin
-            prev_prom_rden <= prom_rden;
-            prev_cram_rden <= cram_rden;
+            if(cram_rden) begin 
+                mem_data_rd <= cram_data_rd;
+            end else if(prom_rden) begin
+                mem_data_rd <= prom_data_rd;
+            end
         end
-    end
-
-
-    always_comb begin
-        mem_data_rd = 8'd0;
-        if(prev_prom_rden) 
-            mem_data_rd = prom_data_rd;
-        else if(prev_cram_rden)
-            mem_data_rd = cram_data_rd;
     end
 
     `else 

@@ -1,0 +1,22 @@
+	component audio is
+		port (
+			to_dac_left_channel_data     : in  std_logic_vector(15 downto 0) := (others => 'X'); -- data
+			to_dac_left_channel_valid    : in  std_logic                     := 'X';             -- valid
+			to_dac_left_channel_ready    : out std_logic;                                        -- ready
+			from_adc_left_channel_ready  : in  std_logic                     := 'X';             -- ready
+			from_adc_left_channel_data   : out std_logic_vector(15 downto 0);                    -- data
+			from_adc_left_channel_valid  : out std_logic;                                        -- valid
+			to_dac_right_channel_data    : in  std_logic_vector(15 downto 0) := (others => 'X'); -- data
+			to_dac_right_channel_valid   : in  std_logic                     := 'X';             -- valid
+			to_dac_right_channel_ready   : out std_logic;                                        -- ready
+			from_adc_right_channel_ready : in  std_logic                     := 'X';             -- ready
+			from_adc_right_channel_data  : out std_logic_vector(15 downto 0);                    -- data
+			from_adc_right_channel_valid : out std_logic;                                        -- valid
+			clk                          : in  std_logic                     := 'X';             -- clk
+			AUD_BCLK                     : in  std_logic                     := 'X';             -- BCLK
+			AUD_DACDAT                   : out std_logic;                                        -- DACDAT
+			AUD_DACLRCK                  : in  std_logic                     := 'X';             -- DACLRCK
+			reset                        : in  std_logic                     := 'X'              -- reset
+		);
+	end component audio;
+

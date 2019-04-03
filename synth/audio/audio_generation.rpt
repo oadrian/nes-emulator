@@ -1,0 +1,29 @@
+Info: Starting: Create block symbol file (.bsf)
+Info: qsys-generate D:\CMU\18-500\nes-emulator\synth\audio.qsys --block-symbol-file --output-directory=D:\CMU\18-500\nes-emulator\synth\audio --family="Cyclone IV E" --part=EP4CE115F29C7
+Progress: Loading synth/audio.qsys
+Progress: Reading input file
+Progress: Adding audio_0 [altera_up_avalon_audio 15.1]
+Progress: Parameterizing module audio_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: qsys-generate succeeded.
+Info: Finished: Create block symbol file (.bsf)
+Info: 
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate D:\CMU\18-500\nes-emulator\synth\audio.qsys --synthesis=VERILOG --output-directory=D:\CMU\18-500\nes-emulator\synth\audio\synthesis --family="Cyclone IV E" --part=EP4CE115F29C7
+Progress: Loading synth/audio.qsys
+Progress: Reading input file
+Progress: Adding audio_0 [altera_up_avalon_audio 15.1]
+Progress: Parameterizing module audio_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: audio: Generating audio "audio" for QUARTUS_SYNTH
+Info: audio_0: Starting Generation of Audio Controller
+Info: audio_0: "audio" instantiated altera_up_avalon_audio "audio_0"
+Info: audio: Done "audio" with 2 modules, 7 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis

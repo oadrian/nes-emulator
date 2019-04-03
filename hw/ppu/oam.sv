@@ -5,7 +5,7 @@
 
 `define oam_init
 
-// `define SYNTH
+`define SYNTH
 
 // oam is 256 bytes  (64 sprites each of 4 bytes)
 `define OAM_WIDTH 8

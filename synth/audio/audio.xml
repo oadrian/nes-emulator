@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<deploy
+ date="2019.04.03.00:56:34"
+ outputDirectory="D:/CMU/18-500/nes-emulator/synth/audio/">
+ <perimeter>
+  <parameter
+     name="AUTO_GENERATION_ID"
+     type="Integer"
+     defaultValue="0"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_UNIQUE_ID"
+     type="String"
+     defaultValue=""
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DEVICE_FAMILY"
+     type="String"
+     defaultValue="Cyclone IV E"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DEVICE"
+     type="String"
+     defaultValue="EP4CE115F29C7"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DEVICE_SPEEDGRADE"
+     type="String"
+     defaultValue="7"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_CLK_CLOCK_RATE"
+     type="Long"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_CLK_CLOCK_DOMAIN"
+     type="Integer"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_CLK_RESET_DOMAIN"
+     type="Integer"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <interface name="avalon_left_channel_sink" kind="avalon_streaming" start="0">
+   <property name="associatedClock" value="clk" />
+   <property name="associatedReset" value="reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="8" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="to_dac_left_channel_data"
+       direction="input"
+       role="data"
+       width="16" />
+   <port
+       name="to_dac_left_channel_valid"
+       direction="input"
+       role="valid"
+       width="1" />
+   <port
+       name="to_dac_left_channel_ready"
+       direction="output"
+       role="ready"
+       width="1" />
+  </interface>
+  <interface name="avalon_left_channel_source" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="clk" />
+   <property name="associatedReset" value="reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="8" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="from_adc_left_channel_ready"
+       direction="input"
+       role="ready"
+       width="1" />
+   <port
+       name="from_adc_left_channel_data"
+       direction="output"
+       role="data"
+       width="16" />
+   <port
+       name="from_adc_left_channel_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+  </interface>
+  <interface name="avalon_right_channel_sink" kind="avalon_streaming" start="0">
+   <property name="associatedClock" value="clk" />
+   <property name="associatedReset" value="reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="8" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="to_dac_right_channel_data"
+       direction="input"
+       role="data"
+       width="16" />
+   <port
+       name="to_dac_right_channel_valid"
+       direction="input"
+       role="valid"
+       width="1" />
+   <port
+       name="to_dac_right_channel_ready"
+       direction="output"
+       role="ready"
+       width="1" />
+  </interface>
+  <interface name="avalon_right_channel_source" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="clk" />
+   <property name="associatedReset" value="reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="8" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="from_adc_right_channel_ready"
+       direction="input"
+       role="ready"
+       width="1" />
+   <port
+       name="from_adc_right_channel_data"
+       direction="output"
+       role="data"
+       width="16" />
+   <port
+       name="from_adc_right_channel_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+  </interface>
+  <interface name="clk" kind="clock" start="0">
+   <property name="clockRate" value="0" />
+   <property name="externallyDriven" value="false" />
+   <property name="ptfSchematicName" value="" />
+   <port name="clk" direction="input" role="clk" width="1" />
+  </interface>
+  <interface name="external_interface" kind="conduit" start="0">
+   <property name="associatedClock" value="" />
+   <property name="associatedReset" value="" />
+   <port name="AUD_BCLK" direction="input" role="BCLK" width="1" />
+   <port name="AUD_DACDAT" direction="output" role="DACDAT" width="1" />
+   <port name="AUD_DACLRCK" direction="input" role="DACLRCK" width="1" />
+  </interface>
+  <interface name="reset" kind="reset" start="0">
+   <property name="associatedClock" value="clk" />
+   <property name="synchronousEdges" value="DEASSERT" />
+   <port name="reset" direction="input" role="reset" width="1" />
+  </interface>
+ </perimeter>
+ <entity
+   path=""
+   parameterizationKey="audio:1.0:AUTO_CLK_CLOCK_DOMAIN=-1,AUTO_CLK_CLOCK_RATE=-1,AUTO_CLK_RESET_DOMAIN=-1,AUTO_DEVICE=EP4CE115F29C7,AUTO_DEVICE_FAMILY=Cyclone IV E,AUTO_DEVICE_SPEEDGRADE=7,AUTO_GENERATION_ID=1554267391,AUTO_UNIQUE_ID=(altera_up_avalon_audio:15.1:AUTO_CLK_CLOCK_RATE=0,AUTO_DEVICE_FAMILY=Cyclone IV E,audio_in=false,audio_out=true,avalon_bus_type=Streaming,dw=16)"
+   instancePathKey="audio"
+   kind="audio"
+   version="1.0"
+   name="audio">
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="-1" />
+  <parameter name="AUTO_GENERATION_ID" value="1554267391" />
+  <parameter name="AUTO_DEVICE" value="EP4CE115F29C7" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone IV E" />
+  <parameter name="AUTO_CLK_RESET_DOMAIN" value="-1" />
+  <parameter name="AUTO_CLK_CLOCK_DOMAIN" value="-1" />
+  <parameter name="AUTO_UNIQUE_ID" value="" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <generatedFiles>
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/audio.v"
+       type="VERILOG" />
+  </generatedFiles>
+  <childGeneratedFiles>
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_audio_bit_counter.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_audio_in_deserializer.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_audio_out_serializer.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_clock_edge.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_sync_fifo.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/audio_audio_0.v"
+       type="VERILOG" />
+  </childGeneratedFiles>
+  <sourceFiles>
+   <file path="D:/CMU/18-500/nes-emulator/synth/audio.qsys" />
+  </sourceFiles>
+  <childSourceFiles>
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/altera_up_avalon_audio_hw.tcl" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_audio_bit_counter.v" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_audio_in_deserializer.v" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_audio_out_serializer.v" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_clock_edge.v" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_sync_fifo.v" />
+  </childSourceFiles>
+  <messages>
+   <message level="Debug" culprit="audio">queue size: 0 starting:audio "audio"</message>
+   <message level="Progress" culprit="min"></message>
+   <message level="Progress" culprit="max"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Debug">Transform: CustomInstructionTransform</message>
+   <message level="Debug">No custom instruction connections, skipping transform </message>
+   <message level="Debug" culprit="merlin_custom_instruction_transform"><![CDATA[After transform: <b>1</b> modules, <b>0</b> connections]]></message>
+   <message level="Debug">Transform: MMTransform</message>
+   <message level="Debug">Transform: InterruptMapperTransform</message>
+   <message level="Debug">Transform: InterruptSyncTransform</message>
+   <message level="Debug">Transform: InterruptFanoutTransform</message>
+   <message level="Debug">Transform: AvalonStreamingTransform</message>
+   <message level="Debug">Transform: ResetAdaptation</message>
+   <message level="Debug" culprit="audio"><![CDATA["<b>audio</b>" reuses <b>altera_up_avalon_audio</b> "<b>submodules/audio_audio_0</b>"]]></message>
+   <message level="Debug" culprit="audio">queue size: 0 starting:altera_up_avalon_audio "submodules/audio_audio_0"</message>
+   <message level="Info" culprit="audio_0">Starting Generation of Audio Controller</message>
+   <message level="Info" culprit="audio_0"><![CDATA["<b>audio</b>" instantiated <b>altera_up_avalon_audio</b> "<b>audio_0</b>"]]></message>
+  </messages>
+ </entity>
+ <entity
+   path="submodules/"
+   parameterizationKey="altera_up_avalon_audio:15.1:AUTO_CLK_CLOCK_RATE=0,AUTO_DEVICE_FAMILY=Cyclone IV E,audio_in=false,audio_out=true,avalon_bus_type=Streaming,dw=16"
+   instancePathKey="audio:.:audio_0"
+   kind="altera_up_avalon_audio"
+   version="15.1"
+   name="audio_audio_0">
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="0" />
+  <parameter name="dw" value="16" />
+  <parameter name="avalon_bus_type" value="Streaming" />
+  <parameter name="audio_in" value="false" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone IV E" />
+  <parameter name="audio_out" value="true" />
+  <generatedFiles>
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_audio_bit_counter.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_audio_in_deserializer.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_audio_out_serializer.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_clock_edge.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/altera_up_sync_fifo.v"
+       type="VERILOG" />
+   <file
+       path="D:/CMU/18-500/nes-emulator/synth/audio/synthesis/submodules/audio_audio_0.v"
+       type="VERILOG" />
+  </generatedFiles>
+  <childGeneratedFiles/>
+  <sourceFiles>
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/altera_up_avalon_audio_hw.tcl" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_audio_bit_counter.v" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_audio_in_deserializer.v" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_audio_out_serializer.v" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_clock_edge.v" />
+   <file
+       path="D:/altera/16.0/ip/altera/university_program/audio_video/altera_up_avalon_audio/hdl/altera_up_sync_fifo.v" />
+  </sourceFiles>
+  <childSourceFiles/>
+  <instantiator instantiator="audio" as="audio_0" />
+  <messages>
+   <message level="Debug" culprit="audio">queue size: 0 starting:altera_up_avalon_audio "submodules/audio_audio_0"</message>
+   <message level="Info" culprit="audio_0">Starting Generation of Audio Controller</message>
+   <message level="Info" culprit="audio_0"><![CDATA["<b>audio</b>" instantiated <b>altera_up_avalon_audio</b> "<b>audio_0</b>"]]></message>
+  </messages>
+ </entity>
+</deploy>

@@ -5,7 +5,7 @@
 
 `define vram_init
 
-// `define SYNTH
+`define SYNTH
 
 // vram is 2KB 8 bit words
 `define VRAM_WIDTH 11

@@ -1,0 +1,195 @@
+/*
+WARNING: Do NOT edit the input and output ports in this file in a text
+editor if you plan to continue editing the block that represents it in
+the Block Editor! File corruption is VERY likely to occur.
+*/
+/*
+Copyright (C) 1991-2016 Altera Corporation. All rights reserved.
+Your use of Altera Corporation's design tools, logic functions 
+and other software and tools, and its AMPP partner logic 
+functions, and any output files from any of the foregoing 
+(including device programming or simulation files), and any 
+associated documentation or information are expressly subject 
+to the terms and conditions of the Altera Program License 
+Subscription Agreement, the Altera Quartus Prime License Agreement,
+the Altera MegaCore Function License Agreement, or other 
+applicable license agreement, including, without limitation, 
+that your use is for the sole purpose of programming logic 
+devices manufactured by Altera and sold by Altera or its 
+authorized distributors.  Please refer to the applicable 
+agreement for further details.
+*/
+(header "symbol" (version "1.1"))
+(symbol
+	(rect 0 0 464 360)
+	(text "audio" (rect 217 -1 237 11)(font "Arial" (font_size 10)))
+	(text "inst" (rect 8 344 20 356)(font "Arial" ))
+	(port
+		(pt 0 72)
+		(input)
+		(text "to_dac_left_channel_data[15..0]" (rect 0 0 126 12)(font "Arial" (font_size 8)))
+		(text "to_dac_left_channel_data[15..0]" (rect 4 61 190 72)(font "Arial" (font_size 8)))
+		(line (pt 0 72)(pt 176 72)(line_width 3))
+	)
+	(port
+		(pt 0 88)
+		(input)
+		(text "to_dac_left_channel_valid" (rect 0 0 103 12)(font "Arial" (font_size 8)))
+		(text "to_dac_left_channel_valid" (rect 4 77 154 88)(font "Arial" (font_size 8)))
+		(line (pt 0 88)(pt 176 88)(line_width 1))
+	)
+	(port
+		(pt 464 72)
+		(input)
+		(text "from_adc_left_channel_ready" (rect 0 0 122 12)(font "Arial" (font_size 8)))
+		(text "from_adc_left_channel_ready" (rect 311 61 473 72)(font "Arial" (font_size 8)))
+		(line (pt 464 72)(pt 272 72)(line_width 1))
+	)
+	(port
+		(pt 0 144)
+		(input)
+		(text "to_dac_right_channel_data[15..0]" (rect 0 0 130 12)(font "Arial" (font_size 8)))
+		(text "to_dac_right_channel_data[15..0]" (rect 4 133 196 144)(font "Arial" (font_size 8)))
+		(line (pt 0 144)(pt 176 144)(line_width 3))
+	)
+	(port
+		(pt 0 160)
+		(input)
+		(text "to_dac_right_channel_valid" (rect 0 0 108 12)(font "Arial" (font_size 8)))
+		(text "to_dac_right_channel_valid" (rect 4 149 160 160)(font "Arial" (font_size 8)))
+		(line (pt 0 160)(pt 176 160)(line_width 1))
+	)
+	(port
+		(pt 464 144)
+		(input)
+		(text "from_adc_right_channel_ready" (rect 0 0 127 12)(font "Arial" (font_size 8)))
+		(text "from_adc_right_channel_ready" (rect 306 133 474 144)(font "Arial" (font_size 8)))
+		(line (pt 464 144)(pt 272 144)(line_width 1))
+	)
+	(port
+		(pt 0 216)
+		(input)
+		(text "clk" (rect 0 0 10 12)(font "Arial" (font_size 8)))
+		(text "clk" (rect 4 205 22 216)(font "Arial" (font_size 8)))
+		(line (pt 0 216)(pt 176 216)(line_width 1))
+	)
+	(port
+		(pt 0 256)
+		(input)
+		(text "AUD_BCLK" (rect 0 0 54 12)(font "Arial" (font_size 8)))
+		(text "AUD_BCLK" (rect 4 245 52 256)(font "Arial" (font_size 8)))
+		(line (pt 0 256)(pt 176 256)(line_width 1))
+	)
+	(port
+		(pt 0 288)
+		(input)
+		(text "AUD_DACLRCK" (rect 0 0 79 12)(font "Arial" (font_size 8)))
+		(text "AUD_DACLRCK" (rect 4 277 70 288)(font "Arial" (font_size 8)))
+		(line (pt 0 288)(pt 176 288)(line_width 1))
+	)
+	(port
+		(pt 0 328)
+		(input)
+		(text "reset" (rect 0 0 20 12)(font "Arial" (font_size 8)))
+		(text "reset" (rect 4 317 34 328)(font "Arial" (font_size 8)))
+		(line (pt 0 328)(pt 176 328)(line_width 1))
+	)
+	(port
+		(pt 0 104)
+		(output)
+		(text "to_dac_left_channel_ready" (rect 0 0 109 12)(font "Arial" (font_size 8)))
+		(text "to_dac_left_channel_ready" (rect 4 93 154 104)(font "Arial" (font_size 8)))
+		(line (pt 0 104)(pt 176 104)(line_width 1))
+	)
+	(port
+		(pt 464 88)
+		(output)
+		(text "from_adc_left_channel_data[15..0]" (rect 0 0 139 12)(font "Arial" (font_size 8)))
+		(text "from_adc_left_channel_data[15..0]" (rect 290 77 488 88)(font "Arial" (font_size 8)))
+		(line (pt 464 88)(pt 272 88)(line_width 3))
+	)
+	(port
+		(pt 464 104)
+		(output)
+		(text "from_adc_left_channel_valid" (rect 0 0 116 12)(font "Arial" (font_size 8)))
+		(text "from_adc_left_channel_valid" (rect 317 93 479 104)(font "Arial" (font_size 8)))
+		(line (pt 464 104)(pt 272 104)(line_width 1))
+	)
+	(port
+		(pt 0 176)
+		(output)
+		(text "to_dac_right_channel_ready" (rect 0 0 114 12)(font "Arial" (font_size 8)))
+		(text "to_dac_right_channel_ready" (rect 4 165 160 176)(font "Arial" (font_size 8)))
+		(line (pt 0 176)(pt 176 176)(line_width 1))
+	)
+	(port
+		(pt 464 160)
+		(output)
+		(text "from_adc_right_channel_data[15..0]" (rect 0 0 143 12)(font "Arial" (font_size 8)))
+		(text "from_adc_right_channel_data[15..0]" (rect 285 149 489 160)(font "Arial" (font_size 8)))
+		(line (pt 464 160)(pt 272 160)(line_width 3))
+	)
+	(port
+		(pt 464 176)
+		(output)
+		(text "from_adc_right_channel_valid" (rect 0 0 121 12)(font "Arial" (font_size 8)))
+		(text "from_adc_right_channel_valid" (rect 312 165 480 176)(font "Arial" (font_size 8)))
+		(line (pt 464 176)(pt 272 176)(line_width 1))
+	)
+	(port
+		(pt 0 272)
+		(output)
+		(text "AUD_DACDAT" (rect 0 0 71 12)(font "Arial" (font_size 8)))
+		(text "AUD_DACDAT" (rect 4 261 64 272)(font "Arial" (font_size 8)))
+		(line (pt 0 272)(pt 176 272)(line_width 1))
+	)
+	(drawing
+		(text "avalon_left_channel_sink" (rect 29 43 202 99)(font "Arial" (color 128 0 0)(font_size 9)))
+		(text "data" (rect 181 67 386 144)(font "Arial" (color 0 0 0)))
+		(text "valid" (rect 181 83 392 176)(font "Arial" (color 0 0 0)))
+		(text "ready" (rect 181 99 392 208)(font "Arial" (color 0 0 0)))
+		(text "avalon_left_channel_source" (rect 273 43 702 99)(font "Arial" (color 128 0 0)(font_size 9)))
+		(text "ready" (rect 244 67 518 144)(font "Arial" (color 0 0 0)))
+		(text "data" (rect 251 83 526 176)(font "Arial" (color 0 0 0)))
+		(text "valid" (rect 249 99 528 208)(font "Arial" (color 0 0 0)))
+		(text "avalon_right_channel_sink" (rect 22 115 194 243)(font "Arial" (color 128 0 0)(font_size 9)))
+		(text "data" (rect 181 139 386 288)(font "Arial" (color 0 0 0)))
+		(text "valid" (rect 181 155 392 320)(font "Arial" (color 0 0 0)))
+		(text "ready" (rect 181 171 392 352)(font "Arial" (color 0 0 0)))
+		(text "avalon_right_channel_source" (rect 273 115 708 243)(font "Arial" (color 128 0 0)(font_size 9)))
+		(text "ready" (rect 244 139 518 288)(font "Arial" (color 0 0 0)))
+		(text "data" (rect 251 155 526 320)(font "Arial" (color 0 0 0)))
+		(text "valid" (rect 249 171 528 352)(font "Arial" (color 0 0 0)))
+		(text "clk" (rect 161 187 340 387)(font "Arial" (color 128 0 0)(font_size 9)))
+		(text "clk" (rect 181 211 380 432)(font "Arial" (color 0 0 0)))
+		(text "external_interface" (rect 72 227 252 467)(font "Arial" (color 128 0 0)(font_size 9)))
+		(text "BCLK" (rect 181 251 386 512)(font "Arial" (color 0 0 0)))
+		(text "DACDAT" (rect 181 267 398 544)(font "Arial" (color 0 0 0)))
+		(text "DACLRCK" (rect 181 283 404 576)(font "Arial" (color 0 0 0)))
+		(text "reset" (rect 147 299 324 611)(font "Arial" (color 128 0 0)(font_size 9)))
+		(text "reset" (rect 181 323 392 656)(font "Arial" (color 0 0 0)))
+		(text " audio " (rect 439 344 920 698)(font "Arial" ))
+		(line (pt 176 32)(pt 272 32)(line_width 1))
+		(line (pt 272 32)(pt 272 344)(line_width 1))
+		(line (pt 176 344)(pt 272 344)(line_width 1))
+		(line (pt 176 32)(pt 176 344)(line_width 1))
+		(line (pt 177 52)(pt 177 108)(line_width 1))
+		(line (pt 178 52)(pt 178 108)(line_width 1))
+		(line (pt 271 52)(pt 271 108)(line_width 1))
+		(line (pt 270 52)(pt 270 108)(line_width 1))
+		(line (pt 177 124)(pt 177 180)(line_width 1))
+		(line (pt 178 124)(pt 178 180)(line_width 1))
+		(line (pt 271 124)(pt 271 180)(line_width 1))
+		(line (pt 270 124)(pt 270 180)(line_width 1))
+		(line (pt 177 196)(pt 177 220)(line_width 1))
+		(line (pt 178 196)(pt 178 220)(line_width 1))
+		(line (pt 177 236)(pt 177 292)(line_width 1))
+		(line (pt 178 236)(pt 178 292)(line_width 1))
+		(line (pt 177 308)(pt 177 332)(line_width 1))
+		(line (pt 178 308)(pt 178 332)(line_width 1))
+		(line (pt 0 0)(pt 464 0)(line_width 1))
+		(line (pt 464 0)(pt 464 360)(line_width 1))
+		(line (pt 0 360)(pt 464 360)(line_width 1))
+		(line (pt 0 0)(pt 0 360)(line_width 1))
+	)
+)

@@ -5,7 +5,7 @@
 
 `define chr_rom_init
 
-// `define SYNTH
+`define SYNTH
 
 // chr rom is 8KB 8 bit words
 `define CHR_ROM_WIDTH 13
