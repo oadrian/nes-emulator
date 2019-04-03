@@ -1,6 +1,6 @@
 `default_nettype none
-`include "cpu-types.vh"
-`include "ucode_ctrl.vh"
+// `include "cpu-types.vh"
+// `include "ucode_ctrl.vh"
 
 `define DEFAULT_SP 8'hFD
 
