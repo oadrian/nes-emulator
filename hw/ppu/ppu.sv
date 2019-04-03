@@ -4,9 +4,10 @@
 module ppu (
     input clk,    // Master Clock
     input rst_n,  // Asynchronous reset active low
+    input logic ppu_clk_en,   // 
 
     // NMI VBlank
-    output logic vblank, // IRQ signal to cpu
+    output logic vblank_nmi, // NMI signal to cpu
 
     // VGA 
     output logic vsync_n,     // vga vsync enable low
@@ -39,10 +40,6 @@ module ppu (
     //////////// VGA clk   /////////////
     logic vga_clk_en;  // Master / 2
     clock_div #(2) v_ck(.clk, .rst_n, .clk_en(vga_clk_en));
-
-    //////////// internal PPU clock   /////////////
-    logic ppu_clk_en;  // Master / 4
-    clock_div #(4) p_ck(.clk, .rst_n, .clk_en(ppu_clk_en));
 
 
     //////////// VRAM (ASYNC READ)   /////////////
@@ -238,6 +235,9 @@ module ppu (
 
     // set the blank bit in ppustatus at dot 1 of the post render scanline
     assign vblank_set = (vs_curr_state == POST_SL && col == 9'd0);
+
+    // produce nmi
+    assign vblank_nmi = !(vs_curr_state == POST_SL && col < 9'd3);
 
 
     //////////// Scanline buffer   /////////////
