@@ -134,32 +134,47 @@ module cpu_memory(
 
     `ifdef SYNTH
     logic [14:0] prom_address;
-    logic prom_rden;
+    logic prev_prom_rden, prom_rden;
     logic [7:0] prom_data_rd;
 
-    prg_rom prom(.address(prom_address), .clock, .rden(prom_rden), 
-                 .q(prom_data_rd));
+    prg_rom prom(.address(prom_address), .clock, .clken(clock_en), 
+                 .rden(prom_rden), .q(prom_data_rd));
 
     logic [10:0]  cram_address;
     logic [7:0]  cram_data_wr;
-    logic cram_rden;
+    logic prev_cram_rden, cram_rden;
     logic cram_wren;
     logic  [7:0]  cram_data_rd;
 
-    cram cmem(.address(cram_address), .clock, .data(cram_data_wr),
-              .rden(cram_rden), .wren(cram_wren), .q(cram_data_rd));
+    cram cmem(.address(cram_address), .clock, .clken(clock_en), 
+              .data(cram_data_wr), .rden(cram_rden), 
+              .wren(cram_wren), .q(cram_data_rd));
 
-    assign prom_rden = (16'h8000 <= addr && addr <= 16'hFFFF && r_en);
+    assign prom_rden = (addr[15] && r_en);
+    assign prom_address = addr[14:0];
+
 
     assign cram_rden = (16'h0000 <= addr && addr <= 16'h07FF && r_en);
     assign cram_wren = (16'h0000 <= addr && addr <= 16'h07FF && !r_en);
+    assign cram_address = addr[10:0];
+    assign cram_data_wr = w_data;
+
+    always_ff @(posedge clock or negedge reset_n) begin
+        if(~reset_n) begin
+            prev_prom_rden <= 0;
+            prev_cram_rden <= 0;
+        end else if(clock_en) begin
+            prev_prom_rden <= prom_rden;
+            prev_cram_rden <= cram_rden;
+        end
+    end
 
 
     always_comb begin
         mem_data_rd = 8'd0;
-        if(prom_rden) 
+        if(prev_prom_rden) 
             mem_data_rd = prom_data_rd;
-        else if(cram_rden)
+        else if(prev_cram_rden)
             mem_data_rd = cram_data_rd;
     end
 
