@@ -10,8 +10,8 @@
 `define DEFAULT_C 1'b0
 
 `define DEFAULT_PC 16'h4020
-
-// #nestest - change default PC `define DEFAULT_PC 16'hC000
+//  #nestest - change default PC 
+//`define DEFAULT_PC 16'hC000
 
 module core(
     output logic [15:0] addr,
@@ -143,6 +143,7 @@ module core(
 
     // #nestest change default ucode index to 0
     cpu_register #(.RESET_VAL(`RESET_UCODE_INDEX)) ucode_index_reg(
+    //cpu_register #(.RESET_VAL(0)) ucode_index_reg(
         .data_en(ucode_index_en), .data_in(next_ucode_index), 
         .data_out(ucode_index), .*);
 
@@ -364,7 +365,7 @@ module cpu_inputs(
                     BRANCH_DEPEND_0: inc_PC = 1'b0;
                     BRANCH_DEPEND_1: inc_PC = 1'b1;
                     BRANCH_DEPEND_BRANCH_BIT: inc_PC = ~branch_bit;
-                    BRANCH_DEPEND_NOT_C_OUT: inc_PC = ~alu_c_out;
+                    BRANCH_DEPEND_NOT_C_OUT: inc_PC = ~(alu_c_out ^ r_data_buffer[7]);
                 endcase
             end
         endcase
@@ -502,6 +503,7 @@ endmodule : cpu_inputs
 
 module cpu_next_state(
     input  ucode_ctrl_signals_t ucode_vector,
+    input  logic[7:0] r_data_buffer,
     input  processor_state_t state,
     input  logic decode_start_fetch, branch_bit, c_out, nmi_active,
 
@@ -529,7 +531,7 @@ module cpu_next_state(
                         BRANCH_DEPEND_0: next_state = STATE_NEITHER;
                         BRANCH_DEPEND_1: next_state = STATE_DECODE;
                         BRANCH_DEPEND_BRANCH_BIT: next_state = (branch_bit) ? STATE_NEITHER : STATE_DECODE;
-                        BRANCH_DEPEND_NOT_C_OUT: next_state = (c_out) ? STATE_NEITHER : STATE_DECODE;
+                        BRANCH_DEPEND_NOT_C_OUT: next_state = (c_out ^ r_data_buffer[7]) ? STATE_NEITHER : STATE_DECODE;
                     endcase
                 end
             end
@@ -542,7 +544,7 @@ module cpu_next_ucode_index(
     input  ucode_ctrl_signals_t ucode_vector,
     input  processor_state_t state,
     input  logic[7:0] ucode_index, r_data,
-    input  logic[7:0] opcode,
+    input  logic[7:0] opcode, r_data_buffer,
     input  logic c_out, branch_bit,
     input  logic[0:255][7:0] ucode_ctrl_signals_indices, 
 
@@ -563,7 +565,7 @@ module cpu_next_ucode_index(
                 BRANCH_DEPEND_0: next_ucode_index = ucode_index + 8'd1;
                 BRANCH_DEPEND_1: next_ucode_index = 8'd0;
                 BRANCH_DEPEND_BRANCH_BIT: next_ucode_index = (branch_bit) ? ucode_index + 8'd1 : 8'd0;
-                BRANCH_DEPEND_NOT_C_OUT: next_ucode_index = (c_out) ? ucode_index + 8'd1 : 8'd0;
+                BRANCH_DEPEND_NOT_C_OUT: next_ucode_index = (c_out ^ r_data_buffer[7]) ? ucode_index + 8'd1 : 8'd0;
             endcase
         end
     end
