@@ -9,7 +9,8 @@ module top ();
     logic rst_n;
     default clocking cb_main @(posedge clk); endclocking
 
-    logic vblank;
+    logic ppu_clk_en;
+    logic vblank_nmi;
     logic vsync_n;     // vga vsync enable low
     logic hsync_n;     // vga hsync enable low
     logic [7:0] vga_r; // vga red 
@@ -32,7 +33,10 @@ module top ();
     logic [7:0] cpu_rd_data;
 
     // CPU clock enable
-    clock_div #(12) p_ck(.clk, .rst_n, .clk_en(cpu_clk_en));
+    clock_div #(4) ppu_ck(.clk, .rst_n, .clk_en(ppu_clk_en));    
+
+    // CPU clock enable
+    clock_div #(12) cpu_ck(.clk, .rst_n, .clk_en(cpu_clk_en));
 
     ppu dut(.*);
 

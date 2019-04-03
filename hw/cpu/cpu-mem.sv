@@ -1,5 +1,6 @@
 `default_nettype none
 
+// `define SYNTH
 `define prg_rom_init
 
 module cpu_register #(WIDTH=8, RESET_VAL=0) (
@@ -82,19 +83,28 @@ module cpu_memory(
     output logic [7:0] r_data
 
     // PPU register interface
-    /*
+    
     output reg_t reg_sel,
     output logic reg_en,
     output logic reg_rw,
     output logic [7:0] reg_data_wr,
     input logic [7:0] reg_data_rd
-    */
+    
     );
-    /*
+
+    // prev reg_en
+    logic prev_reg_en;
+    always_ff @(posedge clock or negedge reset_n) begin
+        if(~reset_n) begin
+            prev_reg_en <= 0;
+        end else if(clock_en) begin
+            prev_reg_en <= reg_en;
+        end
+    end
+    
     // PPU regsiter interface
     assign reg_rw = ~r_en;  // if r_en - 0 read, re_n - 1 writes
     assign reg_data_wr = w_data;
-    assign r_data = reg_data_rd;
 
     always_comb begin
         reg_sel = PPUCTRL;
@@ -110,19 +120,49 @@ module cpu_memory(
                 3'h5: reg_sel = PPUSCROLL;
                 3'h6: reg_sel = PPUADDR;
                 3'h7: reg_sel = PPUDATA;
-                default : /* default/;
+                default : /* default*/;
             endcase
         end else if(addr == 16'h4014) begin 
             reg_en = 1'b1;
             reg_sel = OAMDMA;
         end
     end
-    */
-    // addr is latched
-    // r_en and w_data are not latched
-    // r_data is latched
 
-    // FEDC_BA98_7654_3210
+    logic [7:0] mem_data_rd;
+    assign r_data = (prev_reg_en) ? reg_data_rd : mem_data_rd;
+
+    `ifdef SYNTH
+    logic [14:0] prom_address;
+    logic prom_rden;
+    logic [7:0] prom_data_rd;
+
+    prg_rom prom(.address(prom_address), .clock, .rden(prom_rden), 
+                 .q(prom_data_rd));
+
+    logic [10:0]  cram_address;
+    logic [7:0]  cram_data_wr;
+    logic cram_rden;
+    logic cram_wren;
+    logic  [7:0]  cram_data_rd;
+
+    cram cmem(.address(cram_address), .clock, .data(cram_data_wr),
+              .rden(cram_rden), .wren(cram_wren), .q(cram_data_rd));
+
+    assign prom_rden = (16'h8000 <= addr && addr <= 16'hFFFF && r_en);
+
+    assign cram_rden = (16'h0000 <= addr && addr <= 16'h07FF && r_en);
+    assign cram_wren = (16'h0000 <= addr && addr <= 16'h07FF && !r_en);
+
+
+    always_comb begin
+        mem_data_rd = 8'd0;
+        if(prom_rden) 
+            mem_data_rd = prom_data_rd;
+        else if(cram_rden)
+            mem_data_rd = cram_data_rd;
+    end
+
+    `else 
 
     logic [7:0] ram [2047:0];
     logic [7:0] ppu_regs[7:0];
@@ -141,21 +181,21 @@ module cpu_memory(
                 io_regs[i] <= 8'd0;
             end
             `ifdef prg_rom_init
-                for (int i = 16416; i < 65536; i++) begin
-                    cartridge_mem[i] = 8'd0;
+                for (int i = 16416; i < 49152; i++) begin
+                    cartridge_mem[i] <= 8'd0;
                 end
                 $readmemh("init/prg_rom_init.txt", cartridge_mem, 49152, 65535);
             `else
-                for (int i = 0; i < 49120; i++) begin
+                for (int i = 16416; i < 65536; i++) begin
                     cartridge_mem[i] <= 8'd0;
                 end
             `endif 
-            r_data <= 8'd0;
+            mem_data_rd <= 8'd0;
         end
         else if (clock_en) begin
             if (addr < 16'h2000) begin
                 if (r_en == 1'b1) begin
-                    r_data <= ram[addr[10:0]];
+                    mem_data_rd <= ram[addr[10:0]];
                 end
                 else begin
                     ram[addr[10:0]] <= w_data;
@@ -163,7 +203,7 @@ module cpu_memory(
             end
             else if (addr < 16'h4000) begin
                 if (r_en == 1'b1) begin
-                    r_data <= ppu_regs[addr[2:0]];
+                    mem_data_rd <= ppu_regs[addr[2:0]];
                 end
                 else begin
                     ppu_regs[addr[2:0]] <= w_data;
@@ -171,7 +211,7 @@ module cpu_memory(
             end
             else if (addr < 16'h4020) begin
                 if (r_en == 1'b1) begin
-                    r_data <= io_regs[addr[4:0]];
+                    mem_data_rd <= io_regs[addr[4:0]];
                 end
                 else begin
                     io_regs[addr[4:0]] <= w_data;
@@ -179,7 +219,7 @@ module cpu_memory(
             end
             else begin
                 if (r_en == 1'b1) begin
-                    r_data <= cartridge_mem[addr];
+                    mem_data_rd <= cartridge_mem[addr];
                 end
                 else begin
                     cartridge_mem[addr] <= w_data;
@@ -187,6 +227,7 @@ module cpu_memory(
             end
         end
     end
+    `endif
 
 endmodule : cpu_memory
 
