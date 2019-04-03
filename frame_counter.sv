@@ -5,10 +5,10 @@ module frame_counter (
   input logic cpu_clk_en, 
   input logic mode,
   input logic we,
-  input logic disable_interrupt,
+  input logic inhibit_interrupt,
   
   output logic interrupt,
-  output logic quarter_en, half_en);
+  output logic quarter_clk_en, half_clk_en);
 
   logic load;
   logic [15:0] num_cycles;
@@ -19,28 +19,28 @@ module frame_counter (
 
 
   always_comb begin
-    quarter_en = 1'b0;
-    half_en = 1'b0;
+    quarter_clk_en = 1'b0;
+    half_clk_en = 1'b0;
     interrupt = 1'b0;
     load = 1'b0;
 
     if (num_cycles == 16'd7457)
-      quarter_en = 1'b1;
+      quarter_clk_en = 1'b1;
     else if (num_cycles == 16'd14913)
-      {quarter_en, half_en} = 2'b11;
+      {quarter_clk_en, half_clk_en} = 2'b11;
     else if (num_cycles == 16'd22371)
-      quarter_en = 1'b1;
+      quarter_clk_en = 1'b1;
     else if (~mode && num_cycles == 16'd29829) begin
-      {quarter_en, half_en} = 2'b11;
-      interrupt = ~disable_interrupt;
+      {quarter_clk_en, half_clk_en} = 2'b11;
+      interrupt = ~inhibit_interrupt;
       load = 1'b1;
     end else if (mode && num_cycles == 16'd37281) begin
-      {quarter_en, half_en} = 2'b11;
+      {quarter_clk_en, half_clk_en} = 2'b11;
       load = 1'b1;
     end
 
     if (we & mode)
-      {quarter_en, half_en} = 2'b11;
+      {quarter_clk_en, half_clk_en} = 2'b11;
   end
 
 endmodule: frame_counter

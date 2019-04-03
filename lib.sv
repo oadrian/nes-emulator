@@ -51,7 +51,7 @@ endmodule: up_counter
 
 module linear_counter (
   input logic clk, rst_l,
-  input logic counter_clk_en,
+  input logic clk_en,
   input logic clear_reload_l,
   input logic load,
   input logic [6:0] load_data,
@@ -81,18 +81,17 @@ module linear_counter (
       next_reload_flag = reload_flag;
 
   register #(.WIDTH(7), .RES_VAL(0)) count_reg (
-    .clk, .rst_l, .clk_en(counter_clk_en), .en(1'b1), .d(next_count), 
-    .q(count));
+    .clk, .rst_l, .clk_en, .en(1'b1), .d(next_count), .q(count));
 
   register #(.WIDTH(1), .RES_VAL(0)) reload_flag__reg (
-    .clk, .rst_l, .clk_en(counter_clk_en), .en(1'b1), .d(next_reload_flag), 
+    .clk, .rst_l, .clk_en, .en(1'b1), .d(next_reload_flag), 
     .q(reload_flag));
 
 endmodule: linear_counter
 
 module length_counter (
   input logic clk, rst_l,
-  input logic counter_clk_en,
+  input logic clk_en,
   input logic halt,
   input logic disable_l,
   input logic load,
@@ -102,7 +101,7 @@ module length_counter (
   logic [7:0] next_count, count;
 
   register #(.WIDTH(8), .RES_VAL(0)) count_reg (
-    .clk, .rst_l, .clk_en(counter_clk_en), .en(1'b1), .d(next_count), .q(count));
+    .clk, .rst_l, .clk_en, .en(1'b1), .d(next_count), .q(count));
 
   assign non_zero = count > 5'b0;
 
@@ -151,3 +150,5 @@ module length_counter (
         
         
 endmodule: length_counter
+
+

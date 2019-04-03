@@ -2,7 +2,7 @@
 
 module triangle_channel (
   input logic clk, rst_l,
-  input logic cpu_clk_en, counter_clk_en,
+  input logic cpu_clk_en, quarter_clk_en, half_clk_en,
   input logic disable_l,
   input logic length_halt,
   input logic linear_load, timer_load, length_load,
@@ -10,12 +10,12 @@ module triangle_channel (
   input logic [10:0] timer_load_data,
   input logic [4:0] length_load_data,
 
-  output logic linear_non_zero, length_non_zero,
+  output logic length_non_zero,
   output logic [3:0] wave);
 
 
   logic timer_pulse;
-
+  logic linear_non_zero;
   logic gate1_out, gate2_out;
   logic [31:0][3:0] seq;
   logic [4:0] next_seq_i, seq_i;
@@ -36,12 +36,12 @@ module triangle_channel (
     .load_data(timer_load_data), .pulse(timer_pulse));
   
   linear_counter triangle_linear_counter (
-    .clk, .rst_l, .counter_clk_en, .clear_reload_l(length_halt), 
+    .clk, .rst_l, .clk_en(quarter_clk_en), .clear_reload_l(length_halt), 
     .load(linear_load), .load_data(linear_load_data), 
     .non_zero(linear_non_zero));
 
   length_counter triangle_length_counter (
-    .clk, .rst_l, .counter_clk_en, .halt(length_halt), .disable_l, 
+    .clk, .rst_l, .clk_en(half_clk_en), .halt(length_halt), .disable_l, 
     .load(length_load), .load_data(length_load_data), 
     .non_zero(length_non_zero));
 

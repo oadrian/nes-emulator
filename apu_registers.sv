@@ -1,6 +1,6 @@
 `default_nettype none
-
-module apu_registers (
+//TODO: ALLOW FOR READING OF THE STATUS REGISTER
+module mem_map_registers (
   input logic clk, rst_l,
   input logic cpu_clk_en,
   input logic [15:0] reg_addr,
@@ -32,4 +32,4 @@ module apu_registers (
     .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1), 
     .d(next_reg_updates), .q(reg_updates));
 
-endmodule: apu_registers
+endmodule: mem_map_registers
