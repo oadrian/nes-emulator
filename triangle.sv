@@ -5,7 +5,7 @@ module triangle_channel (
   input logic cpu_clk_en, quarter_clk_en, half_clk_en,
   input logic disable_l,
   input logic length_halt,
-  input logic linear_load, timer_load, length_load,
+  input logic linear_load, length_load,
   input logic [6:0] linear_load_data,
   input logic [10:0] timer_load_data,
   input logic [4:0] length_load_data,
@@ -32,7 +32,7 @@ module triangle_channel (
     .q(seq_i));
   
   divider #(.WIDTH(11), .RES_VAL(0)) triangle_timer (
-    .clk, .rst_l, .clk_en(cpu_clk_en), .force_load(1'b0), 
+    .clk, .rst_l, .clk_en(cpu_clk_en), .load(1'b0), 
     .load_data(timer_load_data), .pulse(timer_pulse));
   
   linear_counter triangle_linear_counter (

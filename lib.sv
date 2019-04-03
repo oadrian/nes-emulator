@@ -17,13 +17,13 @@ endmodule: register
 module divider #(parameter WIDTH=32, RES_VAL=0) (
   input logic clk, rst_l,
   input logic clk_en,
-  input logic force_load,
+  input logic load,
   input logic [WIDTH-1:0] load_data,
   output logic pulse);
 
   logic [WIDTH-1:0] saved_data, next_count, count;
   
-  assign next_count = (force_load | pulse) ? load_data : count - 1'b1;
+  assign next_count = (load | pulse) ? load_data : count - 1'b1;
   assign pulse = !count;
 
   register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
