@@ -5,7 +5,8 @@ TARGET = simv
 SRC := $(wildcard ../ppu/*.vh) \
 	   $(wildcard ../cpu/*.sv)
 
-SRC := $(filter-out ../ppu/top.sv)
+SRC := $(filter-out ../ppu/top.sv, $(SRC))
+SRC := $(filter-out ../cpu/top.sv, $(SRC))
 
 # Set the number of threads to use for parallel compilation (2 * cores)
 CORES = $(shell getconf _NPROCESSORS_ONLN)
