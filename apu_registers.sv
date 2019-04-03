@@ -1,5 +1,6 @@
 `default_nettype none
 //TODO: ALLOW FOR READING OF THE STATUS REGISTER
+//TODO: FIX ADDRESS RANGE. ALLOW ONLY FROM $4000-$4017 
 module mem_map_registers (
   input logic clk, rst_l,
   input logic cpu_clk_en,
