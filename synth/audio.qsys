@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags="INTERNAL_COMPONENT=true"
+   categories="" />
+ <parameter name="bonusData"><![CDATA[bonusData 
+{
+   element audio_0
+   {
+      datum _sortIndex
+      {
+         value = "0";
+         type = "int";
+      }
+   }
+}
+]]></parameter>
+ <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
+ <parameter name="device" value="EP4CE115F29C7" />
+ <parameter name="deviceFamily" value="Cyclone IV E" />
+ <parameter name="deviceSpeedGrade" value="7" />
+ <parameter name="fabricMode" value="QSYS" />
+ <parameter name="generateLegacySim" value="false" />
+ <parameter name="generationId" value="0" />
+ <parameter name="globalResetBus" value="false" />
+ <parameter name="hdlLanguage" value="VERILOG" />
+ <parameter name="hideFromIPCatalog" value="true" />
+ <parameter name="lockedInterfaceDefinition" value="" />
+ <parameter name="maxAdditionalLatency" value="1" />
+ <parameter name="projectName" value="" />
+ <parameter name="sopcBorderPoints" value="false" />
+ <parameter name="systemHash" value="0" />
+ <parameter name="testBenchDutName" value="" />
+ <parameter name="timeStamp" value="0" />
+ <parameter name="useTestBenchNamingPattern" value="false" />
+ <instanceScript></instanceScript>
+ <interface name="avalon_audio_slave" internal="audio_0.avalon_audio_slave" />
+ <interface
+   name="avalon_left_channel_sink"
+   internal="audio_0.avalon_left_channel_sink"
+   type="avalon_streaming"
+   dir="end">
+  <port name="to_dac_left_channel_data" internal="to_dac_left_channel_data" />
+  <port name="to_dac_left_channel_valid" internal="to_dac_left_channel_valid" />
+  <port name="to_dac_left_channel_ready" internal="to_dac_left_channel_ready" />
+ </interface>
+ <interface
+   name="avalon_left_channel_source"
+   internal="audio_0.avalon_left_channel_source"
+   type="avalon_streaming"
+   dir="start">
+  <port
+     name="from_adc_left_channel_ready"
+     internal="from_adc_left_channel_ready" />
+  <port
+     name="from_adc_left_channel_data"
+     internal="from_adc_left_channel_data" />
+  <port
+     name="from_adc_left_channel_valid"
+     internal="from_adc_left_channel_valid" />
+ </interface>
+ <interface
+   name="avalon_right_channel_sink"
+   internal="audio_0.avalon_right_channel_sink"
+   type="avalon_streaming"
+   dir="end">
+  <port name="to_dac_right_channel_data" internal="to_dac_right_channel_data" />
+  <port
+     name="to_dac_right_channel_valid"
+     internal="to_dac_right_channel_valid" />
+  <port
+     name="to_dac_right_channel_ready"
+     internal="to_dac_right_channel_ready" />
+ </interface>
+ <interface
+   name="avalon_right_channel_source"
+   internal="audio_0.avalon_right_channel_source"
+   type="avalon_streaming"
+   dir="start">
+  <port
+     name="from_adc_right_channel_ready"
+     internal="from_adc_right_channel_ready" />
+  <port
+     name="from_adc_right_channel_data"
+     internal="from_adc_right_channel_data" />
+  <port
+     name="from_adc_right_channel_valid"
+     internal="from_adc_right_channel_valid" />
+ </interface>
+ <interface name="clk" internal="audio_0.clk" type="clock" dir="end">
+  <port name="clk" internal="clk" />
+ </interface>
+ <interface
+   name="external_interface"
+   internal="audio_0.external_interface"
+   type="conduit"
+   dir="end">
+  <port name="AUD_BCLK" internal="AUD_BCLK" />
+  <port name="AUD_DACDAT" internal="AUD_DACDAT" />
+  <port name="AUD_DACLRCK" internal="AUD_DACLRCK" />
+ </interface>
+ <interface name="interrupt" internal="audio_0.interrupt" />
+ <interface name="reset" internal="audio_0.reset" type="reset" dir="end">
+  <port name="reset" internal="reset" />
+ </interface>
+ <module
+   name="audio_0"
+   kind="altera_up_avalon_audio"
+   version="15.1"
+   enabled="1"
+   autoexport="1">
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="0" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone IV E" />
+  <parameter name="audio_in" value="false" />
+  <parameter name="audio_out" value="true" />
+  <parameter name="avalon_bus_type" value="Streaming" />
+  <parameter name="dw" value="16" />
+ </module>
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+ <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
+</system>

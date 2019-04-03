@@ -1,0 +1,30 @@
+Info: Starting: Create block symbol file (.bsf)
+Info: qsys-generate D:\CMU\18-500\nes-emulator\synth\audio_clock.qsys --block-symbol-file --output-directory=D:\CMU\18-500\nes-emulator\synth\audio_clock --family="Cyclone IV E" --part=EP4CE115F29C7
+Progress: Loading synth/audio_clock.qsys
+Progress: Reading input file
+Progress: Adding audio_pll_0 [altera_up_avalon_audio_pll 15.1]
+Progress: Parameterizing module audio_pll_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: qsys-generate succeeded.
+Info: Finished: Create block symbol file (.bsf)
+Info: 
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate D:\CMU\18-500\nes-emulator\synth\audio_clock.qsys --synthesis=VERILOG --output-directory=D:\CMU\18-500\nes-emulator\synth\audio_clock\synthesis --family="Cyclone IV E" --part=EP4CE115F29C7
+Progress: Loading synth/audio_clock.qsys
+Progress: Reading input file
+Progress: Adding audio_pll_0 [altera_up_avalon_audio_pll 15.1]
+Progress: Parameterizing module audio_pll_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: audio_clock: Generating audio_clock "audio_clock" for QUARTUS_SYNTH
+Info: audio_pll_0: "audio_clock" instantiated altera_up_avalon_audio_pll "audio_pll_0"
+Info: audio_pll: "audio_pll_0" instantiated altera_up_altpll "audio_pll"
+Info: reset_from_locked: "audio_pll_0" instantiated altera_up_avalon_reset_from_locked_signal "reset_from_locked"
+Info: audio_clock: Done "audio_clock" with 4 modules, 4 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis

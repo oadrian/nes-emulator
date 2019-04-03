@@ -1,0 +1,31 @@
+Info: Starting: Create block symbol file (.bsf)
+Info: qsys-generate D:\CMU\18-500\nes-emulator\synth\audio_video_config.qsys --block-symbol-file --output-directory=D:\CMU\18-500\nes-emulator\synth\audio_video_config --family="Cyclone IV E" --part=EP4CE115F29C7
+Progress: Loading synth/audio_video_config.qsys
+Progress: Reading input file
+Progress: Adding audio_and_video_config_0 [altera_up_avalon_audio_and_video_config 15.1]
+Progress: Parameterizing module audio_and_video_config_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: audio_video_config.audio_and_video_config_0: The data format must be Left Justified, if using the Altera UP Audio IP Core.
+Info: qsys-generate succeeded.
+Info: Finished: Create block symbol file (.bsf)
+Info: 
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate D:\CMU\18-500\nes-emulator\synth\audio_video_config.qsys --synthesis=VERILOG --output-directory=D:\CMU\18-500\nes-emulator\synth\audio_video_config\synthesis --family="Cyclone IV E" --part=EP4CE115F29C7
+Progress: Loading synth/audio_video_config.qsys
+Progress: Reading input file
+Progress: Adding audio_and_video_config_0 [altera_up_avalon_audio_and_video_config 15.1]
+Progress: Parameterizing module audio_and_video_config_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: audio_video_config.audio_and_video_config_0: The data format must be Left Justified, if using the Altera UP Audio IP Core.
+Info: audio_video_config: Generating audio_video_config "audio_video_config" for QUARTUS_SYNTH
+Info: audio_and_video_config_0: Starting Generation of Audio and Video Config
+Info: audio_and_video_config_0: "audio_video_config" instantiated altera_up_avalon_audio_and_video_config "audio_and_video_config_0"
+Info: audio_video_config: Done "audio_video_config" with 2 modules, 14 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis

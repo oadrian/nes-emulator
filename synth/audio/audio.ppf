@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pinplan
+ variation_name="audio_0"
+ megafunction_name="ALTERA_UP_AVALON_AUDIO"
+ intended_family="Cyclone IV E"
+ specifies="all_ports">
+ <global>
+  <pin name="clk" direction="input" scope="external" />
+  <pin name="reset" direction="input" scope="external" />
+  <pin name="from_adc_left_channel_ready" direction="input" scope="external" />
+  <pin
+     name="from_adc_left_channel_data[15..0]"
+     direction="output"
+     scope="external" />
+  <pin
+     name="from_adc_left_channel_valid"
+     direction="output"
+     scope="external" />
+  <pin
+     name="from_adc_right_channel_ready"
+     direction="input"
+     scope="external" />
+  <pin
+     name="from_adc_right_channel_data[15..0]"
+     direction="output"
+     scope="external" />
+  <pin
+     name="from_adc_right_channel_valid"
+     direction="output"
+     scope="external" />
+  <pin
+     name="to_dac_left_channel_data[15..0]"
+     direction="input"
+     scope="external" />
+  <pin name="to_dac_left_channel_valid" direction="input" scope="external" />
+  <pin name="to_dac_left_channel_ready" direction="output" scope="external" />
+  <pin
+     name="to_dac_right_channel_data[15..0]"
+     direction="input"
+     scope="external" />
+  <pin name="to_dac_right_channel_valid" direction="input" scope="external" />
+  <pin name="to_dac_right_channel_ready" direction="output" scope="external" />
+  <pin name="AUD_BCLK" direction="input" scope="external" />
+  <pin name="AUD_DACDAT" direction="output" scope="external" />
+  <pin name="AUD_DACLRCK" direction="input" scope="external" />
+ </global>
+</pinplan>

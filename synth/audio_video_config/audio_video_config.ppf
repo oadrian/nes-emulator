@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pinplan
+ variation_name="audio_and_video_config_0"
+ megafunction_name="ALTERA_UP_AVALON_AUDIO_AND_VIDEO_CONFIG"
+ intended_family="Cyclone IV E"
+ specifies="all_ports">
+ <global>
+  <pin name="clk" direction="input" scope="external" />
+  <pin name="reset" direction="input" scope="external" />
+  <pin name="address[1..0]" direction="input" scope="external" />
+  <pin name="byteenable[3..0]" direction="input" scope="external" />
+  <pin name="read" direction="input" scope="external" />
+  <pin name="write" direction="input" scope="external" />
+  <pin name="writedata[31..0]" direction="input" scope="external" />
+  <pin name="readdata[31..0]" direction="output" scope="external" />
+  <pin name="waitrequest" direction="output" scope="external" />
+  <pin name="I2C_SDAT" direction="bidir" scope="external" />
+  <pin name="I2C_SCLK" direction="output" scope="external" />
+ </global>
+</pinplan>
