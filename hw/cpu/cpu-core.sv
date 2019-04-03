@@ -164,7 +164,7 @@ module core(
             nmi_active_en = 1'b1;
         end
 
-        if (nmi_active == 1'b1 && ucode_vector.addr_hi_src == ADDLO_BRKHI) begin
+        if (nmi_active == 1'b1 && ucode_vector.addr_hi_src == ADDRLO_BRKHI) begin
             next_nmi_active = 1'b0;
             nmi_active_en = 1'b1;
         end
@@ -326,6 +326,7 @@ module cpu_inputs(
 
             PC = fetched_PC;
 
+        end
         else begin
 
             case (ucode_vector.pclo_src)
@@ -485,7 +486,7 @@ module cpu_inputs(
 
         end
 
-        if (ucode_vector.addr_hi_src == ADDLO_BRKHI) begin
+        if (ucode_vector.addr_hi_src == ADDRLO_BRKHI) begin
             i_flag = 1'b1;
             i_flag_en = 1'b1;
         end
@@ -537,7 +538,7 @@ module cpu_next_ucode_index(
     input  ucode_ctrl_signals_t ucode_vector,
     input  processor_state_t state,
     input  logic[7:0] ucode_index, r_data,
-    input  logic[7:0],
+    input  logic[7:0] opcode,
     input  logic c_out, branch_bit,
     input  logic[0:255][7:0] ucode_ctrl_signals_indices, 
 

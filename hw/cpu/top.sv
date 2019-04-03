@@ -16,6 +16,9 @@ module top ();
     logic [7:0] r_data;
     logic clock_en;
 
+    logic nmi;
+    assign nmi = 1'b1;
+
     assign clock_en = 1'b1;
 
     core cpu(.*);

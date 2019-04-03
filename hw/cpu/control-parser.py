@@ -538,7 +538,7 @@ def get_sv_decode_ctrl_signals_array(opcode_to_decode_ctrl_signals):
 
 
 def get_c_special_ucode_indices(ucode_indices):
-    special_signals = ["Reset", "IRQ", "NMI"]
+    special_signals = ["Reset"]
     res = ""
     for signal in special_signals:
         index = ucode_indices[signal]
@@ -547,7 +547,7 @@ def get_c_special_ucode_indices(ucode_indices):
     return res
 
 def get_sv_special_ucode_indices(ucode_indices):
-    special_signals = ["Reset", "IRQ", "NMI"]
+    special_signals = ["Reset"]
     res = ""
     for signal in special_signals:
         index = ucode_indices[signal]
