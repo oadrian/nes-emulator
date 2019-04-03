@@ -9,9 +9,9 @@
 `define DEFAULT_Z 1'b0
 `define DEFAULT_C 1'b0
 
-// `define DEFAULT_PC 16'h4020
+`define DEFAULT_PC 16'h4020
 
-`define DEFAULT_PC 16'hC000
+// #nestest - change default PC `define DEFAULT_PC 16'hC000
 
 module core(
     output logic [15:0] addr,
@@ -137,10 +137,12 @@ module core(
     assign state_en = 1'b1;
     assign ucode_index_en = 1'b1;
 
-    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_FETCH)) state_reg(
+    // #nestest - change state_neither to state_fetch
+    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_NEITHER)) state_reg(
         .data_en(state_en), .data_in(next_state), .data_out(state), .*);
 
-    cpu_register #(.RESET_VAL(0)) ucode_index_reg(
+    // #nestest change default ucode index to 0
+    cpu_register #(.RESET_VAL(`RESET_UCODE_INDEX)) ucode_index_reg(
         .data_en(ucode_index_en), .data_in(next_ucode_index), 
         .data_out(ucode_index), .*);
 
@@ -212,6 +214,8 @@ module core(
     cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_C)) c_flag_reg(
             .data_en(c_flag_en), .data_in(next_c_flag), .data_out(c_flag), .*);
 
+
+    // #nestest - change the default PC value above
     cpu_wide_counter_register #(.RESET_VAL(`DEFAULT_PC)) PC_reg(
         .inc_en(inc_PC), .data_en(PC_en), .data_in(next_PC), .data_out(PC), .*);
 
