@@ -86,7 +86,7 @@ def readNES(filename):
 
         if(sys.platform == 'linux2'):
             text2bin.write2file(PRGROM_BIN, prgrom)
-            text2bin.write2file(CHRROM_BIN, prgrom)
+            text2bin.write2file(CHRROM_BIN, chrrom)
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", PRGROM_BIN, PRGROM_HEX])
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", CHRROM_BIN, CHRROM_HEX])
 
