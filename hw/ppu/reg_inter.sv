@@ -322,7 +322,7 @@ module reg_inter (
         case (oamdma_curr_state)
             OAMDMA_IDLE: begin 
                 oamdma_next_state = (begin_dma) ? OAMDMA_DUMMY1 : OAMDMA_IDLE;
-                cpu_sus = (begin_dma) ? 1'b1 : 1'b0;
+                // cpu_sus = (begin_dma) ? 1'b1 : 1'b0;
             end
             OAMDMA_DUMMY1: begin 
                 cpu_sus = 1'b1;

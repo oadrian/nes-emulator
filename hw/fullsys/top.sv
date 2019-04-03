@@ -122,6 +122,11 @@ module top ();
     assign can_status = {can_n, can_v, 1'b1, 1'b0, 
                          can_d, can_i, can_z, can_c};
 
+    // initial begin 
+    //     ##1000000000;
+    //     $finish;
+    // end
+
     initial begin
         fd = $fopen(logFile,"w");
         doReset;
@@ -129,7 +134,7 @@ module top ();
         @(posedge cpu_clk_en);
         @(posedge cpu_clk_en);
         cnt = 0;
-        while(cnt < 32'd20000) begin
+        while(cnt < 32'd30000) begin
             if(cpu.state == STATE_DECODE) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d\n",
