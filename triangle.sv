@@ -32,7 +32,7 @@ module triangle_channel (
     .q(seq_i));
   
   divider #(.WIDTH(11), .RES_VAL(0)) triangle_timer (
-    .clk, .rst_l, .clk_en(cpu_clk_en), .load(timer_load), 
+    .clk, .rst_l, .clk_en(cpu_clk_en), .force_load(1'b0), 
     .load_data(timer_load_data), .pulse(timer_pulse));
   
   linear_counter triangle_linear_counter (
