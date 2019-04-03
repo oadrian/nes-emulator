@@ -3,7 +3,7 @@
 module alu_inputs(
     input  instr_ctrl_signals_t instr_ctrl_vector,
     input  ucode_ctrl_signals_t ucode_vector,
-    input  logic[7:0] A, X, Y, SP, r_data, alu_out,
+    input  logic[7:0] A, X, Y, SP, r_data, r_data_buffer, alu_out,
     input  logic[15:0] PC,
     input  logic c_out, c_flag,
     output logic c_in, src2_inv,
@@ -80,6 +80,10 @@ module alu_inputs(
                 ALUC_1: c_in = 1'b1;
             endcase
 
+        end
+
+        if (ucode_vector.start_decode == BRANCH_DEPEND_NOT_C_OUT) begin
+            src2_inv = r_data_buffer[7];
         end
 
     end

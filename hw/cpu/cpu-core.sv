@@ -167,7 +167,7 @@ module core(
             nmi_active_en = 1'b1;
         end
 
-        if (nmi_active == 1'b1 && ucode_vector.addr_hi_src == ADDRLO_BRKHI) begin
+        if (nmi_active == 1'b1 && ucode_vector.addr_lo_src == ADDRLO_BRKHI) begin
             next_nmi_active = 1'b0;
             nmi_active_en = 1'b1;
         end
