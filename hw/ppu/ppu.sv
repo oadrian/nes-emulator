@@ -237,7 +237,7 @@ module ppu (
     assign vblank_set = (vs_curr_state == POST_SL && col == 9'd0);
 
     // produce nmi
-    assign vblank_nmi = !(vs_curr_state == POST_SL && col < 9'd3);
+    assign vblank_nmi = !(vs_curr_state == POST_SL && col < 9'd3 && ppuctrl[7]);
 
 
     //////////// Scanline buffer   /////////////
