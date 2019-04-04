@@ -131,14 +131,13 @@ module top ();
         fd = $fopen(logFile,"w");
         doReset;
         @(posedge cpu_clk_en);
-        @(posedge cpu_clk_en);
-        @(posedge cpu_clk_en);
         cnt = 0;
-        while(cnt < 32'd30000) begin
+        while(cnt < 32'd100000) begin
             if(cpu.state == STATE_DECODE) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
-                $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d\n",
-                        can_A, can_X, can_Y, can_status, can_SP, cnt+7);
+                $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
+                        can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
+                $fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
             end
             @(posedge cpu_clk_en);
             cnt++; 
