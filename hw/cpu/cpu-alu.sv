@@ -33,12 +33,14 @@ module alu_inputs(
                 SRC1_PCHI: src1 = PC[15:8];
                 SRC1_PCLO: src1 = PC[7:0];
                 SRC1_ALUOUT: src1 = alu_out;
+					 default: ;
             endcase
 
             case (ucode_vector.alu_src2)
                 // SRC2_RMEM, SRC2_0
                 SRC2_RMEM: src2 = r_data;
                 SRC2_0: src2 = 8'b0;
+					 default: ;
             endcase
 
             case (ucode_vector.alu_c_src)
@@ -47,6 +49,7 @@ module alu_inputs(
                 ALUC_0: c_in = 1'b0;
                 ALUC_1: c_in = 1'b1;
                 ALUC_ALUCOUT: c_in = c_out;
+					 default: ;
             endcase
         
         end
@@ -64,12 +67,14 @@ module alu_inputs(
                 SRC1_Y: src1 = Y;
                 SRC1_RMEM: src1 = r_data;
                 SRC1_SP: src1 = SP;
+					 default: ;
             endcase
 
             case (instr_ctrl_vector.alu_src2)
                 // SRC2_RMEM, SRC2_0
                 SRC2_RMEM: src2 = r_data;
                 SRC2_0: src2 = 8'b0;
+					 default: ;
             endcase
 
             case (instr_ctrl_vector.alu_c_src)
@@ -78,6 +83,7 @@ module alu_inputs(
                 ALUC_C: c_in = c_flag;
                 ALUC_0: c_in = 1'b0;
                 ALUC_1: c_in = 1'b1;
+					 default: ;
             endcase
 
         end
@@ -144,6 +150,7 @@ module alu_module(
                 out = ror_res;
                 c_out = ror_c_out;
             end
+				default: ;
         endcase
     end
 

@@ -18,6 +18,7 @@ module ChipInterface
 	
 	// 21.477272 MHz  and 10.738636 MHz clock
 	logic areset, CLOCK_21, CLOCK_10, locked;
+  assign areset = ~reset_n;
 	pll_mult pll_clk(.areset, .inclk0(CLOCK_50), .c0(CLOCK_21), .c1(CLOCK_10), .locked);
 	
 	// VGA signals

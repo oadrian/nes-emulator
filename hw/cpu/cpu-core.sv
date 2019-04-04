@@ -385,6 +385,7 @@ module cpu_inputs(
                 ALUDST_X: X_en = 1'b1;
                 ALUDST_Y: Y_en = 1'b1;
                 ALUDST_SP: SP_en = 1'b1;
+				default: ;
             endcase
         end
 
@@ -422,6 +423,7 @@ module cpu_inputs(
                         n_flag = r_data_buffer[7];
                         n_flag_en = 1'b1;
                     end
+						  default: ;
                 endcase
 
                 case (instr_ctrl_vector.v_src)
@@ -438,6 +440,7 @@ module cpu_inputs(
                         v_flag = 1'b0;
                         v_flag_en = 1'b1;
                     end
+						  default: ;
                 endcase
 
                 case (instr_ctrl_vector.d_src)
@@ -450,6 +453,7 @@ module cpu_inputs(
                         d_flag = 1'b1;
                         d_flag_en = 1'b1;
                     end
+						  default: ;
                 endcase
 
                 case (instr_ctrl_vector.i_src)
@@ -462,6 +466,7 @@ module cpu_inputs(
                         i_flag = 1'b1;
                         i_flag_en = 1'b1;
                     end
+						  default: ;
                 endcase
 
                 case (instr_ctrl_vector.z_src)
@@ -470,6 +475,7 @@ module cpu_inputs(
                         z_flag = alu_z_out;
                         z_flag_en = 1'b1;
                     end
+						  default: ;
                 endcase
 
                 case (instr_ctrl_vector.c_src)
@@ -486,6 +492,7 @@ module cpu_inputs(
                         c_flag = 1'b1;
                         c_flag_en = 1'b1;
                     end
+						  default: ;
                 endcase
 
             end

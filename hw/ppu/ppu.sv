@@ -255,7 +255,7 @@ module ppu (
             end
         end else if(ppu_clk_en && ppu_buffer_wr) begin
             ppu_buffer[ppu_buf_idx] <= ppu_buf_in[5:0];
-            ppu_buf_idx <= ppu_buf_idx + 1;
+            ppu_buf_idx <= ppu_buf_idx + 8'd1;
         end
     end
 
