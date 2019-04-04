@@ -1,5 +1,7 @@
 `default_nettype none
-`include "../../hw/ppu/ppu_defines.vh"
+`include "../include/ucode_ctrl.vh"
+`include "../include/cpu_types.vh"
+`include "../include/ppu_defines.vh"
 
 module ChipInterface
   (input  logic CLOCK_50, 

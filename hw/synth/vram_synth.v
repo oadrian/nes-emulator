@@ -104,9 +104,9 @@ module vram_synth (
 		altsyncram_component.clock_enable_output_b = "BYPASS",
 		altsyncram_component.indata_reg_b = "CLOCK0",
 `ifdef NO_PLI
-		altsyncram_component.init_file = "../hw/ppu/init-intel/vram_init.rif"
+		altsyncram_component.init_file = "../ppu/init-intel/vram_init.rif"
 `else
-		altsyncram_component.init_file = "../hw/ppu/init-intel/vram_init.hex"
+		altsyncram_component.init_file = "../ppu/init-intel/vram_init.hex"
 `endif
 ,
 		altsyncram_component.intended_device_family = "Cyclone IV E",

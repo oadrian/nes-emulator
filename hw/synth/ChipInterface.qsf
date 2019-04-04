@@ -1106,28 +1106,22 @@ set_location_assignment PIN_G24 -to HSMC_CLKOUT_N1
 set_instance_assignment -name IO_STANDARD LVDS -to HSMC_CLKOUT_N1
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
-set_global_assignment -name VERILOG_INCLUDE_FILE ../hw/cpu/ucode_ctrl.vh
-set_global_assignment -name VERILOG_INCLUDE_FILE "../hw/cpu/cpu-types.vh"
-set_global_assignment -name SYSTEMVERILOG_FILE "../hw/cpu/cpu-mem.sv"
-set_global_assignment -name SYSTEMVERILOG_FILE "../hw/cpu/cpu-core.sv"
-set_global_assignment -name SYSTEMVERILOG_FILE "../hw/cpu/cpu-alu.sv"
-set_global_assignment -name HEX_FILE "../hw/ppu/init-intel/vram_init.hex"
-set_global_assignment -name HEX_FILE "../hw/ppu/init-intel/oam_init.hex"
-set_global_assignment -name VERILOG_INCLUDE_FILE ../hw/ppu/ppu_defines.vh
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/reg_inter.sv
-set_global_assignment -name HEX_FILE "../hw/ppu/init-intel/chr_rom_init.hex"
-set_global_assignment -name QIP_FILE pll_mult.qip
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/vram.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/vga.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/sp_pixel.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/sp_eval.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/ppu.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/pal_ram.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/oam.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/Library.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/chr_rom.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hw/ppu/bg_pixel.sv
+set_global_assignment -name VERILOG_INCLUDE_FILE ../include/cpu_types.vh
+set_global_assignment -name VERILOG_INCLUDE_FILE ../include/ucode_ctrl.vh
+set_global_assignment -name VERILOG_INCLUDE_FILE ../include/ppu_defines.vh
+set_global_assignment -name SYSTEMVERILOG_FILE ../ppu/vga.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../ppu/sp_pixel.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../ppu/sp_eval.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../ppu/reg_inter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE "../ppu/ppu-mem.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE ../ppu/ppu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../ppu/Library.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../ppu/bg_pixel.sv
+set_global_assignment -name SYSTEMVERILOG_FILE "../cpu/cpu-mem.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../cpu/cpu-core.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "../cpu/cpu-alu.sv"
 set_global_assignment -name SYSTEMVERILOG_FILE ChipInterface.sv
+set_global_assignment -name QIP_FILE pll_mult.qip
 set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name QIP_FILE rom.qip
 set_global_assignment -name QIP_FILE vram_synth.qip
@@ -1135,3 +1129,5 @@ set_global_assignment -name QIP_FILE oam_synth.qip
 set_global_assignment -name QIP_FILE prg_rom_16.qip
 set_global_assignment -name QIP_FILE cram.qip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS ON
+set_global_assignment -name SMART_RECOMPILE ON

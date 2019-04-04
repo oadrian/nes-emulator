@@ -1,5 +1,5 @@
 `default_nettype none
-// `include "ppu_defines.vh"
+`include "../include/ppu_defines.vh"
 
 
 module sp_pixel (
