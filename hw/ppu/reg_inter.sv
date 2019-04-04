@@ -412,10 +412,7 @@ module reg_inter (
                     /* write */
                     ppuaddr_in = ppuaddr_out + ppuaddr_inc_amnt;
                     last_write = reg_data_in;
-                    if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h27ff) begin 
-                        vram_we_reg = 1'b1;
-                        vram_wr_data = reg_data_in;
-                    end else if(16'h3000 <= ppuaddr_out && ppuaddr_out <= 16'h37ff) begin 
+                    if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h3EFF) begin 
                         vram_we_reg = 1'b1;
                         vram_wr_data = reg_data_in;
                     end else if(16'h3f00 <= ppuaddr_out && ppuaddr_out <= 16'h3fff) begin 
@@ -427,10 +424,7 @@ module reg_inter (
                 end else if(reg_en && !reg_rw) begin 
                     /* read */
                     ppuaddr_in = ppuaddr_out + ppuaddr_inc_amnt;
-                    if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h27ff) begin 
-                        vram_re = 1'b1;
-                        reg_data_out_next = vram_rd_data;
-                    end else if(16'h3000 <= ppuaddr_out && ppuaddr_out <= 16'h37ff) begin 
+                    if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h3EFF) begin 
                         vram_re = 1'b1;
                         reg_data_out_next = vram_rd_data;
                     end else if(16'h3f00 <= ppuaddr_out && ppuaddr_out <= 16'h3fff) begin 
