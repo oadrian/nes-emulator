@@ -1,5 +1,9 @@
 `default_nettype none
+
 `define SYNTH
+`ifdef NO_SYNTH
+`undef SYNTH
+`endif
 
 `define chr_rom_init
 `define oam_init

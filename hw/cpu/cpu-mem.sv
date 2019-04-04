@@ -2,6 +2,10 @@
 `include "../include/ppu_defines.vh"
 
 `define SYNTH
+`ifdef NO_SYNTH
+`undef SYNTH
+`endif
+
 `define prg_rom_init
 
 module cpu_register #(WIDTH=8, RESET_VAL=0) (

@@ -1,7 +1,7 @@
 `default_nettype none
-`include "cpu-types.vh"
-`include "ucode_ctrl.vh"
-`include "../ppu/ppu_defines.vh"
+`include "../include/cpu_types.vh"
+`include "../include/ucode_ctrl.vh"
+`include "../include/ppu_defines.vh"
 
 module top ();
     string logFile = "logs/cpu-out.log.txt";

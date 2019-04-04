@@ -1,5 +1,5 @@
 `default_nettype none
-// `include "../ppu/ppu_defines.vh"
+`include "../include/ppu_defines.vh"
 
 module top ();
     string logFile = "logs/fullsys-log.txt";

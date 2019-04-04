@@ -2,12 +2,10 @@
 TARGET = simv
 
 # Source files
-SRC := $(wildcard ../ppu/*.vh) \
+SRC := $(wildcard ../include/*.vh) \
 	   $(wildcard ../ppu/*.sv) \
-	   $(wildcard ../cpu/*.vh) \
 	   $(wildcard ../cpu/*.sv) \
-	   $(wildcard *.sv) \
-	   $(wildcard *.vh)
+	   $(wildcard *.sv) 
 
 SRC := $(filter-out ../ppu/top.sv, $(SRC))
 SRC := $(filter-out ../cpu/top.sv, $(SRC))
@@ -18,7 +16,7 @@ THREADS = $(shell echo $$((2 * $(CORES))))
 
 # VCS flags
 VCSFLAGS = -full64 -sverilog -debug_all +lint=all +warn=all -j$(THREADS) \
-					 -timescale=1ns/1ps +v2k
+					 -timescale=1ns/1ps +v2k +define+NO_SYNTH=0
 COMMON_FLAGS +=
 
 # Simulator
