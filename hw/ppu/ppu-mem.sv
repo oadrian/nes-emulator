@@ -149,7 +149,7 @@ module pal_ram (
         `ifdef pal_init
             $readmemh("init/pal_init.txt", mem);
         `endif
-        end else if(we) begin
+        end else if(clk_en && we) begin
             mem[addr] <= data_in;
         end
     end
