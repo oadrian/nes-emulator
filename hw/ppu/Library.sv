@@ -14,9 +14,9 @@ module clock_div
 
   always_ff @(posedge clk or negedge rst_n) begin
     if(~rst_n) begin
-      counter <= '{DIV} - 'd1;
+      counter <= DIV - 'd1;
     end else if(counter == 1'b0) begin
-      counter <= '{DIV} - 'd1; 
+      counter <= DIV - 'd1; 
     end else begin
       counter <= counter - 'd1;
     end
