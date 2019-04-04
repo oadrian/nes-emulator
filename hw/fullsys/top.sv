@@ -130,7 +130,7 @@ module top ();
     initial begin
         fd = $fopen(logFile,"w");
         doReset;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         cnt = 0;
         while(cnt < 32'd100000) begin
             if(cpu.state == STATE_DECODE) begin 
@@ -139,13 +139,13 @@ module top ();
                         can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
                 $fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
             end
-            @(posedge cpu_clk_en);
+            @(negedge cpu_clk_en);
             cnt++; 
         end
-        @(posedge cpu_clk_en);
-        @(posedge cpu_clk_en);
-        @(posedge cpu_clk_en);
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
+        @(negedge cpu_clk_en);
+        @(negedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         $finish;
     end
 

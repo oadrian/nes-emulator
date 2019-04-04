@@ -65,39 +65,6 @@ module reg_inter (
     output logic [7:0] ppuscrollX_out,
     output logic [7:0] ppuscrollY_out
 );
-    // update flops
-    logic update0, update1, update2, update3,
-          update4, update5, update6, update7,
-          update8, update9, update_flops;  
-
-    always_ff @(posedge clk or negedge rst_n) begin
-           if(~rst_n) begin
-               update0 <= 0;
-               update1 <= 0;
-               update2 <= 0;
-               update3 <= 0;
-               update4 <= 0;
-               update5 <= 0;
-               update6 <= 0;
-               update7 <= 0;
-               update8 <= 0;
-               update9 <= 0;
-               update_flops <= 0;
-           end else begin
-                update0 <= cpu_clk_en;
-                update1 <= update0;
-                update2 <= update1;
-                update3 <= update2;
-                update4 <= update3;
-                update5 <= update4;
-                update6 <= update5;
-                update7 <= update6;
-                update8 <= update7;
-                update9 <= update8;
-                update_flops <= update9;
-           end
-       end 
-
     /////// ALL register definitions  ////////
 
     // write only
@@ -158,27 +125,21 @@ module reg_inter (
 
     /////// Write Only Registers //////////
     logic ppustatus_rd_clr;
-    logic oamaddr_inc;
-    logic ppuaddr_inc;
     logic [15:0] ppuaddr_inc_amnt;
 
-    // OAM increment logic
-    assign oamaddr_inc = (reg_sel == OAMDATA) && reg_en && reg_rw;
-
     // VRAM increment logic
-    assign ppuaddr_inc = (reg_sel == PPUDATA) && reg_en;
     assign ppuaddr_inc_amnt = (ppuctrl_out[2]) ? 16'd32 : 16'd1;  
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             ppuctrl_out <= 8'd0;
             ppumask_out <= 8'd0;
-            oamaddr_out <= 8'd0;
             ppuscrollX_out <= 8'd0;
             ppuscrollY_out <= 8'd0;
-            ppuaddr_out <= 16'd0;
             oamdma_out <= 8'd0;
-        end else if(update_flops) begin
+            oamaddr_out <= 8'd0;
+            ppuaddr_out <= 16'd0;
+        end else if(cpu_clk_en) begin
             ppuctrl_out <= ppuctrl_in;
             ppumask_out <= ppumask_in;
             oamdma_out <= oamdma_in;
@@ -186,20 +147,6 @@ module reg_inter (
             ppuscrollY_out <= ppuscrollY_in;
             oamaddr_out <= oamaddr_in;
             ppuaddr_out <= ppuaddr_in;
-
-            if(oamaddr_inc) begin 
-                oamaddr_out <= oamaddr_out + 8'd1;
-            end
-
-            if(ppuaddr_inc) begin 
-                ppuaddr_out <= ppuaddr_out + ppuaddr_inc_amnt;
-            end
-
-            if(ppustatus_rd_clr) begin 
-                ppuscrollX_out <= 8'd0;
-                ppuscrollY_out <= 8'd0;
-                ppuaddr_out <= 16'd0;
-            end
         end
     end
     
@@ -215,7 +162,7 @@ module reg_inter (
         if(~rst_n) begin
             scroll_wr_curr_state <= FIRST_WRITE;
             addr_wr_curr_state <= FIRST_WRITE;
-        end else if(update_flops) begin
+        end else if(cpu_clk_en) begin
             scroll_wr_curr_state <= scroll_wr_next_state;
             addr_wr_curr_state <= addr_wr_next_state;
         end
@@ -226,7 +173,7 @@ module reg_inter (
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             reg_data_out <= 8'd0;
-        end else if(update_flops) begin
+        end else if(cpu_clk_en) begin
             reg_data_out <= reg_data_out_next;
         end
     end
@@ -277,7 +224,7 @@ module reg_inter (
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             oamdma_curr_state <= OAMDMA_IDLE;
-        end else if(update_flops) begin
+        end else if(cpu_clk_en) begin
             oamdma_curr_state <= oamdma_next_state;
         end
     end
@@ -287,7 +234,7 @@ module reg_inter (
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             counter <= 8'd0;
-        end else if(update_flops) begin
+        end else if(cpu_clk_en) begin
             if(counter_clr)
                 counter <= 8'd0;
             else if(counter_en)
@@ -362,9 +309,9 @@ module reg_inter (
         ppuctrl_in = ppuctrl_out;
         ppumask_in = ppumask_out;
         oamaddr_in = oamaddr_out;
-        ppuscrollX_in = ppuscrollX_out;
-        ppuscrollY_in = ppuscrollY_out;
-        ppuaddr_in = ppuaddr_out;
+        ppuscrollX_in = (ppustatus_rd_clr) ? 8'd0 : ppuscrollX_out;
+        ppuscrollY_in = (ppustatus_rd_clr) ? 8'd0 : ppuscrollY_out;
+        ppuaddr_in = (ppustatus_rd_clr) ? 16'd0 : ppuaddr_out;
         oamdma_in = oamdma_out;
 
         // last write
@@ -451,6 +398,7 @@ module reg_inter (
             OAMDATA: begin     // read/write
                 if(reg_en && reg_rw) begin 
                     /* write */
+                    oamaddr_in = oamaddr_out + 8'd1;
                     oam_we_reg = 1'b1;
                     oam_wr_data_reg = reg_data_in;
                     last_write = reg_data_in;
@@ -462,6 +410,7 @@ module reg_inter (
             PPUDATA: begin     // read/write 
                 if(reg_en && reg_rw) begin 
                     /* write */
+                    ppuaddr_in = ppuaddr_out + ppuaddr_inc_amnt;
                     last_write = reg_data_in;
                     if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h27ff) begin 
                         vram_we_reg = 1'b1;
@@ -476,8 +425,18 @@ module reg_inter (
                     // nametable 2 and 3 are in 0x2800 - 0x2FFF which are not used
                     // for mapper-0
                 end else if(reg_en && !reg_rw) begin 
-                    vram_re = 1'b1;
-                    reg_data_out_next = vram_rd_data;
+                    /* read */
+                    ppuaddr_in = ppuaddr_out + ppuaddr_inc_amnt;
+                    if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h27ff) begin 
+                        vram_re = 1'b1;
+                        reg_data_out_next = vram_rd_data;
+                    end else if(16'h3000 <= ppuaddr_out && ppuaddr_out <= 16'h37ff) begin 
+                        vram_re = 1'b1;
+                        reg_data_out_next = vram_rd_data;
+                    end else if(16'h3f00 <= ppuaddr_out && ppuaddr_out <= 16'h3fff) begin 
+                        vram_re = 1'b1;
+                        reg_data_out_next = pal_rd_data;
+                    end
                 end
             end
 

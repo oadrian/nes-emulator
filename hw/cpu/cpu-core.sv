@@ -73,7 +73,8 @@ module core(
 
     logic branch_bit;
 
-    logic [15:0] fetched_PC, fetched_PC_en, next_fetched_PC;
+    logic fetched_PC_en;
+    logic [15:0] fetched_PC, next_fetched_PC;
 
     // memory signals
     logic [7:0] r_data_buffer;

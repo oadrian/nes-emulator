@@ -63,7 +63,7 @@ module top ();
 
         cpu_cyc_par = 1'b0;
         cpu_rd_data = 8'd0;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = PPUCTRL;
         reg_en = 1'b0;
         reg_rw = 1'b1;
@@ -71,17 +71,17 @@ module top ();
 
         cpu_cyc_par = 1'b0;
         cpu_rd_data = 8'd0;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = PPUCTRL;
         reg_en = 1'b1;
         reg_rw = 1'b1;
         reg_data_in = 8'b10010000;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = PPUMASK;
         reg_en = 1'b1;
         reg_rw = 1'b1;
         reg_data_in = 8'b00011110;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = PPUCTRL;
         reg_en = 1'b0;
         reg_rw = 1'b1;
@@ -152,12 +152,12 @@ module top ();
         cpu_rd_data = 8'd0;
 
         passed = 1;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = PPUCTRL;
         reg_en = 1'b0;
         reg_rw = 1'b0;
         reg_data_in = 8'd0;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         if($test$plusargs("DEBUG")) begin
             $display("Writing to OAM");
         end
@@ -168,16 +168,16 @@ module top ();
         if($test$plusargs("DEBUG")) begin
             $display("offset : %d",oam.offset);
         end
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         // test OAMDATA
         for (i = 8'd0; i != 8'd255; i++) begin
             reg_sel = OAMDATA;
             reg_en = 1'b1;
             reg_rw = 1'b1;   // write
             reg_data_in = oam.mem[i];
-            @(posedge cpu_clk_en);
+            @(negedge cpu_clk_en);
         end
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         if($test$plusargs("DEBUG")) begin
             $display("Reading from OAM");
         end
@@ -187,11 +187,11 @@ module top ();
             reg_en = 1'b1;
             reg_rw = 1'b1;
             reg_data_in = oam.offset + i;
-            @(posedge cpu_clk_en);
+            @(negedge cpu_clk_en);
             reg_sel = OAMDATA;
             reg_en = 1'b1;
             reg_rw = 1'b0;  // read
-            @(posedge cpu_clk_en);
+            @(negedge cpu_clk_en);
             #1; // simulation uses values in preponed region for reg_data_out otherwise lul
             if(oam.mem[i] != reg_data_out) begin 
                 $display({"random oam did not match ppu's oam: ",
@@ -200,7 +200,7 @@ module top ();
                 passed = 0;
             end
         end
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
 
 
 
@@ -231,12 +231,12 @@ module top ();
         cpu_rd_data = 8'd0;
 
         passed = 1;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
 		reg_sel = PPUCTRL;
         reg_en = 1'b1;
         reg_rw = 1'b1;
         reg_data_in = 8'd00000000;   // increment 1 going across
-		@(posedge cpu_clk_en);
+		@(negedge cpu_clk_en);
 		reg_sel = OAMADDR;
 		reg_en = 1'b1;
 		reg_rw = 1'b1;
@@ -244,37 +244,37 @@ module top ();
 		if($test$plusargs("DEBUG")) begin
             $display("offset : %d",dma.offset);
         end
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = OAMDMA;
 		reg_en = 1'b1;
 		reg_rw = 1'b1;
 		reg_data_in = dma.upper_addr;
 		
 		cpu_cyc_par = dma.cyc_par;
-		@(posedge cpu_clk_en);
+		@(negedge cpu_clk_en);
 		reg_sel = PPUCTRL;
         reg_en = 1'b0;
         reg_rw = 1'b0;
         reg_data_in = 8'd00000000;
 		if(cpu_cyc_par) begin
-			@(posedge cpu_clk_en);
-			@(posedge cpu_clk_en);
+			@(negedge cpu_clk_en);
+			@(negedge cpu_clk_en);
 		end else begin
-			@(posedge cpu_clk_en);		
+			@(negedge cpu_clk_en);		
 		end
 		for(i = 8'd0; i != 8'd255; i++) begin
 			// read cycle
 			read_sus: assert(cpu_sus);
 			read_addr: assert(cpu_addr[15:8] == dma.upper_addr);
-			@(posedge cpu_clk_en);
+			@(negedge cpu_clk_en);
 			// write cycle
 			write_sus: assert(cpu_sus);
 			cpu_rd_data = dma.mem[i];
-			@(posedge cpu_clk_en);
+			@(negedge cpu_clk_en);
 		end
-		@(posedge cpu_clk_en);
-		@(posedge cpu_clk_en);
-		@(posedge cpu_clk_en);
+		@(negedge cpu_clk_en);
+		@(negedge cpu_clk_en);
+		@(negedge cpu_clk_en);
 		
 		// check oam contents
 		for(i = 8'd0; i != 8'd255; i++) begin 
@@ -307,31 +307,31 @@ module top ();
         cpu_rd_data = 8'd0;
 
         passed = 1;
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = PPUCTRL;
         reg_en = 1'b1;
         reg_rw = 1'b1;
         reg_data_in = {5'b00000, vram.I_mode ,2'b00};   // increment 1 going across
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = PPUADDR;
         reg_en = 1'b1;
         reg_rw = 1'b1;
         reg_data_in = vram.offset[15:8];
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         reg_sel = PPUADDR;
         reg_en = 1'b1;
         reg_rw = 1'b1;
         reg_data_in = vram.offset[7:0];
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         for (j = 16'd0; j < 16'd32; j++) begin
             reg_sel = PPUDATA;
             reg_en = 1'b1;
             reg_rw = 1'b1;   // write
             reg_data_in = vram.mem[j];
-            @(posedge cpu_clk_en);
+            @(negedge cpu_clk_en);
         end
-        @(posedge cpu_clk_en);
-        @(posedge cpu_clk_en);
+        @(negedge cpu_clk_en);
+        @(negedge cpu_clk_en);
         k = 16'd0;
         if(vram.I_mode) begin
             $display("I_mode was +32");
@@ -436,7 +436,7 @@ module top ();
     
     /*
     check_dma: assert property(
-    	@(posedge cpu_clk_en)  (reg_sel == OAMDMA && cpu_cyc_par == 1'b1) ##1 
+    	@(negedge cpu_clk_en)  (reg_sel == OAMDMA && cpu_cyc_par == 1'b1) ##1 
     ) else $error("dma failed");
 	*/
 	
