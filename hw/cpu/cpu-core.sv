@@ -23,7 +23,10 @@ module core(
     input  logic [7:0] r_data,
     input  logic clock_en,
     input  logic clock,
-    input  logic reset_n);
+    input  logic reset_n,
+
+    // debug
+    output logic [15:0] PC);
 
     //assign clock_en = 1'b1;
 
@@ -58,7 +61,7 @@ module core(
 
 
     // architecture signals
-    logic [15:0] PC;
+    // logic [15:0] PC;
     logic [7:0] A, X, Y, SP;
     // NV-BDIZC
     logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag;

@@ -72,23 +72,26 @@ module ChipInterface
     logic [7:0] mem_rd_data_p;
 
     assign cpu_cyc_par = cpu_cycle[0];
+    logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
 
     ppu peep(.clk(clock), .rst_n(reset_n), .ppu_clk_en, .vblank_nmi, 
             .vsync_n(VGA_VS), .hsync_n(VGA_HS), 
             .vga_r(VGA_R), .vga_g(VGA_G), .vga_b(VGA_B), .blank, 
             .cpu_clk_en, .reg_sel, .reg_en, .reg_rw, .reg_data_in(reg_data_wr), .reg_data_out(reg_data_rd),
             .cpu_cyc_par, .cpu_sus, 
-            .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p));
+            .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p), 
+            .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY);
 
     // CPU stuff
     logic [15:0] mem_addr_c;
     logic mem_re_c;
     logic [7:0] mem_wr_data_c;
     logic [7:0] mem_rd_data_c;
+    logic [15:0] PC;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .nmi(vblank_nmi));
+             .nmi(vblank_nmi), .PC);
 
     // CPU Memory Interface
     logic [15:0] mem_addr;
@@ -106,6 +109,20 @@ module ChipInterface
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd);
+
+
+    // see ppu status registers
+    SevenSegmentDigit ppu_ctrl_hi(.bcd(ppuctrl[7:4]), .segment(HEX7), .blank(1'b0));
+    SevenSegmentDigit ppu_ctrl_lo(.bcd(ppuctrl[3:0]), .segment(HEX6), .blank(1'b0));
+
+    SevenSegmentDigit ppu_mask_hi(.bcd(ppumask[7:4]), .segment(HEX5), .blank(1'b0));
+    SevenSegmentDigit ppu_mask_lo(.bcd(ppumask[3:0]), .segment(HEX4), .blank(1'b0));
+
+    SevenSegmentDigit pc_3(.bcd(PC[15:12]), .segment(HEX3), .blank(1'b0));
+    SevenSegmentDigit pc_2(.bcd(PC[11:8]), .segment(HEX2), .blank(1'b0));
+
+    SevenSegmentDigit pc_1(.bcd(PC[7:4]), .segment(HEX1), .blank(1'b0));
+    SevenSegmentDigit pc_0(.bcd(PC[3:0]), .segment(HEX0), .blank(1'b0));
 
 
 endmodule: ChipInterface

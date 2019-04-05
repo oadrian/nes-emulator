@@ -34,7 +34,10 @@ module ppu (
     // CPU MEM READ (SYNC)
     output logic [15:0] cpu_addr,
     output logic cpu_re,
-    input logic [7:0] cpu_rd_data
+    input logic [7:0] cpu_rd_data, 
+
+    // debug
+    output logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY    
 );
 
     //////////// VGA clk   /////////////
@@ -85,7 +88,7 @@ module ppu (
     logic sp_zero_set, sp_zero_clr;
     logic vblank_set, vblank_clr;
 
-    logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
+    // logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
 
     // OAM  (Async read)
     logic [7:0] oam_addr_ri; 
