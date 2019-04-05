@@ -37,6 +37,7 @@ module ChipInterface
 
     logic cpu_clk_en;  // Master / 12
     clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en));
+//	 Stepper step(.clock, .reset_n, .key_n(KEY[3]), .clk_en(cpu_clk_en));
 
     // ppu cycle
     logic [63:0] ppu_cycle;
@@ -91,12 +92,12 @@ module ChipInterface
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .nmi(vblank_nmi), .PC);
+             .nmi(vblank_nmi), .PC_debug(PC));
 
     // CPU Memory Interface
     logic [15:0] mem_addr;
     logic mem_re;
-    logic [7:0] mem_wr_data, mem_rd_data;
+    logic [7:0] mem_wr_data, mem_rd_data, read_prom;
 
     assign mem_addr = (cpu_sus) ? mem_addr_p : mem_addr_c;
     assign mem_re = (cpu_sus) ? mem_re_p : mem_re_c;
@@ -108,7 +109,8 @@ module ChipInterface
 
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
-                   .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd);
+                   .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
+						 .read_prom);
 
 
     // see ppu status registers
@@ -118,11 +120,50 @@ module ChipInterface
     SevenSegmentDigit ppu_mask_hi(.bcd(ppumask[7:4]), .segment(HEX5), .blank(1'b0));
     SevenSegmentDigit ppu_mask_lo(.bcd(ppumask[3:0]), .segment(HEX4), .blank(1'b0));
 
-    SevenSegmentDigit pc_3(.bcd(PC[15:12]), .segment(HEX3), .blank(1'b0));
-    SevenSegmentDigit pc_2(.bcd(PC[11:8]), .segment(HEX2), .blank(1'b0));
+    SevenSegmentDigit pc_3(.bcd(mem_addr_c[15:12]), .segment(HEX3), .blank(1'b0));
+    SevenSegmentDigit pc_2(.bcd(mem_addr_c[11:8]), .segment(HEX2), .blank(1'b0));
 
-    SevenSegmentDigit pc_1(.bcd(PC[7:4]), .segment(HEX1), .blank(1'b0));
-    SevenSegmentDigit pc_0(.bcd(PC[3:0]), .segment(HEX0), .blank(1'b0));
+    SevenSegmentDigit pc_1(.bcd(mem_addr_c[7:4]), .segment(HEX1), .blank(1'b0));
+    SevenSegmentDigit pc_0(.bcd(mem_addr_c[3:0]), .segment(HEX0), .blank(1'b0));
 
 
 endmodule: ChipInterface
+
+module Stepper(
+	input logic clock,
+	input logic reset_n,
+	
+	input logic key_n,
+	output logic clk_en);
+	
+	enum logic [1:0] {IDLE, CLK_EN, PRESSED} curr, next;
+	
+	always_ff @(posedge clock or negedge reset_n) begin
+		if(~reset_n) begin
+			curr<=IDLE;
+			clk_en <= 1'b0;
+		end
+		else begin
+			curr<=next;
+			clk_en <= curr == CLK_EN;
+		end
+	end
+	
+	
+	always_comb begin
+		next = IDLE;
+		case(curr)
+			IDLE: begin
+				next = (~key_n) ? CLK_EN : IDLE;
+			end
+			CLK_EN: begin
+				next = (~key_n) ? PRESSED : IDLE;
+			end
+			PRESSED: begin
+				next = (~key_n) ? PRESSED : IDLE;
+			end
+			default: ;
+		endcase
+	end
+	
+endmodule: Stepper

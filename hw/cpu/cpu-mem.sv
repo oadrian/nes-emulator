@@ -93,7 +93,10 @@ module cpu_memory(
     output logic reg_en,
     output logic reg_rw,
     output logic [7:0] reg_data_wr,
-    input logic [7:0] reg_data_rd
+    input logic [7:0] reg_data_rd,
+	 
+	 // debug output
+	 output logic [7:0] read_prom
     
     );
 
@@ -156,6 +159,9 @@ module cpu_memory(
     assign prom_rden = (addr[15:14] == 2'b11 && r_en);
     assign prom_address = addr[13:0];
 
+//	assign prom_rden = 1'b1;
+//	assign prom_address = 14'd0;
+	assign read_prom = prom_data_rd;
 
     assign cram_rden = (16'h0000 <= addr && addr < 16'h2000 && r_en);
     assign cram_wren = (16'h0000 <= addr && addr < 16'h2000 && !r_en);

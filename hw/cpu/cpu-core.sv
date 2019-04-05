@@ -26,7 +26,7 @@ module core(
     input  logic reset_n,
 
     // debug
-    output logic [15:0] PC);
+    output logic [15:0] PC_debug);
 
     //assign clock_en = 1'b1;
 
@@ -61,10 +61,12 @@ module core(
 
 
     // architecture signals
-    // logic [15:0] PC;
+    logic [15:0] PC;
     logic [7:0] A, X, Y, SP;
     // NV-BDIZC
     logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag;
+	 
+	 assign PC_debug = PC;
 
     logic [15:0] next_PC;
     logic next_n_flag, next_v_flag, next_d_flag,
@@ -106,7 +108,7 @@ module core(
         instr_ctrl_indices_reg(.data_en(rom_en), 
                                .data_in(instr_ctrl_signals_indices), 
                                .data_out(instr_ctrl_signals_indices), .*);
-    cpu_register #(.WIDTH($size(instr_ctrl_signals_t)*`INSTR_CTRL_SIZE),
+    cpu_register #(.WIDTH($bits(instr_ctrl_signals_t)*`INSTR_CTRL_SIZE),
                    .RESET_VAL(`INSTR_CTRL_SIGNALS_ROM))
         instr_ctrl_signals_rom_reg(.data_en(rom_en),
                                    .data_in(instr_ctrl_signals_rom),
@@ -116,7 +118,7 @@ module core(
         ucode_ctrl_signals_indices_reg(.data_en(rom_en),
                                        .data_in(ucode_ctrl_signals_indices),
                                        .data_out(ucode_ctrl_signals_indices), .*);
-    cpu_register #(.WIDTH($size(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE),
+    cpu_register #(.WIDTH($bits(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE),
                    .RESET_VAL(`UCODE_CTRL_SIGNALS_ROM))
         ucode_ctrl_signals_rom_reg(.data_en(rom_en),
                                    .data_in(ucode_ctrl_signals_rom),
@@ -145,7 +147,7 @@ module core(
 
     // #nestest change default ucode index to 0
     cpu_register #(.RESET_VAL(`RESET_UCODE_INDEX)) ucode_index_reg(
-    //cpu_register #(.RESET_VAL(0)) ucode_index_reg(
+//		cpu_register #(.RESET_VAL(0)) ucode_index_reg(
         .data_en(ucode_index_en), .data_in(next_ucode_index), 
         .data_out(ucode_index), .*);
 
