@@ -55,29 +55,27 @@ module linear_counter (
   input logic [6:0] load_data,
   output logic non_zero);
 
-  logic [6:0] count, reload_data;
-  logic reload_flag;
+  logic [6:0] count;
+  logic reload;
 
   assign non_zero = count > 7'b0;
 
   always_ff @(posedge clk, negedge rst_l)
     if (~rst_l) begin
       count <= 7'b0;
-      reload_flag <= 1'b0;
-      reload_data <= 7'b0;
+      reload <= 1'b0;
     end else if (cpu_clk_en) begin
-      if (load) begin
-        reload_flag <= 1'b1;
-        reload_data <= load_data;
-      end 
+      if (load)
+        reload <= 1'b1;
+
       if (quarter_clk_en) begin
-        if (reload_flag)
-          count <= reload_data;
+        if (reload)
+          count <= load_data;
         else if (non_zero)
           count <= count - 7'b1;
 
         if (~clear_reload_l)
-          reload_flag <= 1'b0;
+          reload <= 1'b0;
       end
     end
 endmodule: linear_counter
@@ -91,57 +89,61 @@ module length_counter (
   input logic [4:0] load_data,
   output logic non_zero);
 
-  logic [7:0] next_count, count;
 
-  register #(.WIDTH(8), .RES_VAL(0)) count_reg (
-    .clk, .rst_l, .clk_en(cpu_clk_en), .en(half_clk_en | load), .d(next_count), .q(count));
+  logic [7:0] count;
+  logic reload;
 
-  assign non_zero = count > 5'b0;
+  assign non_zero = count > 8'b0;
 
-  always_comb
-    if (~disable_l) next_count = 5'b0;
-    else if (load)
-      case (load_data)
-        5'h00: next_count = 8'd10;
-        5'h01: next_count = 8'd254;
-        5'h02: next_count = 8'd20;
-        5'h03: next_count = 8'd2;
-        5'h04: next_count = 8'd40;
-        5'h05: next_count = 8'd4;
-        5'h06: next_count = 8'd80;
-        5'h07: next_count = 8'd6;
-        5'h08: next_count = 8'd160;
-        5'h09: next_count = 8'd8;
-        5'h0A: next_count = 8'd60;
-        5'h0B: next_count = 8'd10;
-        5'h0C: next_count = 8'd14;
-        5'h0D: next_count = 8'd12;
-        5'h0E: next_count = 8'd26;
-        5'h0F: next_count = 8'd14;
-        5'h10: next_count = 8'd12;
-        5'h11: next_count = 8'd16;
-        5'h12: next_count = 8'd24;
-        5'h13: next_count = 8'd18;
-        5'h14: next_count = 8'd48;
-        5'h15: next_count = 8'd20;
-        5'h16: next_count = 8'd96;
-        5'h17: next_count = 8'd22;
-        5'h18: next_count = 8'd192;
-        5'h19: next_count = 8'd24;
-        5'h1A: next_count = 8'd72;
-        5'h1B: next_count = 8'd26;
-        5'h1C: next_count = 8'd16;
-        5'h1D: next_count = 8'd28;
-        5'h1E: next_count = 8'd32;
-        5'h1F: next_count = 8'd30;
-      endcase
-    else if (halt) next_count = count;
-    else if (!count)
-      next_count = 8'b0;
-    else
-      next_count = count - 1'b1;
-        
-        
+  always_ff @(posedge clk, negedge rst_l)
+    if (~rst_l)
+      count <= 8'b0;
+    else if (cpu_clk_en) begin
+      if (load)
+        reload <= 1'b1;
+
+      if (half_clk_en)
+        if (~disable_l) 
+          count <= 8'b0;
+        else if (reload)
+          case (load_data)
+            5'h00: count <= 8'd10;
+            5'h01: count <= 8'd254;
+            5'h02: count <= 8'd20;
+            5'h03: count <= 8'd2;
+            5'h04: count <= 8'd40;
+            5'h05: count <= 8'd4;
+            5'h06: count <= 8'd80;
+            5'h07: count <= 8'd6;
+            5'h08: count <= 8'd160;
+            5'h09: count <= 8'd8;
+            5'h0A: count <= 8'd60;
+            5'h0B: count <= 8'd10;
+            5'h0C: count <= 8'd14;
+            5'h0D: count <= 8'd12;
+            5'h0E: count <= 8'd26;
+            5'h0F: count <= 8'd14;
+            5'h10: count <= 8'd12;
+            5'h11: count <= 8'd16;
+            5'h12: count <= 8'd24;
+            5'h13: count <= 8'd18;
+            5'h14: count <= 8'd48;
+            5'h15: count <= 8'd20;
+            5'h16: count <= 8'd96;
+            5'h17: count <= 8'd22;
+            5'h18: count <= 8'd192;
+            5'h19: count <= 8'd24;
+            5'h1A: count <= 8'd72;
+            5'h1B: count <= 8'd26;
+            5'h1C: count <= 8'd16;
+            5'h1D: count <= 8'd28;
+            5'h1E: count <= 8'd32;
+            5'h1F: count <= 8'd30;
+          endcase
+        else if (~halt & non_zero)
+          count <= count - 8'b1;
+    end
+
 endmodule: length_counter
 
 
