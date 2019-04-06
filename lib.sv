@@ -96,16 +96,18 @@ module length_counter (
   assign non_zero = count > 8'b0;
 
   always_ff @(posedge clk, negedge rst_l)
-    if (~rst_l)
+    if (~rst_l) begin
       count <= 8'b0;
-    else if (cpu_clk_en) begin
+      reload <= 1'b0;
+    end else if (cpu_clk_en) begin
       if (load)
         reload <= 1'b1;
 
       if (half_clk_en)
         if (~disable_l) 
           count <= 8'b0;
-        else if (reload)
+        else if (reload) begin
+          reload <= 1'b0;
           case (load_data)
             5'h00: count <= 8'd10;
             5'h01: count <= 8'd254;
@@ -140,7 +142,7 @@ module length_counter (
             5'h1E: count <= 8'd32;
             5'h1F: count <= 8'd30;
           endcase
-        else if (~halt & non_zero)
+        end else if (~halt & non_zero)
           count <= count - 8'b1;
     end
 

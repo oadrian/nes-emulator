@@ -38,7 +38,7 @@ module apu (
     .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
     .disable_l(status_signals.triangle_en), 
     .length_halt(triangle_signals.length_halt), 
-    .linear_load(reg_updates[8] & reg_updates[11]), 
+    .linear_load(reg_updates[8] | reg_updates[11]), 
     .length_load(reg_updates[11]), 
     .linear_load_data(triangle_signals.linear_load_data),
     .timer_load_data(triangle_signals.timer_load_data),
