@@ -106,11 +106,20 @@ module ChipInterface
 
     assign mem_rd_data_c = mem_rd_data;
     assign mem_rd_data_p = mem_rd_data;
+	 
+	 logic pressed_start;
+	 
+	 always_ff @(posedge clock or negedge reset_n) begin
+		if(~reset_n)
+			pressed_start <= 0;
+		else 
+			pressed_start <= ~KEY[3];
+	 end
 
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
-						 .read_prom);
+						 .read_prom, .pressed_start);
 
 
     // see ppu status registers

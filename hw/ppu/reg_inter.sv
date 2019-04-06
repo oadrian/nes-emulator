@@ -262,7 +262,7 @@ module reg_inter (
         counter_clr = 1'b0;
 
         // CPU read 
-        cpu_re = 1'b0;
+        cpu_re = 1'b1;
 
         // OAM write
         oam_we_dma = 1'b0;
@@ -283,7 +283,6 @@ module reg_inter (
             OAMDMA_READ: begin 
                 cpu_sus = 1'b1;
                 oamdma_next_state = OAMDMA_WRITE;
-                cpu_re = 1'b1;
             end
             OAMDMA_WRITE: begin 
                 oam_we_dma = 1'b1;
