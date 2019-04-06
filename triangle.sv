@@ -36,12 +36,12 @@ module triangle_channel (
     .load_data(timer_load_data), .pulse(timer_pulse));
   
   linear_counter triangle_linear_counter (
-    .clk, .rst_l, .clk_en(quarter_clk_en), .clear_reload_l(length_halt), 
+    .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .clear_reload_l(length_halt),
     .load(linear_load), .load_data(linear_load_data), 
     .non_zero(linear_non_zero));
 
   length_counter triangle_length_counter (
-    .clk, .rst_l, .clk_en(half_clk_en), .halt(length_halt), .disable_l, 
+    .clk, .rst_l, .cpu_clk_en, .half_clk_en, .halt(length_halt), .disable_l,
     .load(length_load), .load_data(length_load_data), 
     .non_zero(length_non_zero));
 

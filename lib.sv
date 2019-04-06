@@ -49,47 +49,42 @@ endmodule: up_counter
 
 module linear_counter (
   input logic clk, rst_l,
-  input logic clk_en,
+  input logic cpu_clk_en, quarter_clk_en,
   input logic clear_reload_l,
   input logic load,
   input logic [6:0] load_data,
   output logic non_zero);
 
-  logic next_reload_flag, reload_flag;
-  logic [6:0] next_count, count;
+  logic [6:0] count, reload_data;
+  logic reload_flag;
 
   assign non_zero = count > 7'b0;
 
-  // Determine the next count
-  always_comb
-    if (reload_flag)
-      next_count = load_data;
-    else if (non_zero)
-      next_count = count - 7'b1;
-    else
-      next_count = count;
+  always_ff @(posedge clk, negedge rst_l)
+    if (~rst_l) begin
+      count <= 7'b0;
+      reload_flag <= 1'b0;
+      reload_data <= 7'b0;
+    end else if (cpu_clk_en) begin
+      if (load) begin
+        reload_flag <= 1'b1;
+        reload_data <= load_data;
+      end 
+      if (quarter_clk_en) begin
+        if (reload_flag)
+          count <= reload_data;
+        else if (non_zero)
+          count <= count - 7'b1;
 
-  // Determine the next reload flag
-  always_comb
-    if (~clear_reload_l)
-      next_reload_flag = 1'b0;
-    else if (load | non_zero)
-      next_reload_flag = 1'b1;
-    else
-      next_reload_flag = reload_flag;
-
-  register #(.WIDTH(7), .RES_VAL(0)) count_reg (
-    .clk, .rst_l, .clk_en, .en(1'b1), .d(next_count), .q(count));
-
-  register #(.WIDTH(1), .RES_VAL(0)) reload_flag__reg (
-    .clk, .rst_l, .clk_en, .en(1'b1), .d(next_reload_flag), 
-    .q(reload_flag));
-
+        if (~clear_reload_l)
+          reload_flag <= 1'b0;
+      end
+    end
 endmodule: linear_counter
 
 module length_counter (
   input logic clk, rst_l,
-  input logic clk_en,
+  input logic cpu_clk_en, half_clk_en,
   input logic halt,
   input logic disable_l,
   input logic load,
@@ -99,7 +94,7 @@ module length_counter (
   logic [7:0] next_count, count;
 
   register #(.WIDTH(8), .RES_VAL(0)) count_reg (
-    .clk, .rst_l, .clk_en, .en(1'b1), .d(next_count), .q(count));
+    .clk, .rst_l, .clk_en(cpu_clk_en), .en(half_clk_en | load), .d(next_count), .q(count));
 
   assign non_zero = count > 5'b0;
 
