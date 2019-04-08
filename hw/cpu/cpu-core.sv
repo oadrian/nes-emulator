@@ -24,6 +24,7 @@ module core(
     input  logic clock_en,
     input  logic clock,
     input  logic reset_n,
+    input  logic irq_n,
 
     // debug
     output logic [15:0] PC_debug);
@@ -56,6 +57,11 @@ module core(
     logic instr_ctrl_index_en, state_en, ucode_index_en;
 
     logic nmi_active, nmi_active_en, next_nmi_active;
+    logic reset_active, reset_active_en, next_reset_active;
+    logic interrupt_active;
+
+    logic curr_interrupt_en;
+    interrupt_t curr_interrupt, next_interrupt;
 
     logic [7:0] opcode;
 
@@ -136,17 +142,16 @@ module core(
     cpu_next_state next_state_logic(.c_out(alu_c_out), .*);    
     cpu_next_ucode_index next_ucode_index_logic(.c_out(alu_c_out), .*);
 
-    assign opcode = (nmi_active) ? 8'h00 : r_data;
+    assign opcode = (interrupt_active) ? 8'h00 : r_data;
 
     assign decode_start_fetch = decode_ctrl_signals_rom[opcode][1];
-    assign decode_inc_pc = decode_ctrl_signals_rom[opcode][0] & ~nmi_active;
-    //assign {decode_start_fetch, decode_inc_pc} = decode_ctrl_signals_rom[opcode];
+    assign decode_inc_pc = decode_ctrl_signals_rom[opcode][0] & ~interrupt_active;
 
     assign state_en = 1'b1;
     assign ucode_index_en = 1'b1;
 
-    // #nestest change default ucode index to 0
-    cpu_register #(.RESET_VAL(`RESET_UCODE_INDEX)) ucode_index_reg(
+    // ucode always defaults to index 0 - will trigger break on a fetch
+    cpu_register ucode_index_reg(
 //		cpu_register #(.RESET_VAL(0)) ucode_index_reg(
         .data_en(ucode_index_en), .data_in(next_ucode_index), 
         .data_out(ucode_index), .*);
@@ -161,10 +166,16 @@ module core(
     assign instr_ctrl_vector = instr_ctrl_signals_rom[instr_ctrl_index];
     assign ucode_vector = ucode_ctrl_signals_rom[ucode_index];
 
-	 // #nestest - change state_neither to state_fetch
-    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_NEITHER)) state_reg(
+	// start fetching on a reset - will discard values once we leave decode
+    // since we will be forced into a break
+    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_FETCH)) state_reg(
         .data_en(state_en), .data_in(next_state[1:0]), .data_out(state[1:0]), .*);
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Interrupts //
+
+    // nmi
     always_comb begin
         next_nmi_active = 1'b0;
         nmi_active_en = 1'b0;
@@ -174,16 +185,50 @@ module core(
             nmi_active_en = 1'b1;
         end
 
-        if (nmi_active == 1'b1 && ucode_vector.addr_lo_src == ADDRLO_BRKHI) begin
+        if (nmi_active == 1'b1 && ucode_vector.addr_lo_src == ADDRLO_BRKHI && curr_interrupt == INTERRUPT_NMI) begin
             next_nmi_active = 1'b0;
             nmi_active_en = 1'b1;
         end
-
     end
 
     cpu_register #(.WIDTH(1)) nmi_active_reg(
         .data_en(nmi_active_en), .data_in(next_nmi_active),
         .data_out(nmi_active), .*);
+
+    // irq is combinationally read
+
+    // reset can also be treated as an interrupt
+    assign next_reset_active = 1'b0;
+    assign reset_active_en = (ucode_vector.addr_lo_src == ADDRLO_BRKHI && curr_interrupt == INTERRUPT_RESET);
+
+    cpu_register #(.WIDTH(1), .RESET_VAL(1)) reset_reg(
+        .data_en(reset_active_en), .data_in(next_reset_active),
+        .data_out(reset_active), .*);
+
+    // interrupt active if any of these signals are active
+    assign interrupt_active = nmi_active | (~irq_n) | reset_active;
+
+    // need to figure out which interrupt is the canonical interrupt,
+    // if multiple are active and we're in break
+
+    assign curr_interupt_en = ucode_vector.write_mem_src == WMEMSRC_STATUS_BRK;
+
+    always_comb begin
+        next_interrupt = INTERRUPT_NONE;
+        if (reset_active) begin
+            next_interrupt = INTERRUPT_RESET;
+        end
+        else if (nmi_active) begin
+            next_interrupt = INTERRUPT_NMI;
+        end
+        else if (~irq_n) begin
+            next_interrupt = INTERRUPT_IRQ;
+        end
+    end
+
+    cpu_register #(.WIDTH(2), .RESET_VAL(INTERRUPT_NONE)) interrupt_reg(
+        .data_en(curr_interupt_en), .data_in(next_interrupt),
+        .data_out(curr_interrupt) .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -230,7 +275,7 @@ module core(
     assign fetched_PC_en = state == STATE_FETCH;
     assign next_fetched_PC = PC;
 
-    cpu_register #(.WIDTH(16)) fetched_PC_reg(
+    cpu_register #(.WIDTH(16), .RESET_VAL(`DEFAULT_PC)) fetched_PC_reg(
         .data_en(fetched_PC_en), .data_in(next_fetched_PC), .data_out(fetched_PC), .*);
 
 
@@ -314,7 +359,7 @@ module cpu_inputs(
     input logic[7:0] r_data, r_data_buffer, alu_out,
     input logic branch_bit,
 
-    input logic nmi_active,
+    input logic interrupt_active,
     input logic [15:0] fetched_PC,
 
     input logic alu_n_out, alu_v_out, alu_z_out, alu_c_out,
@@ -334,7 +379,7 @@ module cpu_inputs(
         PC_en = 2'b11;
         
         if (state == STATE_DECODE &&
-            nmi_active == 1'b1) begin
+            interrupt_active) begin
 
             PC = fetched_PC;
 
@@ -519,7 +564,7 @@ module cpu_next_state(
     input  ucode_ctrl_signals_t ucode_vector,
     input  logic[7:0] r_data_buffer,
     input  processor_state_t state,
-    input  logic decode_start_fetch, branch_bit, c_out, nmi_active,
+    input  logic decode_start_fetch, branch_bit, c_out,
 
     output processor_state_t next_state);
 
@@ -530,7 +575,7 @@ module cpu_next_state(
         case (state)
             // STATE_FETCH, STATE_DECODE, STATE_NEITHER
             STATE_FETCH: next_state = STATE_DECODE;
-            // if nmi is active in decode, brk decode signals will be fetched, implying we don't start fetch next
+            // if interrupt is active in decode, brk decode signals will be fetched, implying we don't start fetch next
             STATE_DECODE: next_state = (decode_start_fetch) ? STATE_FETCH : STATE_NEITHER;
             STATE_NEITHER: begin
                 if (ucode_vector.start_fetch == 1'b1) begin

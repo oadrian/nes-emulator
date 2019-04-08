@@ -319,7 +319,8 @@ module mem_inputs(
     input  logic[15:0] PC,
     input  logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag,
 
-    input  logic nmi_active,
+    input  logic interrupt_active, reset_active,
+    input  interrupt_t curr_interrupt,
     
     output logic[15:0] addr,
     output logic[7:0] w_data,
@@ -337,20 +338,22 @@ module mem_inputs(
             case (ucode_vector.addr_lo_src)
                 // ADDRLO_FF, ADDRLO_FE, ADDRLO_FD, ADDRLO_FC, ADDRLO_FB, ADDRLO_FA, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_RMEM, ADDRLO_ALUOUT, ADDRLO_SP, ADDRLO_HOLD
                 ADDRLO_BRKLO: begin
-                    if (nmi_active) begin
-                        addr[7:0] = 8'hFA;
-                    end
-                    else begin
-                        addr[7:0] = 8'hFE;
-                    end
+                    case (curr_interrupt)
+                        //INTERRUPT_NONE, INTERRUPT_NMI, INTERRUPT_IRQ, INTERRUPT_RESET
+                        INTERRUPT_NONE:  addr[7:0] = 8'hFE;
+                        INTERRUPT_NMI:   addr[7:0] = 8'hFA;
+                        INTERRUPT_IRQ:   addr[7:0] = 8'hFE;
+                        INTERRUPT_RESET: addr[7:0] = 8'hFC;
+                    endcase
                 end
                 ADDRLO_BRKHI: begin
-                    if (nmi_active) begin
-                        addr[7:0] = 8'hFB;
-                    end
-                    else begin
-                        addr[7:0] = 8'hFF;
-                    end
+                    case (curr_interrupt)
+                        //INTERRUPT_NONE, INTERRUPT_NMI, INTERRUPT_IRQ, INTERRUPT_RESET
+                        INTERRUPT_NONE:  addr[7:0] = 8'hFF;
+                        INTERRUPT_NMI:   addr[7:0] = 8'hFB;
+                        INTERRUPT_IRQ:   addr[7:0] = 8'hFF;
+                        INTERRUPT_RESET: addr[7:0] = 8'hFD;
+                    endcase
                 end
                 ADDRLO_FD: addr[7:0] = 8'hFD;
                 ADDRLO_FC: addr[7:0] = 8'hFC;
@@ -394,6 +397,12 @@ module mem_inputs(
                 addr[15:8] = PC[15:8];
             end
         end
+
+        // if we're in the reset vector we always just read
+        if (reset_active) begin
+            mem_r_en = 1'b1;
+        end
+
     end
 
     always_comb begin
@@ -410,7 +419,14 @@ module mem_inputs(
                 WMEMSRC_PCHI: w_data = PC[15:8];
                 WMEMSRC_PCLO: w_data = PC[7:0];
                 // NV-BDIZC
-                WMEMSRC_STATUS_BRK: w_data = (nmi_active) ? {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag} : {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
+                WMEMSRC_STATUS_BRK: begin
+                    if (interrupt_active) begin
+                        w_data = {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag};
+                    end
+                    else begin
+                        w_data = {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
+                    end
+                end
                 WMEMSRC_STATUS_BC: w_data = {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag};
                 WMEMSRC_INSTR_STORE: begin
                     case (instr_ctrl_vector.store_reg)
