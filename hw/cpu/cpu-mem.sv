@@ -96,7 +96,7 @@ module cpu_memory(
     input logic [7:0] reg_data_rd,
 	 
 	 // press start
-	 input logic pressed_start,
+     input logic up, down, start, select, left, right, A, B,
 	 
 	 // debug output
 	 output logic [7:0] read_prom
@@ -104,12 +104,14 @@ module cpu_memory(
     );
 
     // prev reg_en
-    logic prev_reg_en;
+    logic prev_reg_en, prev_but_rd;
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
             prev_reg_en <= 0;
+            prev_but_rd <= 0;
         end else if(clock_en) begin
             prev_reg_en <= reg_en;
+            prev_but_rd <= r_en && addr == 16'h4016;
         end
     end
     
@@ -143,14 +145,15 @@ module cpu_memory(
 	 
 	 /// debug press the start button
 	 
-	 logic [7:0] button_data_rd, button_data_rd_in;
-	 enum logic [2:0] {IDLE, WROTE1, WROTE0, READ_A, READ_B, READ_SEL, READ_START} curr, next;
+    logic [7:0] button_data_rd, button_data_rd_in;
+    enum logic [3:0] {IDLE, WROTE1, WROTE0, READ_A, READ_B, READ_SEL, 
+                       READ_START, READ_UP, READ_DOWN, READ_LEFT, READ_RIGHT} curr, next;
 	 
 	 logic [7:0] mem_data_rd;
 	 
 	 always_comb begin
 		r_data = mem_data_rd;
-		if(curr == READ_START) 
+		if(prev_but_rd) 
 			r_data = button_data_rd;
 		else if(prev_reg_en) 
 			r_data = reg_data_rd;
@@ -169,35 +172,54 @@ module cpu_memory(
 	 end
 	 
 	 always_comb begin
-		next = IDLE;
-		button_data_rd_in = 8'd0;
-		case(curr)
-			IDLE: begin
-				next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b1) ? WROTE1 : IDLE;
-			end
-			WROTE1: begin
-				next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b0) ? WROTE0 : WROTE1;
-			end
-			WROTE0: begin
-				next = (r_en && addr == 16'h4016) ? READ_A : WROTE0;
-			end
-			READ_A: begin
-				next = (r_en && addr == 16'h4016) ? READ_B : READ_A;
-			end
-			READ_B: begin
-				next = (r_en && addr == 16'h4016) ? READ_SEL : READ_B;
-			end
-			READ_SEL: begin
-				next = (r_en && addr == 16'h4016) ? READ_START : READ_SEL;
-				button_data_rd_in = (pressed_start) ? 8'd1 : 8'd0;
-			end
-			READ_START: begin
-				next = IDLE;
-			end
-			default: ;
-		endcase
-	 
-	 end
+        next = IDLE;
+        button_data_rd_in = 8'd0;
+        case(curr)
+            IDLE: begin
+                next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b1) ? WROTE1 : IDLE;
+            end
+            WROTE1: begin
+                next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b0) ? WROTE0 : WROTE1;
+            end
+            WROTE0: begin
+                next = (r_en && addr == 16'h4016) ? READ_A : WROTE0;
+                button_data_rd_in = (A) ? 8'd1 : 8'd0;
+            end
+            READ_A: begin
+                next = (r_en && addr == 16'h4016) ? READ_B : READ_A;
+                button_data_rd_in = (B) ? 8'd1 : 8'd0;
+            end
+            READ_B: begin
+                next = (r_en && addr == 16'h4016) ? READ_SEL : READ_B;
+                button_data_rd_in = (select) ? 8'd1 : 8'd0;
+            end
+            READ_SEL: begin
+                next = (r_en && addr == 16'h4016) ? READ_START : READ_SEL;
+                button_data_rd_in = (start) ? 8'd1 : 8'd0;
+            end
+            READ_START: begin
+                next = (r_en && addr == 16'h4016) ? READ_UP : READ_START;
+                button_data_rd_in = (up) ? 8'd1 : 8'd0;
+            end
+            READ_UP: begin
+                next = (r_en && addr == 16'h4016) ? READ_DOWN : READ_UP;
+                button_data_rd_in = (down) ? 8'd1 : 8'd0;
+            end
+            READ_DOWN: begin
+                next = (r_en && addr == 16'h4016) ? READ_LEFT : READ_DOWN;
+                button_data_rd_in = (left) ? 8'd1 : 8'd0;
+            end
+            READ_LEFT: begin
+                next = (r_en && addr == 16'h4016) ? IDLE : READ_LEFT;
+                button_data_rd_in = (right) ? 8'd1 : 8'd0;
+            end
+            // READ_RIGHT: begin
+            //     next = (r_en && addr == 16'h4016) ? IDLE : READ_RIGHT;
+            // end
+            default: ;
+        endcase
+     
+     end
 
     `ifdef SYNTH
     logic [13:0] prom_address;
