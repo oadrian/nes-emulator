@@ -6,11 +6,11 @@ import split_ppu_mem as splitter
 
 PRGROM_TXT = "prg_rom_init.txt"
 PRGROM_BIN = "prg_rom_init.bin"
-PRGROM_HEX = "prg_rom_init.hex"
+PRGROM_HEX = "cpu/init-intel/prg_rom_init.hex"
 
 CHRROM_TXT = "chr_rom_init.txt"
 CHRROM_BIN = "chr_rom_init.bin"
-CHRROM_HEX = "chr_rom_init.hex"
+CHRROM_HEX = "ppu/init-intel/chr_rom_init.hex"
 
 
 def getIthBit(i, num):
