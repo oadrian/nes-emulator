@@ -92,6 +92,14 @@ def readNES(filename):
 
             subprocess.call(["rm", PRGROM_BIN])
             subprocess.call(["rm", CHRROM_BIN])
+        elif(sys.platform == 'win32'):
+            text2bin.write2file(PRGROM_BIN, prgrom)
+            text2bin.write2file(CHRROM_BIN, chrrom)
+            subprocess.call(["srec_cat", PRGROM_BIN, "-binary", "-output", PRGROM_HEX, "-Intel"])
+            subprocess.call(["srec_cat", CHRROM_BIN, "-binary", "-output", CHRROM_HEX, "-Intel"])
+
+            subprocess.call(["rm", PRGROM_BIN])
+            subprocess.call(["rm", CHRROM_BIN])
 
 
 
