@@ -12,7 +12,7 @@
 `define DEFAULT_C 1'b0
 
 // `define DEFAULT_PC 16'h4020
-//  #nestest - change default PC 
+
 `define DEFAULT_PC 16'hC000
 
 module core(
@@ -201,6 +201,8 @@ module core(
     assign next_reset_active = 1'b0;
     assign reset_active_en = (ucode_vector.addr_lo_src == ADDRLO_BRKHI && curr_interrupt == INTERRUPT_RESET);
 
+
+    // #nestest set the .RESET_VAL from 1 to 0
     cpu_register #(.WIDTH(1), .RESET_VAL(1)) reset_reg(
         .data_en(reset_active_en), .data_in(next_reset_active),
         .data_out(reset_active), .*);
@@ -211,7 +213,7 @@ module core(
     // need to figure out which interrupt is the canonical interrupt,
     // if multiple are active and we're in break
 
-    assign curr_interupt_en = ucode_vector.write_mem_src == WMEMSRC_STATUS_BRK;
+    assign curr_interrupt_en = ucode_vector.write_mem_src == WMEMSRC_STATUS_BRK;
 
     always_comb begin
         next_interrupt = INTERRUPT_NONE;
@@ -227,8 +229,8 @@ module core(
     end
 
     cpu_register #(.WIDTH(2), .RESET_VAL(INTERRUPT_NONE)) interrupt_reg(
-        .data_en(curr_interupt_en), .data_in(next_interrupt),
-        .data_out(curr_interrupt) .*);
+        .data_en(curr_interrupt_en), .data_in(next_interrupt),
+        .data_out(curr_interrupt), .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -267,8 +269,6 @@ module core(
     cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_C)) c_flag_reg(
             .data_en(c_flag_en), .data_in(next_c_flag), .data_out(c_flag), .*);
 
-
-    // #nestest - change the default PC value above
     cpu_wide_counter_register #(.RESET_VAL(`DEFAULT_PC)) PC_reg(
         .inc_en(inc_PC), .data_en(PC_en), .data_in(next_PC), .data_out(PC), .*);
 

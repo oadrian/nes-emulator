@@ -22,9 +22,22 @@ module top ();
 
     assign clock_en = 1'b1;
 
+    logic irq_n;
+    assign irq_n = 1'b1;
+
+    logic [15:0] PC_debug;
+
+    reg_t reg_sel;
+    logic reg_en;
+    logic reg_rw;
+    logic [7:0] reg_data_wr;
+    logic [7:0] reg_data_rd; 
+    logic up, down, start, select, left, right, A, B;
+    logic [7:0] read_prom;
+
     core cpu(.*);
     cpu_memory mem(.addr, .r_en(mem_r_en), .w_data, 
-                   .clock, .clock_en, .reset_n, .r_data);
+                   .clock, .clock_en, .reset_n, .r_data, .*);
 
     initial begin 
         clock = 1'b0;
