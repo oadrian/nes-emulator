@@ -1,0 +1,16 @@
+	component audio_video_config is
+		port (
+			address     : in    std_logic_vector(1 downto 0)  := (others => 'X'); -- address
+			byteenable  : in    std_logic_vector(3 downto 0)  := (others => 'X'); -- byteenable
+			read        : in    std_logic                     := 'X';             -- read
+			write       : in    std_logic                     := 'X';             -- write
+			writedata   : in    std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			readdata    : out   std_logic_vector(31 downto 0);                    -- readdata
+			waitrequest : out   std_logic;                                        -- waitrequest
+			clk         : in    std_logic                     := 'X';             -- clk
+			I2C_SDAT    : inout std_logic                     := 'X';             -- SDAT
+			I2C_SCLK    : out   std_logic;                                        -- SCLK
+			reset       : in    std_logic                     := 'X'              -- reset
+		);
+	end component audio_video_config;
+
