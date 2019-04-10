@@ -4,11 +4,11 @@ import text2bin
 import subprocess
 import split_ppu_mem as splitter
 
-PRGROM_TXT = "prg_rom_init.txt"
+PRGROM_TXT = "cpu/init/prg_rom_init.txt"
 PRGROM_BIN = "prg_rom_init.bin"
 PRGROM_HEX = "cpu/init-intel/prg_rom_init.hex"
 
-CHRROM_TXT = "chr_rom_init.txt"
+CHRROM_TXT = "ppu/init/chr_rom_init.txt"
 CHRROM_BIN = "chr_rom_init.bin"
 CHRROM_HEX = "ppu/init-intel/chr_rom_init.hex"
 
