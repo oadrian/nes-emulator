@@ -5,7 +5,9 @@ module apu (
   input logic cpu_clk_en,
   input logic [15:0] reg_addr,
   input logic [7:0] reg_data_in,
-  input logic reg_en, reg_we);
+  input logic reg_en, reg_we,
+
+  output logic [3:0] triangle_wave);
 
   logic [23:0] reg_updates;
   logic [23:0][7:0] reg_array;
@@ -33,7 +35,6 @@ module apu (
     .quarter_clk_en, .half_clk_en);
 
   logic [4:0] lengths_non_zero;
-  logic [3:0] triangle_wave;
   triangle_channel tc (
     .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
     .disable_l(status_signals.triangle_en), 
