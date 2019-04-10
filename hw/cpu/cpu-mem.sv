@@ -94,6 +94,12 @@ module cpu_memory(
     output logic reg_rw,
     output logic [7:0] reg_data_wr,
     input logic [7:0] reg_data_rd,
+
+    // APU register interface 
+    output logic [4:0] reg_addr,
+    output logic [7:0] reg_write_data,
+    input logic [7:0] reg_read_data,
+    output logic data_valid, reg_we,
 	 
 	 // press start
      input logic up, down, start, select, left, right, A, B,
@@ -102,6 +108,15 @@ module cpu_memory(
 	 output logic [7:0] read_prom
     
     );
+
+    // TODO: HOOK UP APU READS
+    // Driving APU registers
+    always_comb begin
+        reg_addr = addr[4:0];
+        reg_write_data = w_data;
+        reg_we = ~r_en;
+        data_valid = 16'h4000 <= addr && addr <= 16'h4017;
+    end
 
     // prev reg_en
     logic prev_reg_en, prev_but_rd;

@@ -3,8 +3,8 @@
 module apu (
   input logic clk, rst_l,
   input logic cpu_clk_en,
-  input logic [15:0] reg_addr,
-  input logic [7:0] reg_data_in,
+  input logic [4:0] reg_addr,
+  input logic [7:0] reg_data,
   input logic reg_en, reg_we,
 
   output logic [3:0] triangle_wave);

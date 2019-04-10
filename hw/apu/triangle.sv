@@ -27,7 +27,7 @@ module triangle_channel (
   assign gate1_out = linear_non_zero ? timer_pulse : 1'b0;
   assign gate2_out = length_non_zero ? gate1_out : 1'b0;
 
-  register #(.WIDTH(5), .RES_VAL(0)) seq_i_reg (
+  apu_register #(.WIDTH(5), .RES_VAL(0)) seq_i_reg (
     .clk, .rst_l, .clk_en(cpu_clk_en), .en(gate2_out), .d(next_seq_i), 
     .q(seq_i));
   

@@ -55,6 +55,12 @@ module top ();
     logic mem_re_p;
     logic [7:0] mem_rd_data_p;
 
+    // AP
+    logic [4:0] reg_addr;
+    logic [7:0] reg_write_data;
+    logic [7:0] reg_read_data;
+    logic data_valid, reg_we;
+
     assign cpu_cyc_par = cpu_cycle[0];
 
     ppu peep(.clk(clock), .rst_n(reset_n), .ppu_clk_en, .vblank_nmi, 
@@ -73,6 +79,13 @@ module top ();
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
              .nmi(vblank_nmi));
 
+    logic [3:0] triangle_wave;
+
+    apu apooh (
+      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .reg_addr, 
+      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .triangle_wave);
+      
+
     // CPU Memory Interface
     logic [15:0] mem_addr;
     logic mem_re;
@@ -86,9 +99,11 @@ module top ();
     assign mem_rd_data_c = mem_rd_data;
     assign mem_rd_data_p = mem_rd_data;
 
-    cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
-                   .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
-                   .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd);
+    cpu_memory mem(
+      .addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
+      .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
+      .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
+      .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we);
 
     initial begin 
         clock = 1'b0;

@@ -1,6 +1,6 @@
 `default_nettype none
 
-module register #(parameter WIDTH=32, RES_VAL=0) (
+module apu_register #(parameter WIDTH=32, RES_VAL=0) (
   input logic clk, rst_l,
   input logic clk_en, en,
   input logic [WIDTH-1:0] d,
@@ -12,7 +12,7 @@ module register #(parameter WIDTH=32, RES_VAL=0) (
     else if (clk_en & en)
       q <= d;
 
-endmodule: register
+endmodule: apu_register
 
 module divider #(parameter WIDTH=32, RES_VAL=0) (
   input logic clk, rst_l,
@@ -26,7 +26,7 @@ module divider #(parameter WIDTH=32, RES_VAL=0) (
   assign next_count = (load | pulse) ? load_data : count - 1'b1;
   assign pulse = !count;
 
-  register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
+  apu_register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
     .clk, .rst_l, .clk_en, .en(1'b1), .d(next_count), .q(count));
   
 endmodule: divider
@@ -42,7 +42,7 @@ module up_counter #(parameter WIDTH=32, RES_VAL=0) (
 
   assign next_count = load ? load_data : count + 'b1;
 
-  register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
+  apu_register #(.WIDTH(WIDTH), .RES_VAL(RES_VAL)) count_reg (
     .clk, .rst_l, .clk_en, .en(load | en), .d(next_count), .q(count));
 
 endmodule: up_counter
