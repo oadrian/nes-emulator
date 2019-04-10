@@ -55,7 +55,7 @@ module top ();
     logic mem_re_p;
     logic [7:0] mem_rd_data_p;
 
-    // AP
+    // APU
     logic [4:0] reg_addr;
     logic [7:0] reg_write_data;
     logic [7:0] reg_read_data;

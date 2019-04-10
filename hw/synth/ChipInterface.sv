@@ -3,15 +3,26 @@
 `include "../include/cpu_types.vh"
 `include "../include/ppu_defines.vh"
 
-module ChipInterface
-  (input  logic CLOCK_50, 
-   input  logic [3:0] KEY, 
-   input  logic [17:0] SW, 
-   output logic [6:0] HEX0, HEX1, HEX2, HEX3,  
-                      HEX4, HEX5, HEX6, HEX7, 
-   output logic [7:0]  VGA_R, VGA_G, VGA_B, 
-   output logic        VGA_BLANK_N, VGA_CLK, VGA_SYNC_N, 
-   output logic        VGA_VS, VGA_HS); 
+module ChipInterface (
+  input  logic CLOCK_50, 
+  input  logic [3:0] KEY, 
+  input  logic [17:0] SW, 
+  output logic [6:0] HEX0, HEX1, HEX2, HEX3,  
+                    HEX4, HEX5, HEX6, HEX7, 
+  output logic [7:0]  VGA_R, VGA_G, VGA_B, 
+  output logic        VGA_BLANK_N, VGA_CLK, VGA_SYNC_N, 
+  output logic        VGA_VS, VGA_HS,
+
+  input  AUD_ADCDAT,
+  inout  AUD_ADCLRCK,
+  inout  AUD_BCLK,
+  output AUD_DACDAT,
+  inout  AUD_DACLRCK,
+  output AUD_XCK,
+
+  output I2C_SCLK,
+  inout I2C_SDAT);
+ 
 
 	logic reset_n;
     assign reset_n = SW[17];
@@ -83,6 +94,39 @@ module ChipInterface
             .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p), 
             .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY);
 
+    // APU
+    logic [4:0] reg_addr;
+    logic [7:0] reg_write_data;
+    logic [7:0] reg_read_data;
+    logic data_valid, reg_we;
+
+    logic [3:0] triangle_wave;
+
+    apu apooh (
+      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .reg_addr, 
+      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .triangle_wave);
+    
+    logic AUD_CTRL_CLK;    //  For Audio Controller
+    assign AUD_DACLRCK = 1'bz;                         
+    assign AUD_DACDAT = 1'bz;                         
+    assign AUD_BCLK = 1'bz;                          
+    assign AUD_XCK = 1'bz;     
+    assign AUD_XCK = AUD_CTRL_CLK;
+
+    // IPs to drive audio from Quartus
+    VGA_Audio_PLL audio_pll (
+      .areset(~KEY[0]), .inclk0(CLOCK_50), .c0(VGA_CTRL_CLK), 
+      .c1(AUD_CTRL_CLK), .c2(mVGA_CLK));
+
+    //  Audio CODEC and video decoder setting
+    I2C_AV_Config audio_config (
+      .iCLK(CLOCK_50), .iRST_N(KEY[0]), .I2C_SCLK(I2C_SCLK), 
+      .I2C_SDAT(I2C_SDAT));
+
+    AUDIO_DAC audio_dac (
+      .oAUD_BCK(AUD_BCLK), .oAUD_DATA(AUD_DACDAT), .oAUD_LRCK(AUD_DACLRCK),
+      .iSrc_Select(SW[17]), .iCLK_18_4(AUD_CTRL_CLK), .iRST_N(KEY[0]));
+
     // CPU stuff
     logic [15:0] mem_addr_c;
     logic mem_re_c;
@@ -133,11 +177,12 @@ module ChipInterface
         end
      end
 
-    cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
-                   .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
-                   .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
-                   .read_prom,
-                   .up, .down, .start, .select, .left, .right, .A, .B);
+    cpu_memory mem(
+      .addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
+      .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
+      .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
+      .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
+      .read_prom, .up, .down, .start, .select, .left, .right, .A, .B);
 
 
     // see ppu status registers
