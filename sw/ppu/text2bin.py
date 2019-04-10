@@ -9,7 +9,7 @@ def text2bin(infile):
         return wr_str
 
 def write2file(outfile, wr_str):
-    with open(outfile, "w") as f:
+    with open(outfile, "wb") as f:
         f.write(wr_str)
 
 def main():

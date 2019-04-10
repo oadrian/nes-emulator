@@ -4,13 +4,13 @@ import text2bin
 import subprocess
 import split_ppu_mem as splitter
 
-PRGROM_TXT = "prg_rom_init.txt"
+PRGROM_TXT = "cpu/init/prg_rom_init.txt"
 PRGROM_BIN = "prg_rom_init.bin"
-PRGROM_HEX = "prg_rom_init.hex"
+PRGROM_HEX = "cpu/init-intel/prg_rom_init.hex"
 
-CHRROM_TXT = "chr_rom_init.txt"
+CHRROM_TXT = "ppu/init/chr_rom_init.txt"
 CHRROM_BIN = "chr_rom_init.bin"
-CHRROM_HEX = "chr_rom_init.hex"
+CHRROM_HEX = "ppu/init-intel/chr_rom_init.hex"
 
 
 def getIthBit(i, num):
@@ -89,6 +89,14 @@ def readNES(filename):
             text2bin.write2file(CHRROM_BIN, chrrom)
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", PRGROM_BIN, PRGROM_HEX])
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", CHRROM_BIN, CHRROM_HEX])
+
+            subprocess.call(["rm", PRGROM_BIN])
+            subprocess.call(["rm", CHRROM_BIN])
+        elif(sys.platform == 'win32'):
+            text2bin.write2file(PRGROM_BIN, prgrom)
+            text2bin.write2file(CHRROM_BIN, chrrom)
+            subprocess.call(["srec_cat", PRGROM_BIN, "-binary", "-output", PRGROM_HEX, "-Intel"])
+            subprocess.call(["srec_cat", CHRROM_BIN, "-binary", "-output", CHRROM_HEX, "-Intel"])
 
             subprocess.call(["rm", PRGROM_BIN])
             subprocess.call(["rm", CHRROM_BIN])

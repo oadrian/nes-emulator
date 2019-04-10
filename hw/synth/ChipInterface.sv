@@ -14,7 +14,7 @@ module ChipInterface
    output logic        VGA_VS, VGA_HS); 
 
 	logic reset_n;
-	assign reset_n = KEY[0];
+    assign reset_n = SW[17];
 	
 	// 21.477272 MHz  and 10.738636 MHz clock
 	logic areset, CLOCK_21, CLOCK_10, locked;
@@ -107,19 +107,37 @@ module ChipInterface
     assign mem_rd_data_c = mem_rd_data;
     assign mem_rd_data_p = mem_rd_data;
 	 
-	 logic pressed_start;
-	 
-	 always_ff @(posedge clock or negedge reset_n) begin
-		if(~reset_n)
-			pressed_start <= 0;
-		else 
-			pressed_start <= ~KEY[3];
-	 end
+	logic up, down, start, select, left, right, A, B;
+     
+     always_ff @(posedge clock or negedge reset_n) begin
+        if(~reset_n) begin
+            up <= 0;
+            down <= 0;
+            start <= 0;
+            select <= 0;
+
+            left <= 0;
+            right <= 0;
+            A <= 0;
+            B <= 0;
+        end else begin
+            up <= ~KEY[3] && SW[0];
+            down <= ~KEY[2] && SW[0];
+            start <= ~KEY[1] && SW[0];
+            select <= ~KEY[0] && SW[0];
+
+            left <= ~KEY[3] && ~SW[0];
+            right <= ~KEY[2] && ~SW[0];
+            A <= ~KEY[1] && ~SW[0];
+            B <= ~KEY[0] && ~SW[0];
+        end
+     end
 
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
-						 .read_prom, .pressed_start);
+                   .read_prom,
+                   .up, .down, .start, .select, .left, .right, .A, .B);
 
 
     // see ppu status registers

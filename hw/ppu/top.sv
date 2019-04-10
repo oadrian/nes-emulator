@@ -32,6 +32,9 @@ module top ();
     logic cpu_re;
     logic [7:0] cpu_rd_data;
 
+    logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
+
+
     // CPU clock enable
     clock_div #(4) ppu_ck(.clk, .rst_n, .clk_en(ppu_clk_en));    
 
