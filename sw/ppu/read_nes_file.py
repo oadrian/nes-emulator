@@ -78,7 +78,13 @@ def readNES(filename):
         prgrom_sz, chrrom_sz, vertical_mirror, bit_trainer = interpretHeader(header)
         if(bit_trainer):
             trainer =  f.read(512)
-        prgrom = f.read(16384*prgrom_sz)
+        prgrom = ""
+        if(prgrom_sz == 1):
+            # 16 KB - pad lower 16kb with ff
+            prgrom = ('\xff'*16384) + f.read(16384*prgrom_sz)
+        else:
+            # 32 KB
+            prgrom = f.read(16384*prgrom_sz)
         chrrom = f.read(8192*chrrom_sz)
 
         writeTXT(PRGROM_TXT, prgrom)
