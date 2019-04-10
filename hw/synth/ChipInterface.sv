@@ -89,10 +89,13 @@ module ChipInterface
     logic [7:0] mem_wr_data_c;
     logic [7:0] mem_rd_data_c;
     logic [15:0] PC;
+    logic irq_n;
+
+    assign irq_n = 1'b1;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .nmi(vblank_nmi), .PC_debug(PC));
+             .nmi(vblank_nmi), .PC_debug(PC), .irq_n);
 
     // CPU Memory Interface
     logic [15:0] mem_addr;

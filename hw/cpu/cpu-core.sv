@@ -229,8 +229,8 @@ module core(
     end
 
     cpu_register #(.WIDTH(2), .RESET_VAL(INTERRUPT_NONE)) interrupt_reg(
-        .data_en(curr_interrupt_en), .data_in(next_interrupt),
-        .data_out(curr_interrupt), .*);
+        .data_en(curr_interrupt_en), .data_in(next_interrupt[1:0]),
+        .data_out(curr_interrupt[1:0]), .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////
