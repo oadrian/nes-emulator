@@ -1,7 +1,4 @@
-module AUDIO_DAC (	//	Memory Side
-					oFLASH_ADDR,iFLASH_DATA,
-					oSDRAM_ADDR,iSDRAM_DATA,
-					oSRAM_ADDR,iSRAM_DATA,
+module AUDIO_DAC (
 					//	Audio Side
 					oAUD_BCK,
 					oAUD_DATA,
@@ -17,31 +14,10 @@ parameter	DATA_WIDTH		=	16;			//	16		Bits
 parameter	CHANNEL_NUM		=	2;			//	Dual Channel
 
 parameter	SIN_SAMPLE_DATA	=	48;
-parameter	FLASH_DATA_NUM	=	1048576;	//	1	MWords
-parameter	SDRAM_DATA_NUM	=	4194304;	//	4	MWords
-parameter	SRAM_DATA_NUM	=	262144;		//	256	KWords
-
-parameter	FLASH_ADDR_WIDTH=	20;			//	20	Address Line
-parameter	SDRAM_ADDR_WIDTH=	22;			//	22	Address Line
-parameter	SRAM_ADDR_WIDTH=	18;			//	18	Address	Line
-
-parameter	FLASH_DATA_WIDTH=	8;			//	8	Bits
-parameter	SDRAM_DATA_WIDTH=	16;			//	16	Bits
-parameter	SRAM_DATA_WIDTH=	16;			//	16	Bits
 
 ////////////	Input Source Number	//////////////
 parameter	SIN_SANPLE		=	0;
-parameter	FLASH_DATA		=	1;
-parameter	SDRAM_DATA		=	2;
-parameter	SRAM_DATA		=	3;
 //////////////////////////////////////////////////
-//	Memory Side
-output	[FLASH_ADDR_WIDTH-1:0]	oFLASH_ADDR;
-input	[FLASH_DATA_WIDTH-1:0]	iFLASH_DATA;	
-output	[SDRAM_ADDR_WIDTH:0]	oSDRAM_ADDR;
-input	[SDRAM_DATA_WIDTH-1:0]	iSDRAM_DATA;	
-output	[SRAM_ADDR_WIDTH:0]		oSRAM_ADDR;
-input	[SRAM_DATA_WIDTH-1:0]	iSRAM_DATA;	
 //	Audio Side
 output			oAUD_DATA;
 output			oAUD_LRCK;
@@ -58,17 +34,8 @@ reg		[6:0]	LRCK_4X_DIV;
 reg		[3:0]	SEL_Cont;
 ////////	DATA Counter	////////
 reg		[5:0]	SIN_Cont;
-reg		[FLASH_ADDR_WIDTH-1:0]	FLASH_Cont;
-reg		[SDRAM_ADDR_WIDTH-1:0]	SDRAM_Cont;
-reg		[SRAM_ADDR_WIDTH-1:0]	SRAM_Cont;
 ////////////////////////////////////
 reg		[DATA_WIDTH-1:0]	Sin_Out;
-reg		[DATA_WIDTH-1:0]	FLASH_Out;
-reg		[DATA_WIDTH-1:0]	SDRAM_Out;
-reg		[DATA_WIDTH-1:0]	SRAM_Out;
-reg		[DATA_WIDTH-1:0]	FLASH_Out_Tmp;
-reg		[DATA_WIDTH-1:0]	SDRAM_Out_Tmp;
-reg		[DATA_WIDTH-1:0]	SRAM_Out_Tmp;
 reg							LRCK_1X;
 reg							LRCK_2X;
 reg							LRCK_4X;
@@ -149,104 +116,6 @@ begin
 	end
 end
 //////////////////////////////////////////////////
-//////////	FLASH ADDR Generator	//////////////
-always@(negedge LRCK_4X or negedge iRST_N)
-begin
-	if(!iRST_N)
-	FLASH_Cont	<=	0;
-	else
-	begin
-		if(FLASH_Cont < FLASH_DATA_NUM-1 )
-		FLASH_Cont	<=	FLASH_Cont+1;
-		else
-		FLASH_Cont	<=	0;
-	end
-end
-assign	oFLASH_ADDR	=	FLASH_Cont;
-//////////////////////////////////////////////////
-//////////	  FLASH DATA Reorder	//////////////
-always@(posedge LRCK_4X or negedge iRST_N)
-begin
-	if(!iRST_N)
-	FLASH_Out_Tmp	<=	0;
-	else
-	begin
-		if(FLASH_Cont[0])
-		FLASH_Out_Tmp[15:8]	<=	iFLASH_DATA;
-		else
-		FLASH_Out_Tmp[7:0]	<=	iFLASH_DATA;		
-	end
-end
-always@(negedge LRCK_2X	or negedge iRST_N)
-begin
-	if(!iRST_N)
-	FLASH_Out	<=	0;
-	else
-	FLASH_Out	<=	FLASH_Out_Tmp;
-end
-//////////////////////////////////////////////////
-//////////	SDRAM ADDR Generator	//////////////
-always@(negedge LRCK_2X or negedge iRST_N)
-begin
-	if(!iRST_N)
-	SDRAM_Cont	<=	0;
-	else
-	begin
-		if(SDRAM_Cont < SDRAM_DATA_NUM-1 )
-		SDRAM_Cont	<=	SDRAM_Cont+1;
-		else
-		SDRAM_Cont	<=	0;
-	end
-end
-assign	oSDRAM_ADDR	=	SDRAM_Cont;
-//////////////////////////////////////////////////
-//////////	  SDRAM DATA Latch		//////////////
-always@(posedge LRCK_2X or negedge iRST_N)
-begin
-	if(!iRST_N)
-	SDRAM_Out_Tmp	<=	0;
-	else
-	SDRAM_Out_Tmp	<=	iSDRAM_DATA;
-end
-always@(negedge LRCK_2X	or negedge iRST_N)
-begin
-	if(!iRST_N)
-	SDRAM_Out	<=	0;
-	else
-	SDRAM_Out	<=	SDRAM_Out_Tmp;
-end
-//////////////////////////////////////////////////
-////////////	SRAM ADDR Generator	  ////////////
-always@(negedge LRCK_2X or negedge iRST_N)
-begin
-	if(!iRST_N)
-	SRAM_Cont	<=	0;
-	else
-	begin
-		if(SRAM_Cont < SRAM_DATA_NUM-1 )
-		SRAM_Cont	<=	SRAM_Cont+1;
-		else
-		SRAM_Cont	<=	0;
-	end
-end
-assign	oSRAM_ADDR	=	SRAM_Cont;
-//////////////////////////////////////////////////
-//////////	  SRAM DATA Latch		//////////////
-always@(posedge LRCK_2X or negedge iRST_N)
-begin
-	if(!iRST_N)
-	SRAM_Out_Tmp	<=	0;
-	else
-	SRAM_Out_Tmp	<=	iSRAM_DATA;
-end
-always@(negedge LRCK_2X	or negedge iRST_N)
-begin
-	if(!iRST_N)
-	SRAM_Out	<=	0;
-	else
-	SRAM_Out	<=	SRAM_Out_Tmp;
-end
-//////////////////////////////////////////////////
 //////////	16 Bits PISO MSB First	//////////////
 always@(negedge oAUD_BCK or negedge iRST_N)
 begin
@@ -255,10 +124,7 @@ begin
 	else
 	SEL_Cont	<=	SEL_Cont+1;
 end
-assign	oAUD_DATA	=	(iSrc_Select==SIN_SANPLE)	?	Sin_Out[~SEL_Cont]	:
-						(iSrc_Select==FLASH_DATA)	?	FLASH_Out[~SEL_Cont]:
-						(iSrc_Select==SDRAM_DATA)	?	SDRAM_Out[~SEL_Cont]:
-														SRAM_Out[~SEL_Cont]	;												
+assign	oAUD_DATA	= Sin_Out[~SEL_Cont];										
 //////////////////////////////////////////////////
 ////////////	Sin Wave ROM Table	//////////////
 always@(SIN_Cont)
