@@ -326,15 +326,15 @@ module ctlr_interface (
 
     assign cnt_clr = (curr != next); // PULSE_LO -> PULSE_HI
 
-    assign read_cnt_clr = (read_cnt == 'd8);
-    assign read_cnt_inc = (curr != next && curr ==PULSE_HI);
+    assign read_cnt_clr = (curr == WROTE1);
+    assign read_cnt_inc = (curr != next && next == PULSE_HI);
 
     assign button_data_rd_in = {7'b0, ~ctlr_data};
 
     assign ctlr_pulse = (curr == PULSE_HI);
     assign ctlr_latch = (curr == WROTE1);
      
-     always_comb begin
+    always_comb begin
         next = IDLE;
         case(curr)
             IDLE: begin
@@ -350,12 +350,19 @@ module ctlr_interface (
                 next = (cnt == `CTRL_PULSE_LEN) ? PULSE_HI : PULSE_LO;
             end
             PULSE_HI: begin 
-                next = (read_cnt == 'd8 && cnt == `CTRL_PULSE_LEN) ? IDLE  :
-                       ((r_en && addr == 16'h4016) ? PULSE_LO : PULSE_HI);
+                if (read_cnt == 'd8 && cnt == `CTRL_PULSE_LEN) begin
+                    next = IDLE;
+                end
+                else if (r_en && addr == 16'h4016) begin
+                    next = PULSE_LO;
+                end
+                else begin
+                    PULSE_HI;
+                end
             end
             default: ;
         endcase
-     end
+    end
 
 endmodule
 
