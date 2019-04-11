@@ -357,7 +357,7 @@ module ctlr_interface (
                     next = PULSE_LO;
                 end
                 else begin
-                    PULSE_HI;
+                    next = PULSE_HI;
                 end
             end
             default: ;
