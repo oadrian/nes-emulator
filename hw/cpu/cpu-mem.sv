@@ -8,6 +8,8 @@
 
 `define prg_rom_init
 
+`define CTRL_PULSE_LEN 3
+
 module cpu_register #(WIDTH=8, RESET_VAL=0) (
     input  logic clock, clock_en, reset_n, data_en,
     input logic[WIDTH-1:0] data_in,
@@ -95,8 +97,9 @@ module cpu_memory(
     output logic [7:0] reg_data_wr,
     input logic [7:0] reg_data_rd,
 	 
-	 // press start
-     input logic up, down, start, select, left, right, A, B,
+	 // Controller GPIO pins
+     input logic ctlr_data, 
+     output logic ctlr_pulse, ctlr_latch,
 	 
 	 // debug output
 	 output logic [7:0] read_prom
@@ -141,14 +144,15 @@ module cpu_memory(
         end
     end
 
-    //assign r_data = (prev_reg_en) ? reg_data_rd : mem_data_rd;
+	// Controller interface
+    logic [7:0] button_data_rd; 
+    ctlr_interface ctrlr(.clock, .reset_n, .clock_en, 
+                         .addr, .r_en, .w_data,
+                         .ctlr_data, .ctlr_pulse, .ctlr_latch, 
+                         .button_data_rd);
 	 
-	 /// debug press the start button
-	 
-    logic [7:0] button_data_rd, button_data_rd_in;
-    enum logic [3:0] {IDLE, WROTE1, WROTE0, READ_A, READ_B, READ_SEL, 
-                       READ_START, READ_UP, READ_DOWN, READ_LEFT, READ_RIGHT} curr, next;
-	 
+
+    // RD Data MUX
 	 logic [7:0] mem_data_rd;
 	 
 	 always_comb begin
@@ -161,65 +165,6 @@ module cpu_memory(
 			r_data = mem_data_rd;
 	 end
 	 
-	 always_ff @(posedge clock or negedge reset_n) begin
-		if(~reset_n) begin
-			curr <= IDLE;
-			button_data_rd <= 8'd0;
-		end else if(clock_en) begin
-			curr <= next;
-			button_data_rd <= button_data_rd_in;
-		end
-	 end
-	 
-	 always_comb begin
-        next = IDLE;
-        button_data_rd_in = 8'd0;
-        case(curr)
-            IDLE: begin
-                next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b1) ? WROTE1 : IDLE;
-            end
-            WROTE1: begin
-                next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b0) ? WROTE0 : WROTE1;
-            end
-            WROTE0: begin
-                next = (r_en && addr == 16'h4016) ? READ_A : WROTE0;
-                button_data_rd_in = (A) ? 8'd1 : 8'd0;
-            end
-            READ_A: begin
-                next = (r_en && addr == 16'h4016) ? READ_B : READ_A;
-                button_data_rd_in = (B) ? 8'd1 : 8'd0;
-            end
-            READ_B: begin
-                next = (r_en && addr == 16'h4016) ? READ_SEL : READ_B;
-                button_data_rd_in = (select) ? 8'd1 : 8'd0;
-            end
-            READ_SEL: begin
-                next = (r_en && addr == 16'h4016) ? READ_START : READ_SEL;
-                button_data_rd_in = (start) ? 8'd1 : 8'd0;
-            end
-            READ_START: begin
-                next = (r_en && addr == 16'h4016) ? READ_UP : READ_START;
-                button_data_rd_in = (up) ? 8'd1 : 8'd0;
-            end
-            READ_UP: begin
-                next = (r_en && addr == 16'h4016) ? READ_DOWN : READ_UP;
-                button_data_rd_in = (down) ? 8'd1 : 8'd0;
-            end
-            READ_DOWN: begin
-                next = (r_en && addr == 16'h4016) ? READ_LEFT : READ_DOWN;
-                button_data_rd_in = (left) ? 8'd1 : 8'd0;
-            end
-            READ_LEFT: begin
-                next = (r_en && addr == 16'h4016) ? IDLE : READ_LEFT;
-                button_data_rd_in = (right) ? 8'd1 : 8'd0;
-            end
-            // READ_RIGHT: begin
-            //     next = (r_en && addr == 16'h4016) ? IDLE : READ_RIGHT;
-            // end
-            default: ;
-        endcase
-     
-     end
 
     `ifdef SYNTH
     logic [14:0] prom_address;
@@ -329,6 +274,96 @@ module cpu_memory(
 
 endmodule : cpu_memory
 
+module ctlr_interface (
+    input clock,    // Clock
+    input clock_en, // Clock Enable
+    input reset_n,  // Asynchronous reset active low
+
+    // cpu 
+    input  logic [15:0] addr,
+    input  logic r_en,
+    input  logic [7:0] w_data,
+
+    // GPIO Pins
+    input logic ctlr_data, 
+    output logic ctlr_pulse, ctlr_latch,
+
+    // button_data_rd
+    output logic [7:0] button_data_rd
+);
+    logic [7:0] button_data_rd_in;
+
+    logic read_cnt_clr, read_cnt_inc;
+    logic [3:0] read_cnt;
+
+    logic cnt_clr;
+    logic [$clog2(`CTRL_PULSE_LEN)+1:0] cnt;
+    enum logic [2:0] {IDLE, WROTE1, WROTE0, PULSE_LO, PULSE_HI} curr, next;
+
+    always_ff @(posedge clock or negedge reset_n) begin
+        if(~reset_n) begin
+            curr <= IDLE;
+            button_data_rd <= 8'd0;
+            read_cnt <= 4'd0;
+
+        end else if(clock_en) begin
+            curr <= next;
+            button_data_rd <= button_data_rd_in;
+
+            if(read_cnt_clr)
+                read_cnt <= 4'd0;
+            else if(read_cnt_inc)
+                read_cnt <= read_cnt + 4'd1;
+
+            if(cnt_clr)
+                cnt <= 'd0;
+            else
+                cnt <= cnt + 'd1;
+        end
+     end
+
+    assign cnt_clr = (curr != next); // PULSE_LO -> PULSE_HI
+
+    assign read_cnt_clr = (curr == WROTE1);
+    assign read_cnt_inc = (curr != next && next == PULSE_HI);
+
+    assign button_data_rd_in = {7'b0, ~ctlr_data};
+
+    assign ctlr_pulse = (curr == PULSE_HI);
+    assign ctlr_latch = (curr == WROTE1);
+     
+    always_comb begin
+        next = IDLE;
+        case(curr)
+            IDLE: begin
+                next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b1) ? WROTE1 : IDLE;
+            end
+            WROTE1: begin
+                next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b0) ? WROTE0 : WROTE1;
+            end
+            WROTE0: begin
+                next = (r_en && addr == 16'h4016) ? PULSE_LO : WROTE0;
+            end
+            PULSE_LO: begin
+                next = (cnt == `CTRL_PULSE_LEN) ? PULSE_HI : PULSE_LO;
+            end
+            PULSE_HI: begin 
+                if (read_cnt == 'd8 && cnt == `CTRL_PULSE_LEN) begin
+                    next = IDLE;
+                end
+                else if (r_en && addr == 16'h4016) begin
+                    next = PULSE_LO;
+                end
+                else begin
+                    next = PULSE_HI;
+                end
+            end
+            default: ;
+        endcase
+    end
+
+endmodule
+
 module mem_inputs(
     input  instr_ctrl_signals_t instr_ctrl_vector,
     input  ucode_ctrl_signals_t ucode_vector,
@@ -339,7 +374,8 @@ module mem_inputs(
     input  logic[15:0] PC,
     input  logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag,
 
-    input  logic nmi_active,
+    input  logic interrupt_active, reset_active,
+    input  interrupt_t curr_interrupt,
     
     output logic[15:0] addr,
     output logic[7:0] w_data,
@@ -357,20 +393,22 @@ module mem_inputs(
             case (ucode_vector.addr_lo_src)
                 // ADDRLO_FF, ADDRLO_FE, ADDRLO_FD, ADDRLO_FC, ADDRLO_FB, ADDRLO_FA, ADDRLO_PCLO, ADDRLO_RMEMBUFFER, ADDRLO_RMEM, ADDRLO_ALUOUT, ADDRLO_SP, ADDRLO_HOLD
                 ADDRLO_BRKLO: begin
-                    if (nmi_active) begin
-                        addr[7:0] = 8'hFA;
-                    end
-                    else begin
-                        addr[7:0] = 8'hFE;
-                    end
+                    case (curr_interrupt)
+                        //INTERRUPT_NONE, INTERRUPT_NMI, INTERRUPT_IRQ, INTERRUPT_RESET
+                        INTERRUPT_NONE:  addr[7:0] = 8'hFE;
+                        INTERRUPT_NMI:   addr[7:0] = 8'hFA;
+                        INTERRUPT_IRQ:   addr[7:0] = 8'hFE;
+                        INTERRUPT_RESET: addr[7:0] = 8'hFC;
+                    endcase
                 end
                 ADDRLO_BRKHI: begin
-                    if (nmi_active) begin
-                        addr[7:0] = 8'hFB;
-                    end
-                    else begin
-                        addr[7:0] = 8'hFF;
-                    end
+                    case (curr_interrupt)
+                        //INTERRUPT_NONE, INTERRUPT_NMI, INTERRUPT_IRQ, INTERRUPT_RESET
+                        INTERRUPT_NONE:  addr[7:0] = 8'hFF;
+                        INTERRUPT_NMI:   addr[7:0] = 8'hFB;
+                        INTERRUPT_IRQ:   addr[7:0] = 8'hFF;
+                        INTERRUPT_RESET: addr[7:0] = 8'hFD;
+                    endcase
                 end
                 ADDRLO_FD: addr[7:0] = 8'hFD;
                 ADDRLO_FC: addr[7:0] = 8'hFC;
@@ -414,6 +452,12 @@ module mem_inputs(
                 addr[15:8] = PC[15:8];
             end
         end
+
+        // if we're in the reset vector we always just read
+        if (reset_active) begin
+            mem_r_en = 1'b1;
+        end
+
     end
 
     always_comb begin
@@ -430,7 +474,14 @@ module mem_inputs(
                 WMEMSRC_PCHI: w_data = PC[15:8];
                 WMEMSRC_PCLO: w_data = PC[7:0];
                 // NV-BDIZC
-                WMEMSRC_STATUS_BRK: w_data = (nmi_active) ? {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag} : {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
+                WMEMSRC_STATUS_BRK: begin
+                    if (interrupt_active) begin
+                        w_data = {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag};
+                    end
+                    else begin
+                        w_data = {n_flag, v_flag, 1'b1, 1'b1, d_flag, i_flag, z_flag, c_flag};
+                    end
+                end
                 WMEMSRC_STATUS_BC: w_data = {n_flag, v_flag, 1'b1, 1'b0, d_flag, i_flag, z_flag, c_flag};
                 WMEMSRC_INSTR_STORE: begin
                     case (instr_ctrl_vector.store_reg)
