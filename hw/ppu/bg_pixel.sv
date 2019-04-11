@@ -22,6 +22,9 @@ module bg_pixel (
     output logic [10:0] vram_addr2,
     input logic [7:0] vram_data2,
 
+    // mirroring
+    input mirror_t mirroring, 
+
     // chr rom (pattern table rom)
     output logic [12:0] chr_rom_addr1, chr_rom_addr2,
     input logic [7:0] chr_rom_data1, chr_rom_data2,
@@ -44,13 +47,22 @@ module bg_pixel (
     assign tile_col = col[2:0];    // col % 8
 
     always_comb begin
-        case (name_tbl) 
-            TOP_L_TBL: nametbl_off = 11'h000;
-            TOP_R_TBL: nametbl_off = 11'h400;
-            BOT_L_TBL: nametbl_off = 11'h000;   // depends on mirroring
-            BOT_R_TBL: nametbl_off = 11'h400;   // deppends on mirroring
-            default : nametbl_off = 11'h000;  // top Left
-        endcase
+        nametbl_off = 11'h000;
+        if(mirroring == VER_MIRROR) begin 
+            case (name_tbl) 
+                TOP_L_TBL: nametbl_off = 11'h000;
+                TOP_R_TBL: nametbl_off = 11'h400;
+                BOT_L_TBL: nametbl_off = 11'h000;   // depends on mirroring
+                BOT_R_TBL: nametbl_off = 11'h400;   // deppends on mirroring
+            endcase
+        end else if(mirroring == HOR_MIRROR) begin
+            case (name_tbl) 
+                TOP_L_TBL: nametbl_off = 11'h000;
+                TOP_R_TBL: nametbl_off = 11'h000;
+                BOT_L_TBL: nametbl_off = 11'h400;   // depends on mirroring
+                BOT_R_TBL: nametbl_off = 11'h400;   // deppends on mirroring
+            endcase
+        end 
     end
 
     assign nametbl_idx = {nametbl_row, 5'b0} + {5'b0,nametbl_col}; 

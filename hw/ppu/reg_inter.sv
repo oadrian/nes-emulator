@@ -46,6 +46,9 @@ module reg_inter (
     output logic [7:0] vram_wr_data,
     input logic [7:0] vram_rd_data,
 
+    // mirroring
+    input mirror_t mirroring, 
+
     // PAL RAM (ASYNC)
     output logic [4:0] pal_addr,
     output logic pal_we,
@@ -116,7 +119,24 @@ module reg_inter (
     // PPU VRAM address to read or write to
     logic vram_we_reg;
     assign vram_we = vram_we_reg;
-    assign vram_addr = ppuaddr_out[10:0];
+
+    always_comb begin 
+        vram_addr = 11'd0;
+        case (mirroring)
+            VER_MIRROR: begin 
+                vram_addr = ppuaddr_out[10:0];
+            end
+            HOR_MIRROR: begin 
+                if({ppuaddr_out[15:10], 2'b0} == 8'h20 || 
+                   {ppuaddr_out[15:10], 2'b0} == 8'h24) 
+                    vram_addr = {1'b0, ppuaddr_out[9:0]};
+                else if({ppuaddr_out[15:10], 2'b0} == 8'h28 || 
+                        {ppuaddr_out[15:10], 2'b0} == 8'h2C)
+                    vram_addr = {1'b1, ppuaddr_out[9:0]};
+            end
+            default : /* default */;
+        endcase
+    end
 
     // PAL ram address to read or write to
     logic pal_we_reg;
