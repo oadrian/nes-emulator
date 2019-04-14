@@ -34,6 +34,8 @@ module top ();
 
     logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
 
+    mirror_t mirroring;
+
 
     // CPU clock enable
     clock_div #(4) ppu_ck(.clk, .rst_n, .clk_en(ppu_clk_en));    
