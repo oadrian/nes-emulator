@@ -80,7 +80,6 @@ module ChipInterface
                                 .oAUD_DATA(AUD_DACDAT),
                                 .oAUD_LRCK(AUD_DACLRCK),
                                 //  Control Signals
-                                .iSrc_Select(SW[17]),
                                 .iCLK_18_4(AUD_CTRL_CLK),
                                 .iRST_N(KEY[0]));
 

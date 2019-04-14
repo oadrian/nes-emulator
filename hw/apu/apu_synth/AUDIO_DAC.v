@@ -4,7 +4,6 @@ module AUDIO_DAC (
 					oAUD_DATA,
 					oAUD_LRCK,
 					//	Control Signals
-					iSrc_Select,
 				    iCLK_18_4,
 					iRST_N	);				
 
@@ -23,7 +22,6 @@ output			oAUD_DATA;
 output			oAUD_LRCK;
 output	reg		oAUD_BCK;
 //	Control Signals
-input	[1:0]	iSrc_Select;
 input			iCLK_18_4;
 input			iRST_N;
 //	Internal Registers and Wires
