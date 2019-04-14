@@ -5,7 +5,8 @@ module AUDIO_DAC (
 					oAUD_LRCK,
 					//	Control Signals
 				    iCLK_18_4,
-					iRST_N	);				
+					iRST_N,
+					data);				
 
 parameter	REF_CLK			=	18432000;	//	18.432	MHz
 parameter	SAMPLE_RATE		=	48000;		//	48		KHz
@@ -24,6 +25,7 @@ output	reg		oAUD_BCK;
 //	Control Signals
 input			iCLK_18_4;
 input			iRST_N;
+input logic [DATA_WIDTH-1:0] data;
 //	Internal Registers and Wires
 reg		[3:0]	BCK_DIV;
 reg		[8:0]	LRCK_1X_DIV;
@@ -122,65 +124,8 @@ begin
 	else
 	SEL_Cont	<=	SEL_Cont+1;
 end
-assign	oAUD_DATA	= Sin_Out[~SEL_Cont];										
-//////////////////////////////////////////////////
-////////////	Sin Wave ROM Table	//////////////
-always@(SIN_Cont)
-begin
-    case(SIN_Cont)
-    0  :  Sin_Out       <=      0       ;
-    1  :  Sin_Out       <=      4276    ;
-    2  :  Sin_Out       <=      8480    ;
-    3  :  Sin_Out       <=      12539   ;
-    4  :  Sin_Out       <=      16383   ;
-    5  :  Sin_Out       <=      19947   ;
-    6  :  Sin_Out       <=      23169   ;
-    7  :  Sin_Out       <=      25995   ;
-    8  :  Sin_Out       <=      28377   ;
-    9  :  Sin_Out       <=      30272   ;
-    10  :  Sin_Out      <=      31650   ;
-    11  :  Sin_Out      <=      32486   ;
-    12  :  Sin_Out      <=      32767   ;
-    13  :  Sin_Out      <=      32486   ;
-    14  :  Sin_Out      <=      31650   ;
-    15  :  Sin_Out      <=      30272   ;
-    16  :  Sin_Out      <=      28377   ;
-    17  :  Sin_Out      <=      25995   ;
-    18  :  Sin_Out      <=      23169   ;
-    19  :  Sin_Out      <=      19947   ;
-    20  :  Sin_Out      <=      16383   ;
-    21  :  Sin_Out      <=      12539   ;
-    22  :  Sin_Out      <=      8480    ;
-    23  :  Sin_Out      <=      4276    ;
-    24  :  Sin_Out      <=      0       ;
-    25  :  Sin_Out      <=      61259   ;
-    26  :  Sin_Out      <=      57056   ;
-    27  :  Sin_Out      <=      52997   ;
-    28  :  Sin_Out      <=      49153   ;
-    29  :  Sin_Out      <=      45589   ;
-    30  :  Sin_Out      <=      42366   ;
-    31  :  Sin_Out      <=      39540   ;
-    32  :  Sin_Out      <=      37159   ;
-    33  :  Sin_Out      <=      35263   ;
-    34  :  Sin_Out      <=      33885   ;
-    35  :  Sin_Out      <=      33049   ;
-    36  :  Sin_Out      <=      32768   ;
-    37  :  Sin_Out      <=      33049   ;
-    38  :  Sin_Out      <=      33885   ;
-    39  :  Sin_Out      <=      35263   ;
-    40  :  Sin_Out      <=      37159   ;
-    41  :  Sin_Out      <=      39540   ;
-    42  :  Sin_Out      <=      42366   ;
-    43  :  Sin_Out      <=      45589   ;
-    44  :  Sin_Out      <=      49152   ;
-    45  :  Sin_Out      <=      52997   ;
-    46  :  Sin_Out      <=      57056   ;
-    47  :  Sin_Out      <=      61259   ;
-	default	:
-		   Sin_Out		<=		0		;
-	endcase
-end
-//////////////////////////////////////////////////
+
+assign	oAUD_DATA	= data[~SEL_Cont];										
 
 endmodule
 								
