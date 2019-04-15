@@ -42,7 +42,7 @@ set_global_assignment -name DEVICE EP4CE115F29C7
 set_global_assignment -name TOP_LEVEL_ENTITY ChipInterface
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 16.0.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "17:32:00  APRIL 06, 2019"
-set_global_assignment -name LAST_QUARTUS_VERSION 16.0.0
+set_global_assignment -name LAST_QUARTUS_VERSION "16.1.2 Standard Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -1106,6 +1106,7 @@ set_location_assignment PIN_V24 -to HSMC_CLKOUT_N2
 set_instance_assignment -name IO_STANDARD LVDS -to HSMC_CLKOUT_N2
 set_location_assignment PIN_G24 -to HSMC_CLKOUT_N1
 set_instance_assignment -name IO_STANDARD LVDS -to HSMC_CLKOUT_N1
+set_global_assignment -name SYSTEMVERILOG_FILE audio_dac.sv
 set_global_assignment -name VERILOG_FILE VGA_Audio_PLL.v
 set_global_assignment -name QIP_FILE VGA_Audio_PLL.qip
 set_global_assignment -name VERILOG_FILE I2C_Controller.v

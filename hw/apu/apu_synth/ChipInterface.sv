@@ -75,13 +75,9 @@ module ChipInterface
                                 .I2C_SCLK(I2C_SCLK),
                                 .I2C_SDAT(I2C_SDAT));
 
-    AUDIO_DAC           u4  (   //  Audio Side
-                                .oAUD_BCK(AUD_BCLK),
-                                .oAUD_DATA(AUD_DACDAT),
-                                .oAUD_LRCK(AUD_DACLRCK),
-                                //  Control Signals
-                                .iCLK_18_4(AUD_CTRL_CLK),
-                                .iRST_N(KEY[0]));
+    audio_dac dac (
+      .clk(CLOCK_50), .rst_l(rst_n), .*);
+
 
 
 endmodule: ChipInterface
