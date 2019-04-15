@@ -78,7 +78,7 @@ end
 assign AUD_DACDAT = wave[~SEL_Cont];
 
     assign seq = 128'hFEDCBA98765432100123456789ABCDEF;
-    assign wave = {12'b0, seq[seq_i]};
+    assign wave = {2'b0, seq[seq_i], 10'b0};
     assign seq_en = (counter == 32'd160);
     assign counter_clr = seq_en;
 
