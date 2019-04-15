@@ -20,6 +20,13 @@ parameter	SIN_SANPLE		=	0;
   logic [3:0] SEL_Cont;
   logic [DATA_WIDTH-1:0] Sin_Out;
 
+    logic [31:0][3:0] seq;
+    logic [15:0] wave;
+    logic [4:0] seq_i;
+    logic seq_en;
+    logic counter_clr;
+    logic [31:0] counter;
+
 ////////////	AUD_BCK Generator	//////////////
 	always_ff @(posedge clk or negedge rst_l)
 		if(~rst_l) begin
@@ -67,7 +74,31 @@ begin
 	else
 	SEL_Cont	<=	SEL_Cont+1;
 end
-assign AUD_DACDAT = Sin_Out[~SEL_Cont];
+
+assign AUD_DACDAT = wave[~SEL_Cont];
+
+    assign seq = 128'hFEDCBA98765432100123456789ABCDEF;
+    assign wave = {12'b0, seq[seq_i]};
+    assign seq_en = (counter == 32'd160);
+    assign counter_clr = seq_en;
+
+    always_ff @(posedge clk or negedge rst_l) begin
+        if(~rst_l) begin
+            counter <= 32'd0;
+        end else begin
+            if(counter_clr)
+                counter <= 32'd0;
+            else 
+               counter <= counter + 32'd1;
+        end
+    end
+
+    always_ff @(negedge AUD_DACLRCK or negedge rst_l) begin
+        if(~rst_l)
+            seq_i <= 6'd0;
+        else if(seq_en)
+            seq_i <= seq_i + 6'd1;
+    end
 
 //////////////////////////////////////////////////
 ////////////	Sin Wave ROM Table	//////////////
