@@ -79,7 +79,7 @@ module ChipInterface
                                 .I2C_SDAT(I2C_SDAT));
 
     audio_dac dac (
-      .clk(CLOCK_50), .rst_l(rst_n), .*);
+      .clk(AUD_CTRL_CLK), .rst_l(rst_n), .*);
 
 
 
