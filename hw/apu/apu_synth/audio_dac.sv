@@ -10,16 +10,9 @@ module audio_dac (
 	parameter	DATA_WIDTH		=	16;			//	16		Bits
 	parameter	CHANNEL_NUM		=	2;			//	Dual Channel
 
-parameter	SIN_SAMPLE_DATA	=	48;
-
-////////////	Input Source Number	//////////////
-parameter	SIN_SANPLE		=	0;
-
 	logic [3:0] bclk_div;
 	logic [8:0] lrck_div;
-  logic [3:0] SEL_Cont;
-  logic [DATA_WIDTH-1:0] Sin_Out;
-
+    logic [3:0] wave_i;
 
 ////////////	AUD_BCK Generator	//////////////
 	always_ff @(posedge clk or negedge rst_l)
@@ -50,12 +43,12 @@ parameter	SIN_SANPLE		=	0;
 always @(negedge AUD_BCLK or negedge rst_l)
 begin
 	if(!rst_l)
-	SEL_Cont	<=	0;
+	wave_i	<=	0;
 	else
-	SEL_Cont	<=	SEL_Cont+1;
+	wave_i	<=	wave_i+1;
 end
 
-assign AUD_DACDAT = wave[~SEL_Cont];
+assign AUD_DACDAT = wave[~wave_i];
 
 
 endmodule: audio_dac
