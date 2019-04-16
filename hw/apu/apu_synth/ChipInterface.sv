@@ -29,8 +29,11 @@ module ChipInterface
     logic seq_en;
     logic counter_clr;
     logic [31:0] counter;
-    assign wave = {2'b0, seq[seq_i], 10'b0};
-    assign seq_en = (counter == 32'd5000);
+    logic [31:0] next_limit, limit;
+
+    assign next_limit = SW[16] ? 32'd5000 :32'd10000; 
+    assign wave = SW[17] ? {2'b0, seq[seq_i], 10'b0} : 16'b0;
+    assign seq_en = (counter == limit);
     assign counter_clr = seq_en;
 
     always_ff @(posedge CLOCK_50 or negedge rst_n) begin
@@ -46,9 +49,12 @@ module ChipInterface
 
     always_ff @(posedge CLOCK_50 or negedge rst_n)
         if(~rst_n) begin
-             seq_i <= 0;
-        end else if (seq_en)
-             seq_i <= seq_i + 1;
+            limit <= 32'd5000;
+            seq_i <= 0;
+        end else if (seq_en) begin
+            seq_i <= seq_i + 1;
+            limit <= next_limit;
+        end
 
 
     //  For Audio CODEC
