@@ -79,7 +79,7 @@ assign AUD_DACDAT = wave[~SEL_Cont];
 
     assign seq = 128'hFEDCBA98765432100123456789ABCDEF;
     assign wave = {2'b0, seq[seq_i], 10'b0};
-    assign seq_en = (counter == 32'd160);
+    assign seq_en = (counter == 32'd5000);
     assign counter_clr = seq_en;
 
     always_ff @(posedge clk or negedge rst_l) begin
@@ -93,12 +93,12 @@ assign AUD_DACDAT = wave[~SEL_Cont];
         end
     end
 
-    always_ff @(negedge AUD_DACLRCK or negedge rst_l) begin
-        if(~rst_l)
-            seq_i <= 6'd0;
-        else if(seq_en)
-            seq_i <= seq_i + 6'd1;
-    end
+    always_ff @(posedge clk or negedge rst_l)
+        if(~rst_l) begin
+             seq_i <= 0;
+        end else if (seq_en)
+             seq_i <= seq_i + 1;
+
 
 //////////////////////////////////////////////////
 ////////////	Sin Wave ROM Table	//////////////
