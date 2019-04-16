@@ -24,12 +24,12 @@ module ChipInterface
 
     logic [31:0][3:0] seq;
     assign seq = 128'hFEDCBA98765432100123456789ABCDEF;
-    logic [3:0] wave;
-    logic [5:0] seq_i;
+    logic [15:0] wave;
+    logic [4:0] seq_i;
     logic seq_en;
     logic counter_clr;
     logic [31:0] counter;
-    assign wave = seq[seq_i];
+    assign wave = {2'b0, seq[seq_i], 10'b0};
     assign seq_en = (counter == 32'd5000);
     assign counter_clr = seq_en;
 
@@ -44,15 +44,12 @@ module ChipInterface
         end
     end
 
-    always_ff @(posedge CLOCK_50 or negedge rst_n) begin
+    always_ff @(posedge CLOCK_50 or negedge rst_n)
         if(~rst_n) begin
-            seq_i <= 6'd0;
-        end else if(seq_en && seq_i < 6'd47) begin
-            seq_i <= seq_i + 6'd1;
-        end else begin
-            seq_i <= 6'd0;
-        end
-    end
+             seq_i <= 0;
+        end else if (seq_en)
+             seq_i <= seq_i + 1;
+
 
     //  For Audio CODEC
     logic AUD_CTRL_CLK;    //  For Audio Controller
