@@ -175,14 +175,14 @@ module ChipInterface
 
 
     // see ppu status registers
-    SevenSegmentDigit ppu_ctrl_hi(.bcd(prgsz[7:4]), .segment(HEX7), .blank(1'b0));
-    SevenSegmentDigit ppu_ctrl_lo(.bcd(prgsz[3:0]), .segment(HEX6), .blank(1'b0));
+    SevenSegmentDigit ppu_ctrl_hi(.bcd(ppuctrl[7:4]), .segment(HEX7), .blank(1'b0));
+    SevenSegmentDigit ppu_ctrl_lo(.bcd(ppuctrl[3:0]), .segment(HEX6), .blank(1'b0));
 
-    SevenSegmentDigit ppu_mask_hi(.bcd(chrsz[7:4]), .segment(HEX5), .blank(1'b0));
-    SevenSegmentDigit ppu_mask_lo(.bcd(chrsz[3:0]), .segment(HEX4), .blank(1'b0));
+    SevenSegmentDigit ppu_mask_hi(.bcd(ppumask[7:4]), .segment(HEX5), .blank(1'b0));
+    SevenSegmentDigit ppu_mask_lo(.bcd(ppumask[3:0]), .segment(HEX4), .blank(1'b0));
 
-    SevenSegmentDigit pc_3(.bcd(flag6[7:4]), .segment(HEX3), .blank(1'b0));
-    SevenSegmentDigit pc_2(.bcd(flag6[3:0]), .segment(HEX2), .blank(1'b0));
+    SevenSegmentDigit pc_3(.bcd(mem_addr_c[15:12]), .segment(HEX3), .blank(1'b0));
+    SevenSegmentDigit pc_2(.bcd(mem_addr_c[11:8]), .segment(HEX2), .blank(1'b0));
 
     SevenSegmentDigit pc_1(.bcd(mem_addr_c[7:4]), .segment(HEX1), .blank(1'b0));
     SevenSegmentDigit pc_0(.bcd(mem_addr_c[3:0]), .segment(HEX0), .blank(1'b0));

@@ -141,7 +141,16 @@ module reg_inter (
     // PAL ram address to read or write to
     logic pal_we_reg;
     assign pal_we = pal_we_reg; 
-    assign pal_addr = ppuaddr_out[4:0];
+
+    always_comb begin
+        case (ppuaddr_out[4:0])
+            5'h10: pal_addr = 5'h00;
+            5'h14: pal_addr = 5'h04;
+            5'h18: pal_addr = 5'h08;
+            5'h1C: pal_addr = 5'h0C;
+            default : pal_addr = ppuaddr_out[4:0];
+        endcase
+    end
 
     /////// Write Only Registers //////////
     logic ppustatus_rd_clr;
@@ -195,6 +204,16 @@ module reg_inter (
             reg_data_out <= 8'd0;
         end else if(cpu_clk_en) begin
             reg_data_out <= reg_data_out_next;
+        end
+    end
+
+    //////// PPU data read buffer ///////
+    logic [7:0] read_buf_curr, read_buf_next;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            read_buf_curr <= 8'd0;
+        end else if(cpu_clk_en) begin
+            read_buf_curr <= read_buf_next;
         end
     end
 
@@ -361,6 +380,9 @@ module reg_inter (
         // read register
         reg_data_out_next = reg_data_out;
 
+        // ppu read buffer
+        read_buf_next = read_buf_curr;
+
         // ppustatus read clear
         ppustatus_rd_clr = 1'b0;
         case (reg_sel)
@@ -445,9 +467,10 @@ module reg_inter (
                     ppuaddr_in = ppuaddr_out + ppuaddr_inc_amnt;
                     if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h3EFF) begin 
                         vram_re = 1'b1;
-                        reg_data_out_next = vram_rd_data;
+                        read_buf_next = vram_rd_data;
+                        reg_data_out_next = read_buf_curr;
                     end else if(16'h3f00 <= ppuaddr_out && ppuaddr_out <= 16'h3fff) begin 
-                        vram_re = 1'b1;
+                        pal_re = 1'b1;
                         reg_data_out_next = pal_rd_data;
                     end
                 end
