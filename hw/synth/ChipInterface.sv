@@ -82,15 +82,27 @@ module ChipInterface
 
     mirror_t mirroring;
 
+    logic [7:0] header [15:0];
+    logic [7:0] flag6, prgsz, chrsz;
+
+    always_ff @(posedge clock or negedge reset_n) begin
+      if(~reset_n) begin
+        $readmemh("../init/header_init.txt", header);
+      end
+    end
+
+    assign prgsz = header[4];
+    assign chrsz = header[5];
+    assign flag6 = header[6];
+
     always_comb begin
-        case (SW[2:1])
-            2'b00: mirroring = VER_MIRROR;
-            2'b01: mirroring = HOR_MIRROR;
-            2'b10: mirroring = ONE_SCR_MIRROR;
+        case ({flag6[3], flag6[0]})
+            2'b00: mirroring = HOR_MIRROR;
+            2'b01: mirroring = VER_MIRROR;
+            2'b10: mirroring = FOUR_SCR_MIRROR;   // ONE_SCR_MIRROR?
             2'b11: mirroring = FOUR_SCR_MIRROR;
             default : mirroring = VER_MIRROR;
         endcase
-    
     end
 
     ppu peep(.clk(clock), .rst_n(reset_n), .ppu_clk_en, .vblank_nmi, 
@@ -163,14 +175,14 @@ module ChipInterface
 
 
     // see ppu status registers
-    SevenSegmentDigit ppu_ctrl_hi(.bcd(ppuctrl[7:4]), .segment(HEX7), .blank(1'b0));
-    SevenSegmentDigit ppu_ctrl_lo(.bcd(ppuctrl[3:0]), .segment(HEX6), .blank(1'b0));
+    SevenSegmentDigit ppu_ctrl_hi(.bcd(prgsz[7:4]), .segment(HEX7), .blank(1'b0));
+    SevenSegmentDigit ppu_ctrl_lo(.bcd(prgsz[3:0]), .segment(HEX6), .blank(1'b0));
 
-    SevenSegmentDigit ppu_mask_hi(.bcd(ppumask[7:4]), .segment(HEX5), .blank(1'b0));
-    SevenSegmentDigit ppu_mask_lo(.bcd(ppumask[3:0]), .segment(HEX4), .blank(1'b0));
+    SevenSegmentDigit ppu_mask_hi(.bcd(chrsz[7:4]), .segment(HEX5), .blank(1'b0));
+    SevenSegmentDigit ppu_mask_lo(.bcd(chrsz[3:0]), .segment(HEX4), .blank(1'b0));
 
-    SevenSegmentDigit pc_3(.bcd(mem_addr_c[15:12]), .segment(HEX3), .blank(1'b0));
-    SevenSegmentDigit pc_2(.bcd(mem_addr_c[11:8]), .segment(HEX2), .blank(1'b0));
+    SevenSegmentDigit pc_3(.bcd(flag6[7:4]), .segment(HEX3), .blank(1'b0));
+    SevenSegmentDigit pc_2(.bcd(flag6[3:0]), .segment(HEX2), .blank(1'b0));
 
     SevenSegmentDigit pc_1(.bcd(mem_addr_c[7:4]), .segment(HEX1), .blank(1'b0));
     SevenSegmentDigit pc_0(.bcd(mem_addr_c[3:0]), .segment(HEX0), .blank(1'b0));

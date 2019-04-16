@@ -227,7 +227,7 @@ module cpu_memory(
                 for (int i = 16416; i < 49152; i++) begin
                     cartridge_mem[i] <= 8'd0;
                 end
-                $readmemh("init/prg_rom_init.txt", cartridge_mem, 49152, 65535);
+                $readmemh("../init/prg_rom_init.txt", cartridge_mem, 49152, 65535);
             `else
                 for (int i = 16416; i < 65536; i++) begin
                     cartridge_mem[i] <= 8'd0;

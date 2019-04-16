@@ -85,9 +85,9 @@ module prg_rom_32 (
 		altsyncram_component.clock_enable_input_a = "BYPASS",
 		altsyncram_component.clock_enable_output_a = "BYPASS",
 `ifdef NO_PLI
-		altsyncram_component.init_file = "../cpu/init-intel/prg_rom_init.rif"
+		altsyncram_component.init_file = "../init-intel/prg_rom_init.rif"
 `else
-		altsyncram_component.init_file = "../cpu/init-intel/prg_rom_init.hex"
+		altsyncram_component.init_file = "../init-intel/prg_rom_init.hex"
 `endif
 ,
 		altsyncram_component.intended_device_family = "Cyclone IV E",

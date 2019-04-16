@@ -1110,10 +1110,11 @@ set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
-set_global_assignment -name HEX_FILE "../ppu/init-intel/vram_init.hex"
-set_global_assignment -name HEX_FILE "../ppu/init-intel/oam_init.hex"
-set_global_assignment -name HEX_FILE "../ppu/init-intel/chr_rom_init.hex"
-set_global_assignment -name HEX_FILE "../cpu/init-intel/prg_rom_init.hex"
+set_global_assignment -name TEXT_FILE ../init/header_init.txt
+set_global_assignment -name HEX_FILE "../init-intel/vram_init.hex"
+set_global_assignment -name HEX_FILE "../init-intel/prg_rom_init.hex"
+set_global_assignment -name HEX_FILE "../init-intel/oam_init.hex"
+set_global_assignment -name HEX_FILE "../init-intel/chr_rom_init.hex"
 set_global_assignment -name VERILOG_INCLUDE_FILE ../include/cpu_types.vh
 set_global_assignment -name VERILOG_INCLUDE_FILE ../include/ucode_ctrl.vh
 set_global_assignment -name VERILOG_INCLUDE_FILE ../include/ppu_defines.vh
