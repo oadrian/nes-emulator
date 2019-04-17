@@ -100,9 +100,9 @@ module rom (
 		altsyncram_component.clock_enable_output_b = "BYPASS",
 		altsyncram_component.indata_reg_b = "CLOCK0",
 `ifdef NO_PLI
-		altsyncram_component.init_file = "../ppu/init/chr_rom_init.rif"
+		altsyncram_component.init_file = "../init/chr_rom_init.rif"
 `else
-		altsyncram_component.init_file = "../ppu/init-intel/chr_rom_init.hex"
+		altsyncram_component.init_file = "../init-intel/chr_rom_init.hex"
 `endif
 ,
 		altsyncram_component.intended_device_family = "Cyclone IV E",

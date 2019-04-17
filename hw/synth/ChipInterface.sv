@@ -80,13 +80,39 @@ module ChipInterface
     assign cpu_cyc_par = cpu_cycle[0];
     logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
 
+    mirror_t mirroring;
+
+    logic [7:0] header [15:0];
+    logic [7:0] flag6, prgsz, chrsz;
+
+    always_ff @(posedge clock or negedge reset_n) begin
+      if(~reset_n) begin
+        $readmemh("../init/header_init.txt", header);
+      end
+    end
+
+    assign prgsz = header[4];
+    assign chrsz = header[5];
+    assign flag6 = header[6];
+
+    always_comb begin
+        case ({flag6[3], flag6[0]})
+            2'b00: mirroring = HOR_MIRROR;
+            2'b01: mirroring = VER_MIRROR;
+            2'b10: mirroring = FOUR_SCR_MIRROR;   // ONE_SCR_MIRROR?
+            2'b11: mirroring = FOUR_SCR_MIRROR;
+            default : mirroring = VER_MIRROR;
+        endcase
+    end
+
     ppu peep(.clk(clock), .rst_n(reset_n), .ppu_clk_en, .vblank_nmi, 
             .vsync_n(VGA_VS), .hsync_n(VGA_HS), 
             .vga_r(VGA_R), .vga_g(VGA_G), .vga_b(VGA_B), .blank, 
             .cpu_clk_en, .reg_sel, .reg_en, .reg_rw, .reg_data_in(reg_data_wr), .reg_data_out(reg_data_rd),
             .cpu_cyc_par, .cpu_sus, 
             .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p), 
-            .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY);
+            .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY,
+            .mirroring);
 
     // CPU stuff
     logic [15:0] mem_addr_c;

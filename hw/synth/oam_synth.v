@@ -88,9 +88,9 @@ module oam_synth (
 		altsyncram_component.clock_enable_input_a = "BYPASS",
 		altsyncram_component.clock_enable_output_a = "BYPASS",
 `ifdef NO_PLI
-		altsyncram_component.init_file = "../ppu/init-intel/oam_init.rif"
+		altsyncram_component.init_file = "../init-intel/oam_init.rif"
 `else
-		altsyncram_component.init_file = "../ppu/init-intel/oam_init.hex"
+		altsyncram_component.init_file = "../init-intel/oam_init.hex"
 `endif
 ,
 		altsyncram_component.intended_device_family = "Cyclone IV E",

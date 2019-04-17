@@ -42,7 +42,7 @@ module chr_rom (
                mem[i] = 0;
            end
         `ifdef chr_rom_init
-            $readmemh("init/chr_rom_init.txt", mem);
+            $readmemh("../init/chr_rom_init.txt", mem);
         `endif
         end
     end
@@ -74,7 +74,7 @@ module oam (
                 mem[i] = 0;
             end
         `ifdef oam_init
-            $readmemh("init/oam_init.txt", mem);
+            $readmemh("../init/oam_init.txt", mem);
         `endif
         end else if(we && clk_en) begin
             mem[addr] <= data_in;
@@ -110,7 +110,7 @@ module vram (
                 mem[i] = 0;
             end
         `ifdef vram_init
-            $readmemh("init/vram_init.txt", mem);
+            $readmemh("../init/vram_init.txt", mem);
         `endif
         end else if(clk_en) begin
             if(we1) begin
@@ -147,7 +147,7 @@ module pal_ram (
                 mem[i] = 0;
             end
         `ifdef pal_init
-            $readmemh("init/pal_init.txt", mem);
+            $readmemh("../init/pal_init.txt", mem);
         `endif
         end else if(clk_en && we) begin
             mem[addr] <= data_in;
