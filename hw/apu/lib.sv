@@ -60,13 +60,14 @@ module linear_counter (
 
   assign non_zero = count > 7'b0;
 
-  always_ff @(posedge clk, negedge rst_l)
+  always_ff @(posedge clk, negedge rst_l) begin
     if (~rst_l) begin
       count <= 7'b0;
       reload <= 1'b0;
-    end else if (cpu_clk_en) begin
-      if (load)
-        reload <= 1'b1;
+    end else begin
+      if (cpu_clk_en)
+        if (load)
+          reload <= 1'b1;
 
       if (quarter_clk_en) begin
         if (reload)
@@ -78,6 +79,7 @@ module linear_counter (
           reload <= 1'b0;
       end
     end
+  end
 endmodule: linear_counter
 
 module length_counter (
