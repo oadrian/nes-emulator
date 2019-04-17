@@ -110,8 +110,8 @@ def readNES(filename):
             subprocess.call(["srec_cat", PRGROM_BIN, "-binary", "-output", PRGROM_HEX, "-Intel"])
             subprocess.call(["srec_cat", CHRROM_BIN, "-binary", "-output", CHRROM_HEX, "-Intel"])
 
-            subprocess.call(["rm", PRGROM_BIN])
-            subprocess.call(["rm", CHRROM_BIN])
+            # subprocess.call(["rem", PRGROM_BIN])
+            # subprocess.call(["rem", CHRROM_BIN])
 
 
 
