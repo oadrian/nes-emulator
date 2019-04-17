@@ -67,13 +67,13 @@ module ChipInterface
 
     logic mVGA_CLK, VGA_CTRL_CLK;
 
-    VGA_Audio_PLL       p1  (.areset(~KEY[0]),.inclk0(CLOCK_50),.c0(VGA_CTRL_CLK),.c1(AUD_CTRL_CLK),.c2(mVGA_CLK));
+    VGA_Audio_PLL       p1  (.areset(~rst_n),.inclk0(CLOCK_50),.c0(VGA_CTRL_CLK),.c1(AUD_CTRL_CLK),.c2(mVGA_CLK));
 
 
     //  Audio CODEC and video decoder setting
     I2C_AV_Config       u3  (   //  Host Side
                                 .iCLK(CLOCK_50),
-                                .iRST_N(KEY[0]),
+                                .iRST_N(rst_n),
                                 //  I2C Side
                                 .I2C_SCLK(I2C_SCLK),
                                 .I2C_SDAT(I2C_SDAT));

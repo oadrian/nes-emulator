@@ -2,6 +2,8 @@
 `include "../include/ucode_ctrl.vh"
 `include "../include/cpu_types.vh"
 `include "../include/ppu_defines.vh"
+`include "../include/apu_defines.vh"
+
 
 module ChipInterface (
   input  logic CLOCK_50, 
@@ -25,7 +27,9 @@ module ChipInterface (
  
 
 	logic reset_n;
-    assign reset_n = SW[17];
+  logic rst_n;
+  assign reset_n = SW[17];
+  assign rst_n = reset_n;
 	
 	// 21.477272 MHz  and 10.738636 MHz clock
 	logic areset, CLOCK_21, CLOCK_10, locked;
@@ -106,27 +110,60 @@ module ChipInterface (
       .clk(clock), .rst_l(reset_n), .cpu_clk_en, .reg_addr, 
       .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .triangle_wave);
     
-    logic AUD_CTRL_CLK;    //  For Audio Controller
+    logic VGA_CTRL_CLK, AUD_CTRL_CLK;    //  For Audio Controller
     assign AUD_DACLRCK = 1'bz;                         
     assign AUD_DACDAT = 1'bz;                         
     assign AUD_BCLK = 1'bz;                          
     assign AUD_XCK = 1'bz;     
     assign AUD_XCK = AUD_CTRL_CLK;
 
+    logic [31:0][3:0] seq;
+    assign seq = 128'hFEDCBA98765432100123456789ABCDEF;
+    logic [15:0] wave;
+    logic [4:0] seq_i;
+    logic seq_en;
+    logic counter_clr;
+    logic [31:0] counter;
+    logic [31:0] next_limit, limit;
+
+    assign next_limit = SW[1] ? 32'd5000 :32'd10000; 
+    assign wave = SW[2] ? {2'b0, seq[seq_i], 10'b0} : 16'b0;
+    assign seq_en = (counter == limit);
+    assign counter_clr = seq_en;
+
+    always_ff @(posedge CLOCK_50 or negedge rst_n) begin
+        if(~rst_n) begin
+            counter <= 32'd0;
+        end else begin
+            if(counter_clr)
+                counter <= 32'd0;
+            else 
+               counter <= counter + 32'd1;
+        end
+    end
+
+    always_ff @(posedge CLOCK_50 or negedge rst_n)
+        if(~rst_n) begin
+            limit <= 32'd5000;
+            seq_i <= 0;
+        end else if (seq_en) begin
+            seq_i <= seq_i + 1;
+            limit <= next_limit;
+        end
+
     // IPs to drive audio from Quartus
     VGA_Audio_PLL audio_pll (
-      .areset(~KEY[0]), .inclk0(CLOCK_50), .c0(VGA_CTRL_CLK), 
-      .c1(AUD_CTRL_CLK), .c2(mVGA_CLK));
+      .areset(~reset_n), .inclk0(CLOCK_50), .c0(VGA_CTRL_CLK), 
+      .c1(AUD_CTRL_CLK), .c2());
 
     //  Audio CODEC and video decoder setting
     I2C_AV_Config audio_config (
-      .iCLK(CLOCK_50), .iRST_N(KEY[0]), .I2C_SCLK(I2C_SCLK), 
+      .iCLK(CLOCK_50), .iRST_N(reset_n), .I2C_SCLK(I2C_SCLK), 
       .I2C_SDAT(I2C_SDAT));
 
-    AUDIO_DAC audio_dac (
-      .oAUD_BCK(AUD_BCLK), .oAUD_DATA(AUD_DACDAT), .oAUD_LRCK(AUD_DACLRCK),
-      .iSrc_Select(SW[17]), .iCLK_18_4(AUD_CTRL_CLK), .iRST_N(KEY[0]));
-
+    audio_dac dac (
+      .clk(AUD_CTRL_CLK), .rst_l(reset_n), .*);
+      
     // CPU stuff
     logic [15:0] mem_addr_c;
     logic mem_re_c;

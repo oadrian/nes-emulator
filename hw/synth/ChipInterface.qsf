@@ -1110,6 +1110,15 @@ set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
+set_global_assignment -name VERILOG_FILE ../apu/apu_synth/VGA_Audio_PLL.v
+set_global_assignment -name VERILOG_FILE ../apu/apu_synth/I2C_Controller.v
+set_global_assignment -name VERILOG_FILE ../apu/apu_synth/I2C_AV_Config.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../apu/apu_synth/audio_dac.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../apu/triangle.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../apu/lib.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../apu/frame_counter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../apu/apu_registers.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../apu/apu.sv
 set_global_assignment -name HEX_FILE "../ppu/init-intel/vram_init.hex"
 set_global_assignment -name HEX_FILE "../ppu/init-intel/oam_init.hex"
 set_global_assignment -name HEX_FILE "../ppu/init-intel/chr_rom_init.hex"
