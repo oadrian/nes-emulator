@@ -49,6 +49,8 @@ typedef enum logic[1:0] {INSTR_CTRL_0, INSTR_CTRL_1, INSTR_CTRL_2} ucode_instr_c
 
 typedef enum logic[1:0] {STATE_FETCH=2'b00, STATE_DECODE=2'b01, STATE_NEITHER=2'b10} processor_state_t;
 
+typedef enum logic[1:0] {INTERRUPT_NONE, INTERRUPT_NMI, INTERRUPT_IRQ, INTERRUPT_RESET} interrupt_t;
+
 typedef struct packed {
     ctrl_alu_op_t alu_op;
     ctrl_alu_out_dst_t alu_out_dst;

@@ -4,16 +4,17 @@
 `include "../include/ppu_defines.vh"
 `include "../include/apu_defines.vh"
 
-
-module ChipInterface (
-  input  logic CLOCK_50, 
-  input  logic [3:0] KEY, 
-  input  logic [17:0] SW, 
-  output logic [6:0] HEX0, HEX1, HEX2, HEX3,  
-                    HEX4, HEX5, HEX6, HEX7, 
-  output logic [7:0]  VGA_R, VGA_G, VGA_B, 
-  output logic        VGA_BLANK_N, VGA_CLK, VGA_SYNC_N, 
-  output logic        VGA_VS, VGA_HS,
+module ChipInterface
+  (input  logic CLOCK_50, 
+   input  logic [3:0] KEY, 
+   input  logic [17:0] SW, 
+   // HEX displays
+   output logic [6:0] HEX0, HEX1, HEX2, HEX3,  
+                      HEX4, HEX5, HEX6, HEX7, 
+   // VGA
+   output logic [7:0]  VGA_R, VGA_G, VGA_B, 
+   output logic        VGA_BLANK_N, VGA_CLK, VGA_SYNC_N, 
+   output logic        VGA_VS, VGA_HS,
 
   input  AUD_ADCDAT,
   inout  AUD_ADCLRCK,
@@ -23,8 +24,10 @@ module ChipInterface (
   output AUD_XCK,
 
   output I2C_SCLK,
-  inout I2C_SDAT);
- 
+  inout I2C_SDAT,
+   // GPIO PINS
+   inout logic [35:0] GPIO
+   ); 
 
 	logic reset_n;
   logic rst_n;
@@ -170,10 +173,13 @@ module ChipInterface (
     logic [7:0] mem_wr_data_c;
     logic [7:0] mem_rd_data_c;
     logic [15:0] PC;
+    logic irq_n;
+
+    assign irq_n = 1'b1;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .nmi(vblank_nmi), .PC_debug(PC));
+             .nmi(vblank_nmi), .PC_debug(PC), .irq_n);
 
     // CPU Memory Interface
     logic [15:0] mem_addr;
@@ -188,38 +194,38 @@ module ChipInterface (
     assign mem_rd_data_c = mem_rd_data;
     assign mem_rd_data_p = mem_rd_data;
 	 
-	logic up, down, start, select, left, right, A, B;
+	// logic up, down, start, select, left, right, A, B;
      
-     always_ff @(posedge clock or negedge reset_n) begin
-        if(~reset_n) begin
-            up <= 0;
-            down <= 0;
-            start <= 0;
-            select <= 0;
+ //     always_ff @(posedge clock or negedge reset_n) begin
+ //        if(~reset_n) begin
+ //            up <= 0;
+ //            down <= 0;
+ //            start <= 0;
+ //            select <= 0;
 
-            left <= 0;
-            right <= 0;
-            A <= 0;
-            B <= 0;
-        end else begin
-            up <= ~KEY[3] && SW[0];
-            down <= ~KEY[2] && SW[0];
-            start <= ~KEY[1] && SW[0];
-            select <= ~KEY[0] && SW[0];
+ //            left <= 0;
+ //            right <= 0;
+ //            A <= 0;
+ //            B <= 0;
+ //        end else begin
+ //            up <= ~KEY[3] && SW[0];
+ //            down <= ~KEY[2] && SW[0];
+ //            start <= ~KEY[1] && SW[0];
+ //            select <= ~KEY[0] && SW[0];
 
-            left <= ~KEY[3] && ~SW[0];
-            right <= ~KEY[2] && ~SW[0];
-            A <= ~KEY[1] && ~SW[0];
-            B <= ~KEY[0] && ~SW[0];
-        end
-     end
+ //            left <= ~KEY[3] && ~SW[0];
+ //            right <= ~KEY[2] && ~SW[0];
+ //            A <= ~KEY[1] && ~SW[0];
+ //            B <= ~KEY[0] && ~SW[0];
+ //        end
+ //     end
 
-    cpu_memory mem(
-      .addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
-      .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
-      .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
-      .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
-      .read_prom, .up, .down, .start, .select, .left, .right, .A, .B);
+    cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
+                   .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
+                   .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
+                   .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
+                   .read_prom,
+                   .ctlr_pulse(GPIO[26]), .ctlr_latch(GPIO[28]), .ctlr_data(GPIO[30]));
 
 
     // see ppu status registers
