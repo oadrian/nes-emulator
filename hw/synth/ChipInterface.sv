@@ -93,13 +93,39 @@ module ChipInterface
     assign cpu_cyc_par = cpu_cycle[0];
     logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
 
+    mirror_t mirroring;
+
+    logic [7:0] header [15:0];
+    logic [7:0] flag6, prgsz, chrsz;
+
+    always_ff @(posedge clock or negedge reset_n) begin
+      if(~reset_n) begin
+        $readmemh("../init/header_init.txt", header);
+      end
+    end
+
+    assign prgsz = header[4];
+    assign chrsz = header[5];
+    assign flag6 = header[6];
+
+    always_comb begin
+        case ({flag6[3], flag6[0]})
+            2'b00: mirroring = HOR_MIRROR;
+            2'b01: mirroring = VER_MIRROR;
+            2'b10: mirroring = FOUR_SCR_MIRROR;   // ONE_SCR_MIRROR?
+            2'b11: mirroring = FOUR_SCR_MIRROR;
+            default : mirroring = VER_MIRROR;
+        endcase
+    end
+
     ppu peep(.clk(clock), .rst_n(reset_n), .ppu_clk_en, .vblank_nmi, 
             .vsync_n(VGA_VS), .hsync_n(VGA_HS), 
             .vga_r(VGA_R), .vga_g(VGA_G), .vga_b(VGA_B), .blank, 
             .cpu_clk_en, .reg_sel, .reg_en, .reg_rw, .reg_data_in(reg_data_wr), .reg_data_out(reg_data_rd),
             .cpu_cyc_par, .cpu_sus, 
             .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p), 
-            .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY);
+            .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY,
+            .mirroring);
 
     // APU
     logic [4:0] reg_addr;
@@ -120,39 +146,10 @@ module ChipInterface
     assign AUD_XCK = 1'bz;     
     assign AUD_XCK = AUD_CTRL_CLK;
 
-    logic [31:0][3:0] seq;
-    assign seq = 128'hFEDCBA98765432100123456789ABCDEF;
     logic [15:0] wave;
-    logic [4:0] seq_i;
-    logic seq_en;
-    logic counter_clr;
-    logic [31:0] counter;
-    logic [31:0] next_limit, limit;
 
-    assign next_limit = SW[1] ? 32'd5000 :32'd10000; 
-    assign wave = SW[2] ? {2'b0, seq[seq_i], 10'b0} : 16'b0;
-    assign seq_en = (counter == limit);
-    assign counter_clr = seq_en;
+    assign wave = {2'b0, triangle_wave, 10'b0};
 
-    always_ff @(posedge CLOCK_50 or negedge rst_n) begin
-        if(~rst_n) begin
-            counter <= 32'd0;
-        end else begin
-            if(counter_clr)
-                counter <= 32'd0;
-            else 
-               counter <= counter + 32'd1;
-        end
-    end
-
-    always_ff @(posedge CLOCK_50 or negedge rst_n)
-        if(~rst_n) begin
-            limit <= 32'd5000;
-            seq_i <= 0;
-        end else if (seq_en) begin
-            seq_i <= seq_i + 1;
-            limit <= next_limit;
-        end
 
     // IPs to drive audio from Quartus
     VGA_Audio_PLL audio_pll (

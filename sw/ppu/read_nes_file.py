@@ -4,13 +4,15 @@ import text2bin
 import subprocess
 import split_ppu_mem as splitter
 
-PRGROM_TXT = "cpu/init/prg_rom_init.txt"
+PRGROM_TXT = "init/prg_rom_init.txt"
 PRGROM_BIN = "prg_rom_init.bin"
-PRGROM_HEX = "cpu/init-intel/prg_rom_init.hex"
+PRGROM_HEX = "init-intel/prg_rom_init.hex"
 
-CHRROM_TXT = "ppu/init/chr_rom_init.txt"
+CHRROM_TXT = "init/chr_rom_init.txt"
 CHRROM_BIN = "chr_rom_init.bin"
-CHRROM_HEX = "ppu/init-intel/chr_rom_init.hex"
+CHRROM_HEX = "init-intel/chr_rom_init.hex"
+
+HEADER_TXT = "init/header_init.txt"
 
 
 def getIthBit(i, num):
@@ -75,11 +77,21 @@ def writeTXT(filename, prgrom):
 def readNES(filename):
     with open(filename, "rb") as f:
         header = f.read(16)
+        writeTXT(HEADER_TXT, header)
         prgrom_sz, chrrom_sz, vertical_mirror, bit_trainer = interpretHeader(header)
         if(bit_trainer):
             trainer =  f.read(512)
-        prgrom = f.read(16384*prgrom_sz)
-        chrrom = f.read(8192*chrrom_sz)
+        prgrom = ""
+        if(prgrom_sz == 1):
+            # 16 KB - pad lower 16kb with ff
+            prgrom = ('\xff'*16384) + f.read(16384*prgrom_sz)
+        else:
+            # 32 KB
+            prgrom = f.read(16384*prgrom_sz)
+        if(chrrom_sz == 0):
+            chrrom = '\x00'*8192
+        else:   
+            chrrom = f.read(8192*chrrom_sz)
 
         writeTXT(PRGROM_TXT, prgrom)
         writeTXT(CHRROM_TXT, chrrom)
@@ -98,9 +110,8 @@ def readNES(filename):
             subprocess.call(["srec_cat", PRGROM_BIN, "-binary", "-output", PRGROM_HEX, "-Intel"])
             subprocess.call(["srec_cat", CHRROM_BIN, "-binary", "-output", CHRROM_HEX, "-Intel"])
 
-            subprocess.call(["rem", PRGROM_BIN])
-            subprocess.call(["rem", CHRROM_BIN])
-
+            # subprocess.call(["rem", PRGROM_BIN])
+            # subprocess.call(["rem", CHRROM_BIN])
 
 
             

@@ -89,4 +89,11 @@ typedef enum logic [3:0] {
     OAMDMA       // CPU's 0x4014
 } reg_t;
 
+typedef enum logic [1:0] {
+    VER_MIRROR,
+    HOR_MIRROR,
+    ONE_SCR_MIRROR,
+    FOUR_SCR_MIRROR
+} mirror_t;
+
 `endif

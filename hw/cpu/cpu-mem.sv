@@ -182,11 +182,11 @@ module cpu_memory(
 	 
 
     `ifdef SYNTH
-    logic [13:0] prom_address;
+    logic [14:0] prom_address;
     logic prom_rden;
     logic [7:0] prom_data_rd;
 
-    prg_rom_16 prom(.address(prom_address), .clock,  .q(prom_data_rd));
+    prg_rom_32 prom(.address(prom_address), .clock,  .q(prom_data_rd));
 
     logic [10:0]  cram_address;
     logic [7:0]  cram_data_wr;
@@ -198,11 +198,9 @@ module cpu_memory(
               .data(cram_data_wr),
               .wren(cram_wren), .q(cram_data_rd));
 
-    assign prom_rden = (addr[15:14] == 2'b11 && r_en);
-    assign prom_address = addr[13:0];
+    assign prom_rden = (addr[15] == 1'b1 && r_en);
+    assign prom_address = addr[14:0];
 
-//	assign prom_rden = 1'b1;
-//	assign prom_address = 14'd0;
 	assign read_prom = prom_data_rd;
 
     assign cram_rden = (16'h0000 <= addr && addr < 16'h2000 && r_en);
@@ -244,7 +242,7 @@ module cpu_memory(
                 for (int i = 16416; i < 49152; i++) begin
                     cartridge_mem[i] <= 8'd0;
                 end
-                $readmemh("init/prg_rom_init.txt", cartridge_mem, 49152, 65535);
+                $readmemh("../init/prg_rom_init.txt", cartridge_mem, 49152, 65535);
             `else
                 for (int i = 16416; i < 65536; i++) begin
                     cartridge_mem[i] <= 8'd0;

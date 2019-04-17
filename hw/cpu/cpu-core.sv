@@ -242,7 +242,8 @@ module core(
     cpu_inputs cpu_in(.PC(next_PC), 
                       .n_flag(next_n_flag), .v_flag(next_v_flag),
                       .d_flag(next_d_flag), .i_flag(next_i_flag),
-                      .z_flag(next_z_flag), .c_flag(next_c_flag), .*);
+                      .z_flag(next_z_flag), .c_flag(next_c_flag), 
+                      .fetched_PC(PC), .*);
 
     assign next_A = alu_out;
     assign next_X = alu_out;
@@ -381,7 +382,7 @@ module cpu_inputs(
         if (state == STATE_DECODE &&
             interrupt_active) begin
 
-            PC = fetched_PC;
+            PC = fetched_PC - 16'd1;
 
         end
         else begin

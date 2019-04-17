@@ -37,7 +37,10 @@ module ppu (
     input logic [7:0] cpu_rd_data, 
 
     // debug
-    output logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY    
+    output logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY,
+
+    // mirroring
+    input mirror_t mirroring
 );
 
     //////////// VGA clk   /////////////
@@ -127,6 +130,8 @@ module ppu (
 
                  .vram_addr(vram_addr_ri), .vram_we(vram_we_ri), .vram_re(vram_re_ri),
                  .vram_wr_data(vram_wr_data_ri), .vram_rd_data(vram_rd_data_ri),
+
+                 .mirroring,
 
                  .pal_addr(pal_addr_ri), .pal_we(pal_we_ri), .pal_re(pal_re_ri),
                  .pal_wr_data(pal_wr_data_ri), .pal_rd_data(pal_rd_data_ri),
@@ -324,13 +329,15 @@ module ppu (
 
     // first row is garbage, used for prefetching sprites for first visible sl
     logic [10:0] vram_addr1_bg, vram_addr2_bg;
-    bg_pixel bg(.row(row-9'd1), .col, 
+    bg_pixel bg(.sl_row(row-9'd1), .sl_col(col), 
                 .patt_tbl(bg_patt_tbl), .name_tbl(bg_name_tbl), 
                 .vram_addr1(vram_addr1_bg), .vram_data1(vram_d_out1), 
                 .vram_addr2(vram_addr2_bg), .vram_data2(vram_d_out2),
+                .mirroring, 
                 .chr_rom_addr1(bg_chr_rom_addr1), .chr_rom_addr2(bg_chr_rom_addr2), 
                 .chr_rom_data1(chr_rom_out1), .chr_rom_data2(chr_rom_out2),
-                .bg_color_idx(bg_color_idx_t));
+                .bg_color_idx(bg_color_idx_t),
+                .ppuscrollX, .ppuscrollY);
 
     // ppumask control bits
     assign bg_color_idx_en = (ppumask[3]) ? bg_color_idx_t : 4'b0000;
