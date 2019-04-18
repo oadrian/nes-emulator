@@ -98,8 +98,8 @@ module cpu_memory(
     input logic [7:0] reg_data_rd,
 	 
 	 // Controller GPIO pins
-     input logic ctlr_data, 
-     output logic ctlr_pulse, ctlr_latch,
+     input logic ctlr_data_p1, ctlr_data_p2, 
+     output logic ctlr_pulse_p1, ctlr_pulse_p2, ctlr_latch,
 	 
 	 // debug output
 	 output logic [7:0] read_prom
@@ -148,10 +148,10 @@ module cpu_memory(
     logic [7:0] button_data_rd; 
     ctlr_interface ctrlr(.clock, .reset_n, .clock_en, 
                          .addr, .r_en, .w_data,
-                         .ctlr_data, .ctlr_pulse, .ctlr_latch, 
+                         .ctlr_data_p1, .ctlr_data_p2,
+                         .ctlr_pulse_p1, .ctlr_pulse_p2, .ctlr_latch, 
                          .button_data_rd);
 	 
-
     // RD Data MUX
 	 logic [7:0] mem_data_rd;
 	 
@@ -285,82 +285,36 @@ module ctlr_interface (
     input  logic [7:0] w_data,
 
     // GPIO Pins
-    input logic ctlr_data, 
-    output logic ctlr_pulse, ctlr_latch,
+    input logic ctlr_data_p1, ctlr_data_p2, 
+    output logic ctlr_pulse_p1, ctlr_pulse_p2, ctlr_latch,
 
     // button_data_rd
     output logic [7:0] button_data_rd
 );
+
     logic [7:0] button_data_rd_in;
-
-    logic read_cnt_clr, read_cnt_inc;
-    logic [3:0] read_cnt;
-
-    logic cnt_clr;
-    logic [$clog2(`CTRL_PULSE_LEN)+1:0] cnt;
-    enum logic [2:0] {IDLE, WROTE1, WROTE0, PULSE_LO, PULSE_HI} curr, next;
+    logic next_pulse_p1, next_pulse_p2, next_latch;
 
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
-            curr <= IDLE;
             button_data_rd <= 8'd0;
-            read_cnt <= 4'd0;
-
+            ctlr_pulse_p1 <= 1'b1;
+            ctlr_pulse_p2 <= 1'b1;
+            ctlr_latch <= 1'b0;
         end else if(clock_en) begin
-            curr <= next;
             button_data_rd <= button_data_rd_in;
-
-            if(read_cnt_clr)
-                read_cnt <= 4'd0;
-            else if(read_cnt_inc)
-                read_cnt <= read_cnt + 4'd1;
-
-            if(cnt_clr)
-                cnt <= 'd0;
-            else
-                cnt <= cnt + 'd1;
+            ctlr_pulse_p1 <= next_pulse_p1;
+            ctlr_pulse_p2 <= next_pulse_p2;
+            ctlr_latch <= next_latch;
         end
-     end
-
-    assign cnt_clr = (curr != next); // PULSE_LO -> PULSE_HI
-
-    assign read_cnt_clr = (curr == WROTE1);
-    assign read_cnt_inc = (curr != next && next == PULSE_HI);
-
-    assign button_data_rd_in = {7'b0, ~ctlr_data};
-
-    assign ctlr_pulse = (curr == PULSE_HI);
-    assign ctlr_latch = (curr == WROTE1);
-     
-    always_comb begin
-        next = IDLE;
-        case(curr)
-            IDLE: begin
-                next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b1) ? WROTE1 : IDLE;
-            end
-            WROTE1: begin
-                next = (!r_en && addr == 16'h4016 && w_data[0] == 1'b0) ? WROTE0 : WROTE1;
-            end
-            WROTE0: begin
-                next = (r_en && addr == 16'h4016) ? PULSE_LO : WROTE0;
-            end
-            PULSE_LO: begin
-                next = (cnt == `CTRL_PULSE_LEN) ? PULSE_HI : PULSE_LO;
-            end
-            PULSE_HI: begin 
-                if (read_cnt == 'd8 && cnt == `CTRL_PULSE_LEN) begin
-                    next = IDLE;
-                end
-                else if (r_en && addr == 16'h4016) begin
-                    next = PULSE_LO;
-                end
-                else begin
-                    next = PULSE_HI;
-                end
-            end
-            default: ;
-        endcase
     end
+
+    assign button_data_rd_in = (addr == 16'h4016) ? {7'b0, ~ctlr_data_p1} : {7'b0, ~ctlr_data_p2};
+
+    assign next_latch = (addr == 16'h4016 && !r_en) ? w_data[0] : ctlr_latch;
+
+    assign next_pulse_p1 = (addr == 16'h4016 && r_en) ? 1'b0 : 1'b1;
+    assign next_pulse_p2 = (addr == 16'h4017 && r_en) ? 1'b0 : 1'b1;
 
 endmodule
 
