@@ -37,13 +37,12 @@ module pulse_channel #(parameter PULSE_CHANNEL=1) (
   logic [2:0] seq_i;
   logic seq_out;
 
-  logic [3:0] gate1_out, gate2_out, gate3_out;
+  logic [3:0] gate1_out, gate2_out;
 
   always_comb begin
     gate1_out = mute ? 4'b0 : env_vol_out;
     gate2_out = seq_out ? gate1_out : 4'b0;
-    gate3_out = length_non_zero ? gate2_out : 4'b0;
-    out = const_vol ? vol : gate3_out;
+    out = length_non_zero ? gate2_out : 4'b0;
   end
   
   always_comb begin
