@@ -57,6 +57,8 @@ module ChipInterface
     clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en));
 //	 Stepper step(.clock, .reset_n, .key_n(KEY[3]), .clk_en(cpu_clk_en));
 
+    logic apu_clk_en;
+    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en));
     // ppu cycle
     logic [63:0] ppu_cycle;
     always_ff @(posedge clock or negedge reset_n) begin
@@ -133,11 +135,11 @@ module ChipInterface
     logic [7:0] reg_read_data;
     logic data_valid, reg_we;
 
-    logic [3:0] triangle_wave;
+    logic [15:0] audio_out;
 
     apu apooh (
-      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .reg_addr, 
-      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .triangle_wave);
+      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr,
+      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .audio_out);
     
     logic VGA_CTRL_CLK, AUD_CTRL_CLK;    //  For Audio Controller
     assign AUD_DACLRCK = 1'bz;                         
@@ -145,11 +147,6 @@ module ChipInterface
     assign AUD_BCLK = 1'bz;                          
     assign AUD_XCK = 1'bz;     
     assign AUD_XCK = AUD_CTRL_CLK;
-
-    logic [15:0] wave;
-
-    assign wave = {2'b0, triangle_wave, 10'b0};
-
 
     // IPs to drive audio from Quartus
     VGA_Audio_PLL audio_pll (
@@ -162,7 +159,7 @@ module ChipInterface
       .I2C_SDAT(I2C_SDAT));
 
     audio_dac dac (
-      .clk(AUD_CTRL_CLK), .rst_l(reset_n), .*);
+      .clk(AUD_CTRL_CLK), .rst_l(reset_n), .audio(audio_out), .*);
       
     // CPU stuff
     logic [15:0] mem_addr_c;

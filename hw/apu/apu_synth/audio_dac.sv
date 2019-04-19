@@ -1,6 +1,6 @@
 module audio_dac (
 	input logic clk, rst_l,
-    input logic [15:0] wave,
+	input logic [15:0] audio,
 	inout AUD_DACDAT,
 	output logic AUD_DACLRCK,
 	output logic AUD_BCLK);
@@ -48,7 +48,7 @@ begin
 	wave_i	<=	wave_i+1;
 end
 
-assign AUD_DACDAT = wave[~wave_i];
+assign AUD_DACDAT = audio[~wave_i];
 
 
 endmodule: audio_dac
