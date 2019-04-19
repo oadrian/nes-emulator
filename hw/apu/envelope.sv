@@ -21,7 +21,6 @@ module envelope (
   divider #(.WIDTH(4), .RES_VAL(0)) div (
     .clk, .rst_l, .clk_en(quarter_clk_en), .load(start_flag), 
     .load_data(vol_in), .pulse(div_clk_en));
-  
 
   always_ff @(posedge clk, negedge rst_l) begin : decay_counter
     if (~rst_l)
@@ -39,8 +38,8 @@ module envelope (
   always_ff @(posedge clk, negedge rst_l)
     if (~rst_l) begin
       start_flag <= 1'b0;
-    end else if (cpu_clk_en) begin
-      if (load)
+    end else begin
+      if (cpu_clk_en & load)
         start_flag <= 1'b1;
 
       if (quarter_clk_en)

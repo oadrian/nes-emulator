@@ -33,15 +33,16 @@ module sweep #(parameter CARRY=0)(
       timer_period_out <= 11'b0;
       change_timer_period <= 1'b0;
       reload <= 1'b0;
-    end else if (cpu_clk_en) begin
-      if (load)
+    end else begin
+      if (cpu_clk_en & load)
         reload <= 1'b1;
       
       if (half_clk_en) begin
         if (div_pulse && enable && ~mute && shift_count > 0) begin
           timer_period_out <= target_period;
           change_timer_period <= 1'b1;
-        end
+        end else
+          change_timer_period <= 1'b0;
         
         reload <= 1'b0;
       end

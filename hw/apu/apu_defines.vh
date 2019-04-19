@@ -19,4 +19,11 @@ typedef struct packed {
   logic inhibit_interrupt;
   logic mode;
 } frame_counter_t;
+
+typedef struct packed {
+  logic [2:0] shift_count;
+  logic negate;
+  logic [2:0] period;
+  logic enable;
+} sweep_t;
 `endif

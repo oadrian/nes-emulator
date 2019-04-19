@@ -65,9 +65,8 @@ module linear_counter (
       count <= 7'b0;
       reload <= 1'b0;
     end else begin
-      if (cpu_clk_en)
-        if (load)
-          reload <= 1'b1;
+      if (cpu_clk_en & load)
+        reload <= 1'b1;
 
       if (quarter_clk_en) begin
         if (reload)
@@ -101,8 +100,8 @@ module length_counter (
     if (~rst_l) begin
       count <= 8'b0;
       reload <= 1'b0;
-    end else if (cpu_clk_en) begin
-      if (load)
+    end else begin
+      if (cpu_clk_en & load)
         reload <= 1'b1;
 
       if (half_clk_en)
