@@ -17,3 +17,8 @@
 *.pyc
 *hw/ppu/my_frame.txt
 *.vpd
+
+hw/fullsys/logs/
+hw/init-intel/
+hw/init/
+
