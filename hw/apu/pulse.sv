@@ -52,8 +52,6 @@ module pulse_channel #(parameter PULSE_CHANNEL=1) (
   end
 
   assign loop_flag = length_halt;
-  assign env_div_period = vol;
-
   assign timer_period = update_timer_period ? sweep_timer_period : 
                                               timer_period_in;
 
@@ -75,7 +73,7 @@ module pulse_channel #(parameter PULSE_CHANNEL=1) (
 
   envelope env_unit (
     .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .load(env_load),
-    .loop_flag, .const_vol, .vol_in(env_div_period), .vol_out(env_vol_out));
+    .loop_flag, .const_vol, .vol_in(vol), .vol_out(env_vol_out));
 
   length_counter len_counter (
     .clk, .rst_l, .cpu_clk_en, .half_clk_en, .halt(length_halt), .disable_l,
