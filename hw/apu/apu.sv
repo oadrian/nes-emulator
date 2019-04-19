@@ -2,7 +2,7 @@
 
 module apu (
   input logic clk, rst_l,
-  input logic cpu_clk_en,
+  input logic cpu_clk_en, apu_clk_en,
   input logic [4:0] reg_addr,
   input logic [7:0] reg_data,
   input logic reg_en, reg_we,
@@ -12,21 +12,20 @@ module apu (
   logic [23:0] reg_updates;
   logic [23:0][7:0] reg_array;
 
-  logic [3:0] pulse1_out;
+  logic [3:0] pulse0_out;
 
   mem_map_registers mm_reg (.*);
 
-  logic apu_clk_en;
   
   triangle_t triangle_signals;
-  pulse_t pulse1_sigs, pulse2_sigs;
+  pulse_t pulse0_sigs, pulse1_sigs;
   status_t status_signals;
   frame_counter_t fc_signals;
 
   always_comb begin
     triangle_signals = get_triangle_signals(reg_array);
-    pulse1_sigs = get_pulse_signals(reg_array, 1);
-    pulse2_sigs = get_pulse_signals(reg_array, 2);
+    pulse0_sigs = get_pulse_signals(reg_array, 1);
+    pulse1_sigs = get_pulse_signals(reg_array, 2);
     status_signals = get_status_signals(reg_array);
     fc_signals = get_frame_counter_signals(reg_array);
   end
@@ -54,18 +53,18 @@ module apu (
     .length_non_zero(lengths_non_zero[2]),
     .wave(triangle_wave));
 
-  pulse_channel #(.PULSE_CHANNEL(1)) pulse1_channel (
+  pulse_channel #(.PULSE_CHANNEL(0)) pulse0_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,
-    .half_clk_en, .disable_l(status_signals.pulse1_en),
-    .duty(pulse1_sigs.duty), .length_halt(pulse1_sigs.length_halt),
-    .const_vol(pulse1_sigs.const_vol), .vol(pulse1_sigs.vol),
+    .half_clk_en, .disable_l(status_signals.pulse0_en),
+    .duty(pulse0_sigs.duty), .length_halt(pulse0_sigs.length_halt),
+    .const_vol(pulse0_sigs.const_vol), .vol(pulse0_sigs.vol),
     .env_load(reg_updates[0]), .sweep_load(reg_updates[1]), 
     .length_load(reg_updates[3]),
-    .sweep_sigs(pulse1_sigs.sweep_sigs),
-    .timer_period_in(pulse1_sigs.timer_period_in),
-    .length_load_data(pulse1_sigs.length_load_data),
+    .sweep_sigs(pulse0_sigs.sweep_sigs),
+    .timer_period_in(pulse0_sigs.timer_period_in),
+    .length_load_data(pulse0_sigs.length_load_data),
     .length_non_zero(lengths_non_zero[0]),
-    .out(pulse1_out));
+    .out(pulse0_out));
 
 endmodule: apu
 
@@ -85,9 +84,9 @@ function pulse_t get_pulse_signals (
   input [23:0][7:0] reg_array,
   input [1:0] channel);
 
-  if (channel == 1)
+  if (channel == 0)
     return reg_array[3:0];
-  else if (channel == 2)
+  else if (channel == 1)
     return reg_array[7:4];
   return 32'b0;
 endfunction
