@@ -1,6 +1,6 @@
 `default_nettype none
 
-module pulse_channel #(parameter PULSE=1) (
+module pulse_channel #(parameter PULSE_CHANNEL=1) (
   input logic clk, rst_l,
 
   input logic cpu_clk_en, apu_clk_en,
@@ -13,11 +13,10 @@ module pulse_channel #(parameter PULSE=1) (
   input logic const_vol,
   input logic [3:0] vol, // Also the period for envelope divider
 
-  input logic env_load, sweep_load,
+  input logic env_load, sweep_load, length_load,
 
   input sweep_t sweep_sigs,
   input logic [10:0] timer_period_in,
-  input logic length_load,
   input logic [4:0] length_load_data,
 
   output logic length_non_zero,
@@ -27,8 +26,6 @@ module pulse_channel #(parameter PULSE=1) (
   logic mute;
   logic update_timer_period;
   logic [10:0] timer_period, sweep_timer_period;
-
-  logic sweep_load;
 
   logic timer_pulse;
 
@@ -69,7 +66,7 @@ module pulse_channel #(parameter PULSE=1) (
     .clk, .rst_l, .clk_en(apu_clk_en), .load(update_timer_period), 
     .load_data(timer_period), .pulse(timer_pulse));
 
-  sweep #(.CARRY(PULSE)) sweep_unit (
+  sweep #(.CARRY(PULSE_CHANNEL)) sweep_unit (
     .clk, .rst_l, .cpu_clk_en, .half_clk_en, .enable(sweep_sigs.enable),
     .negate(sweep_sigs.negate), .load(sweep_load), 
     .div_period(sweep_sigs.period), 
