@@ -34,6 +34,14 @@ typedef struct packed {
 } pulse_t;
 
 typedef struct packed {
+  logic [3:0] vol;
+  logic const_vol;
+  logic length_halt;
+  logic [3:0] timer_period_in;
+  logic mode;
+  logic [4:0] length_load_data;
+} noise_t;
+typedef struct packed {
   logic inhibit_interrupt;
   logic mode;
 } frame_counter_t;

@@ -3,12 +3,12 @@
 module noise_channel (
   input logic clk, rst_l,
   input logic cpu_clk_en, apu_clk_en, half_clk_en, quarter_clk_en,
+  input logic disable_l,
 
   input logic [3:0] vol,
   input logic const_vol,
   input logic length_halt,
-  input logic disable_l,
-  
+
   input logic [3:0] timer_period_in,
   input logic mode,
   input logic [4:0] length_load_data,

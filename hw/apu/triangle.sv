@@ -11,7 +11,7 @@ module triangle_channel (
   input logic [4:0] length_load_data,
 
   output logic length_non_zero,
-  output logic [3:0] wave);
+  output logic [3:0] out);
 
 
   logic timer_pulse;
@@ -22,7 +22,7 @@ module triangle_channel (
 
   assign seq = 128'hFEDCBA98765432100123456789ABCDEF;
   assign next_seq_i = seq_i + 5'b1;
-  assign wave = seq[seq_i];
+  assign out = seq[seq_i];
 
   assign gate1_out = linear_non_zero ? timer_pulse : 1'b0;
   assign gate2_out = length_non_zero ? gate1_out : 1'b0;

@@ -1,7 +1,7 @@
 `default_nettype none
 
 module mixer(
-    input  logic [3:0] pulse1, pulse2, triangle, noise,
+    input  logic [3:0] pulse0, pulse1, triangle, noise,
     input  logic [6:0] dmc,
     output logic [15:0] out);
 
@@ -9,7 +9,7 @@ module mixer(
     logic [0:202][15:0] tnd_table;
     logic [15:0] pulse_out, tnd_out, unsigned_out;
 
-    assign pulse_out = pulse_table[pulse1 + pulse2];
+    assign pulse_out = pulse_table[pulse0 + pulse1];
     assign tnd_out = tnd_table[3*triangle + 2*noise + dmc];
 
     assign unsigned_out = pulse_out + tnd_out;
