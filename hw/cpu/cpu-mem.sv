@@ -114,7 +114,7 @@ module cpu_memory(
             prev_but_rd <= 0;
         end else if(clock_en) begin
             prev_reg_en <= reg_en;
-            prev_but_rd <= r_en && addr == 16'h4016;
+            prev_but_rd <= r_en && (addr == 16'h4016 || addr == 16'h4017);
         end
     end
     
@@ -224,10 +224,10 @@ module cpu_memory(
                 io_regs[i] <= 8'd0;
             end
             `ifdef prg_rom_init
-                for (int i = 16416; i < 49152; i++) begin
+                for (int i = 16416; i < 32768; i++) begin
                     cartridge_mem[i] <= 8'd0;
                 end
-                $readmemh("../init/prg_rom_init.txt", cartridge_mem, 49152, 65535);
+                $readmemh("../init/prg_rom_init.txt", cartridge_mem, 32768, 65535);
             `else
                 for (int i = 16416; i < 65536; i++) begin
                     cartridge_mem[i] <= 8'd0;

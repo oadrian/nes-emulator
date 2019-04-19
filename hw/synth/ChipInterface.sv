@@ -132,6 +132,7 @@ module ChipInterface
     logic [15:0] mem_addr;
     logic mem_re;
     logic [7:0] mem_wr_data, mem_rd_data, read_prom;
+    logic ctlr_latch;
 
     assign mem_addr = (cpu_sus) ? mem_addr_p : mem_addr_c;
     assign mem_re = (cpu_sus) ? mem_re_p : mem_re_c;
@@ -171,8 +172,19 @@ module ChipInterface
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
                    .read_prom,
-                   .ctlr_pulse(GPIO[26]), .ctlr_latch(GPIO[28]), .ctlr_data(GPIO[30]));
+                   .ctlr_pulse_p1(GPIO[26]), .ctlr_pulse_p2(GPIO[11]),
+                   .ctlr_latch, 
+                   .ctlr_data_p1(GPIO[30]), .ctlr_data_p2(GPIO[15]));
 
+    // controller pins:
+    // P1: Power: 3.3V, pulse: 26, latch: 28, data: 30
+    // P2: Power:    9, pules: 11, latch: 13, data: 15
+
+    // powering p2's controller
+    assign GPIO[9] = 1'b1;
+
+    assign GPIO[28] = ctlr_latch;
+    assign GPIO[13] = ctlr_latch;
 
     // see ppu status registers
     SevenSegmentDigit ppu_ctrl_hi(.bcd(ppuctrl[7:4]), .segment(HEX7), .blank(1'b0));
