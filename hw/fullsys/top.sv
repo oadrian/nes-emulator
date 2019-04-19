@@ -1,10 +1,11 @@
 `default_nettype none
 `include "../include/ppu_defines.vh"
 
-`define CPU_CYCLES 800000
+`define CPU_CYCLES 176296
 
 module top ();
     string logFile = "logs/fullsys-log.txt";
+    string vramFile = "logs/vram.txt";
 
     logic clock;
     logic reset_n;
@@ -142,7 +143,7 @@ module top ();
         #1 reset_n <= 1'b1;
     endtask : doReset
 
-    int fd;
+    int fd, vram_fd;
     int cnt;
 
     logic [7:0] can_A, can_X, can_Y, can_status, can_SP;
@@ -170,6 +171,7 @@ module top ();
 
     initial begin
         fd = $fopen(logFile,"w");
+        vram_fd = $fopen(vramFile,"w");
         doReset;
         @(posedge clock);
         cnt = 0;
@@ -185,6 +187,9 @@ module top ();
         end
         @(posedge clock);
         @(posedge clock);
+        for (int i = 0; i < 4096; i++) begin
+            $fwrite(vram_fd,"%.2x ", peep.vr.mem[i%2048]);
+        end
         @(posedge clock);
         @(posedge clock);
         $finish;
