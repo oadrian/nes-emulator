@@ -17,15 +17,14 @@ module apu (
 
   mem_map_registers mm_reg (.*);
 
-  
-  triangle_t triangle_signals;
+  triangle_t triangle_sigs;
   pulse_t pulse0_sigs, pulse1_sigs;
   noise_t noise_sigs;
   status_t status_signals;
   frame_counter_t fc_signals;
 
   always_comb begin
-    triangle_signals = get_triangle_signals(reg_array);
+    triangle_sigs = get_triangle_signals(reg_array);
     pulse0_sigs = get_pulse_signals(reg_array, 0);
     pulse1_sigs = get_pulse_signals(reg_array, 1);
     noise_sigs = get_noise_signals(reg_array);
@@ -47,12 +46,12 @@ module apu (
   triangle_channel tc (
     .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
     .disable_l(status_signals.triangle_en), 
-    .length_halt(triangle_signals.length_halt), 
+    .length_halt(triangle_sigs.length_halt), 
     .linear_load(reg_updates[8] | reg_updates[11]), 
     .length_load(reg_updates[11]), 
-    .linear_load_data(triangle_signals.linear_load_data),
-    .timer_load_data(triangle_signals.timer_load_data),
-    .length_load_data(triangle_signals.length_load_data),
+    .linear_load_data(triangle_sigs.linear_load_data),
+    .timer_load_data(triangle_sigs.timer_load_data),
+    .length_load_data(triangle_sigs.length_load_data),
     .length_non_zero(lengths_non_zero[2]),
     .out(triangle_out));
 
@@ -93,6 +92,8 @@ module apu (
     .length_non_zero(lengths_non_zero[3]),
     .out(noise_out));
 
+  // TODO: Instantiate the dmc channel
+  assign dmc_out = 7'b0;
 
   mixer non_linear_mixer (
     .pulse0(pulse0_out), .pulse1(pulse1_out), .triangle(triangle_out),
