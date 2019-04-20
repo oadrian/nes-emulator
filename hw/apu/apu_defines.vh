@@ -2,11 +2,11 @@
 `define APU_DEFINES_VH_
 
 typedef struct packed {
-  logic pulse0_en;
-  logic pulse1_en;
-  logic triangle_en;
-  logic noise_en;
   logic dmc_en;
+  logic noise_en;
+  logic triangle_en;
+  logic pulse1_en;
+  logic pulse0_en;
 } status_t;
 
 typedef struct packed {
