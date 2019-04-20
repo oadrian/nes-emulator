@@ -25,8 +25,8 @@ module apu (
 
   always_comb begin
     triangle_sigs = get_triangle_signals(reg_array);
-    pulse0_sigs = get_pulse_signals(reg_array, 0);
-    pulse1_sigs = get_pulse_signals(reg_array, 1);
+    pulse0_sigs = get_pulse_signals(reg_array, 1'b0);
+    pulse1_sigs = get_pulse_signals(reg_array, 1'b1);
     noise_sigs = get_noise_signals(reg_array);
     status_signals = get_status_signals(reg_array);
     fc_signals = get_frame_counter_signals(reg_array);
@@ -115,13 +115,12 @@ endfunction
 
 function pulse_t get_pulse_signals (
   input [23:0][7:0] reg_array,
-  input [1:0] channel);
+  input channel);
 
   if (channel == 0)
     return reg_array[3:0];
-  else if (channel == 1)
+  else
     return reg_array[7:4];
-  return 32'b0;
 endfunction
 
 function noise_t get_noise_signals (

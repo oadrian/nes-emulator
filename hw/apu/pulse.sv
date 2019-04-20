@@ -30,7 +30,7 @@ module pulse_channel #(parameter PULSE_CHANNEL=1) (
   logic timer_pulse;
 
   logic loop_flag;
-  logic [3:0] env_div_period, env_vol_out;
+  logic [3:0] env_vol_out;
 
   logic [3:0][7:0] seqs;
   logic [7:0] seq;
