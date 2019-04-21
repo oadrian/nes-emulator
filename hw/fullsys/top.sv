@@ -1,7 +1,8 @@
 `default_nettype none
 `include "../include/ppu_defines.vh"
+`include "../include/apu_defines.vh"
 
-`define CPU_CYCLES 500000
+`define CPU_CYCLES 5000000
 
 module top ();
     string logFile = "logs/fullsys-log.txt";
@@ -15,6 +16,9 @@ module top ();
 
     logic cpu_clk_en;  // Master / 12
     clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en));
+
+    logic apu_clk_en;
+    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en));
 
     // ppu cycle
     logic [63:0] ppu_cycle;
@@ -74,16 +78,19 @@ module top ();
     logic mem_re_c;
     logic [7:0] mem_wr_data_c;
     logic [7:0] mem_rd_data_c;
+    logic irq_n;
+
+    assign irq_n = 1'b1;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .nmi(vblank_nmi));
+             .irq_n, .nmi(vblank_nmi));
 
-    logic [3:0] triangle_wave;
+    logic [15:0] audio_out;
 
     apu apooh (
-      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .reg_addr, 
-      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .triangle_wave);
+      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr, 
+      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .audio_out);
       
 
     // CPU Memory Interface
@@ -99,11 +106,11 @@ module top ();
     assign mem_rd_data_c = mem_rd_data;
     assign mem_rd_data_p = mem_rd_data;
 
-    cpu_memory mem(
-      .addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
-      .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
-      .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
-      .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we);
+    cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
+                   .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
+                   .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
+                   .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
+                   .ctlr_data_p1(1'b1), .ctlr_data_p2(1'b1));
 
     initial begin 
         clock = 1'b0;
@@ -150,12 +157,12 @@ module top ();
         @(posedge clock);
         cnt = 0;
         while(cnt < 12*`CPU_CYCLES) begin
-            if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
-                //$fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
-                //$fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
-                //        can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
-                //$fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
-            end
+            /*if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
+                $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
+                $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
+                        can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
+                $fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
+            end*/
             @(posedge clock);
             cnt++; 
         end
