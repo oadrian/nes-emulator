@@ -56,7 +56,7 @@ module pulse_channel #(parameter PULSE_CHANNEL=1) (
                                               timer_period_in;
 
   up_counter #(.WIDTH(3), .RES_VAL(0)) seq_i_counter (
-    .clk, .rst_l, .clk_en(apu_clk_en), .en(timer_pulse), .load(1'b0),
+    .clk, .rst_l, .clk_en(apu_clk_en), .en(timer_pulse), .load(length_load),
     .load_data(3'b0), .count(seq_i));
 
   divider #(.WIDTH(11), .RES_VAL(0)) timer (

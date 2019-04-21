@@ -58,7 +58,7 @@ module noise_channel (
 
   divider #(.WIDTH(4), .RES_VAL(0)) timer (
     .clk, .rst_l, .clk_en(apu_clk_en), .load(1'b0), 
-    .load_data(timer_period_in), .pulse(timer_pulse));
+    .load_data(timer_period), .pulse(timer_pulse));
 
   length_counter len_counter (
     .clk, .rst_l, .cpu_clk_en, .half_clk_en, .halt(length_halt), .disable_l,
