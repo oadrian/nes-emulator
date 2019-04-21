@@ -13,15 +13,16 @@ module sweep #(parameter CARRY=0)(
   output logic [10:0] timer_period_out);
 
   logic reload;
+  logic overflow;
   logic div_pulse;
   logic [10:0] change_amount, target_period;
 
-  assign mute = target_period > 11'h7FF || timer_period_in < 7'h8;
+  assign mute = overflow || timer_period_in < 11'h8;
 
   always_comb begin
     change_amount = timer_period_in >> shift_count;
     change_amount = negate ? -change_amount - CARRY : change_amount;
-    target_period = timer_period_in + change_amount;
+    {overflow, target_period} = timer_period_in + change_amount;
   end
 
   divider #(.WIDTH(3), .RES_VAL(0)) div (
