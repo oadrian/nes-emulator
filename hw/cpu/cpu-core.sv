@@ -208,7 +208,7 @@ module core(
         .data_out(reset_active), .*);
 
     // interrupt active if any of these signals are active
-    assign interrupt_active = nmi_active | (~irq_n) | reset_active;
+    assign interrupt_active = nmi_active | ((~irq_n) & (~i_flag))  | reset_active;
 
     // need to figure out which interrupt is the canonical interrupt,
     // if multiple are active and we're in break
