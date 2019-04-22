@@ -353,7 +353,7 @@ module reg_inter (
         last_write = ppustatus_out;
 
         // mult writes 
-        wr_next_state = wr_curr_state;
+        wr_next_state = (ppustatus_rd_clr) ? FIRST_WRITE : wr_curr_state;
 
         // dma fsm controll
         begin_dma = 1'b0;
