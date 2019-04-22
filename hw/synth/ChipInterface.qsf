@@ -1112,10 +1112,10 @@ set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
 set_global_assignment -name ENABLE_SIGNALTAP ON
 set_global_assignment -name USE_SIGNALTAP_FILE triangle.stp
-set_global_assignment -name VERILOG_FILE ../../../fpga_nes/hw/src/cpu/apu/apu_frame_counter.v
-set_global_assignment -name VERILOG_FILE ../../../fpga_nes/hw/src/cpu/apu/apu_div.v
-set_global_assignment -name VERILOG_FILE ../../../fpga_nes/hw/src/cpu/apu/apu_length_counter.v
-set_global_assignment -name VERILOG_FILE ../../../fpga_nes/hw/src/cpu/apu/apu_triangle.v
+set_global_assignment -name VERILOG_FILE ../apu/ref/apu_triangle.v
+set_global_assignment -name VERILOG_FILE ../apu/ref/apu_length_counter.v
+set_global_assignment -name VERILOG_FILE ../apu/ref/apu_frame_counter.v
+set_global_assignment -name VERILOG_FILE ../apu/ref/apu_div.v
 set_global_assignment -name SYSTEMVERILOG_FILE ../apu/sweep.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../apu/pulse.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../apu/noise.sv

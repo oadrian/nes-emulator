@@ -73,22 +73,18 @@ module apu (
       wr_in = 1'b0;
     end
 
-  apu_triangle (.clk_in(clk), .rst_in(~rst_l), .en_in(status_signals.triangle_en),
-    .cpu_cycle_pulse_in(cpu_clk_en), .lc_pulse_in(half_clk_en), .eg_pulse_in(quarter_clk_en),
-    .a_in, .d_in, .wr_in, .triangle_out, .active_out());
-/*  
   triangle_channel tc (
     .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
     .disable_l(status_signals.triangle_en), 
     .length_halt(triangle_sigs.length_halt), 
-    .linear_load(reg_updates[8] | reg_updates[11]), 
+    .linear_load(reg_updates[11]), 
     .length_load(reg_updates[11]), 
     .linear_load_data(triangle_sigs.linear_load_data),
     .timer_load_data(triangle_sigs.timer_load_data),
     .length_load_data(triangle_sigs.length_load_data),
     .length_non_zero(lengths_non_zero[2]),
     .out(triangle_out));
-*/
+
   pulse_channel #(.PULSE_CHANNEL(0)) pulse0_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,
     .half_clk_en, .disable_l(status_signals.pulse0_en),

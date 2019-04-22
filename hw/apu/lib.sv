@@ -55,29 +55,30 @@ module linear_counter (
   input logic [6:0] load_data,
   output logic non_zero);
 
-  logic [6:0] count;
+  logic [6:0] next_count, count;
   logic reload;
 
   assign non_zero = count > 7'b0;
 
+  apu_register #(.WIDTH(7), .RES_VAL(0)) count_reg (
+    .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
+    .d(next_count), .q(count));
+
+  always_comb begin
+    next_count = count;
+    if (quarter_clk_en & reload) 
+      next_count = load_data;
+    else if (quarter_clk_en & non_zero)
+      next_count = count - 1'b1;
+  end
+
   always_ff @(posedge clk, negedge rst_l) begin
-    if (~rst_l) begin
-      count <= 7'b0;
+    if (~rst_l)
       reload <= 1'b0;
-    end else begin
-      if (cpu_clk_en & load)
-        reload <= 1'b1;
-
-      if (quarter_clk_en) begin
-        if (reload)
-          count <= load_data;
-        else if (non_zero)
-          count <= count - 7'b1;
-
-        if (~clear_reload_l)
-          reload <= 1'b0;
-      end
-    end
+    else if (cpu_clk_en & load)
+      reload <= 1'b1;
+    else if (quarter_clk_en & ~clear_reload_l)
+      reload <= 1'b0;
   end
 endmodule: linear_counter
 
