@@ -24,7 +24,7 @@ module apu (
   status_t status_signals;
   frame_counter_t fc_signals;
 
-  assign irq_l = ~frame_interrupt;
+  assign irq_l = 1'b1;
 
   always_comb begin
     triangle_sigs = get_triangle_signals(reg_array);
@@ -43,9 +43,40 @@ module apu (
     .apu_cycle_pulse_in(apu_clk_en), 
     .mode_in({fc_signals.mode, fc_signals.inhibit_interrupt}),
     .mode_wr_in(reg_updates[23]), .e_pulse_out(quarter_clk_en),
-    .l_pulse_out(half_clk_en), .f_pulse_out(frame_interrupt));
+    .l_pulse_out(half_clk_en), .f_pulse_out());
 
   logic [4:0] lengths_non_zero;
+  logic [1:0] a_in;
+  logic [7:0] d_in;
+  logic wr_in;
+
+  always_comb
+    if (reg_updates[8]) begin
+      a_in = 2'b00;
+      d_in = reg_array[8];
+      wr_in = 1'b1;
+    end else if (reg_updates[9]) begin
+      a_in = 2'b01;
+      d_in = reg_array[9];
+      wr_in = 1'b1;
+    end else if (reg_updates[10]) begin
+      a_in = 2'b10;
+      d_in = reg_array[10];
+      wr_in = 1'b1;
+    end else if (reg_updates[11]) begin
+      a_in = 2'b11;
+      d_in = reg_array[11];
+      wr_in = 1'b1;
+    end else begin
+      a_in = 2'b00;
+      d_in = 8'b0;
+      wr_in = 1'b0;
+    end
+
+  apu_triangle (.clk_in(clk), .rst_in(~rst_l), .en_in(status_signals.triangle_en),
+    .cpu_cycle_pulse_in(cpu_clk_en), .lc_pulse_in(half_clk_en), .eg_pulse_in(quarter_clk_en),
+    .a_in, .d_in, .wr_in, .triangle_out, .active_out());
+/*  
   triangle_channel tc (
     .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
     .disable_l(status_signals.triangle_en), 
@@ -57,7 +88,7 @@ module apu (
     .length_load_data(triangle_sigs.length_load_data),
     .length_non_zero(lengths_non_zero[2]),
     .out(triangle_out));
-
+*/
   pulse_channel #(.PULSE_CHANNEL(0)) pulse0_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,
     .half_clk_en, .disable_l(status_signals.pulse0_en),

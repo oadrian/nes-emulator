@@ -42,7 +42,7 @@ set_global_assignment -name DEVICE EP4CE115F29C7
 set_global_assignment -name TOP_LEVEL_ENTITY ChipInterface
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 16.0.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "17:52:51  MARCH 20, 2019"
-set_global_assignment -name LAST_QUARTUS_VERSION 16.0.0
+set_global_assignment -name LAST_QUARTUS_VERSION "16.1.2 Standard Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -1112,7 +1112,10 @@ set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
 set_global_assignment -name ENABLE_SIGNALTAP ON
 set_global_assignment -name USE_SIGNALTAP_FILE triangle.stp
-set_global_assignment -name VERILOG_FILE "../../../../Downloads/fpga_nes-master/hw/src/cpu/apu/apu_frame_counter.v"
+set_global_assignment -name VERILOG_FILE ../../../fpga_nes/hw/src/cpu/apu/apu_frame_counter.v
+set_global_assignment -name VERILOG_FILE ../../../fpga_nes/hw/src/cpu/apu/apu_div.v
+set_global_assignment -name VERILOG_FILE ../../../fpga_nes/hw/src/cpu/apu/apu_length_counter.v
+set_global_assignment -name VERILOG_FILE ../../../fpga_nes/hw/src/cpu/apu/apu_triangle.v
 set_global_assignment -name SYSTEMVERILOG_FILE ../apu/sweep.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../apu/pulse.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../apu/noise.sv
@@ -1156,5 +1159,4 @@ set_global_assignment -name QIP_FILE prg_rom_16.qip
 set_global_assignment -name QIP_FILE cram.qip
 set_global_assignment -name QIP_FILE prg_rom_32.qip
 set_global_assignment -name SIGNALTAP_FILE triangle.stp
-set_global_assignment -name SLD_FILE db/triangle_auto_stripped.stp
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
