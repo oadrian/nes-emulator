@@ -21,4 +21,4 @@
 hw/fullsys/logs/
 hw/init-intel/
 hw/init/
-
+hw/*.bin
