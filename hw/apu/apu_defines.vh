@@ -43,7 +43,7 @@ typedef struct packed {
 } noise_t;
 
 typedef struct packed {
-  logic inhibit_interrupt;
   logic mode;
+  logic inhibit_interrupt;
 } frame_counter_t;
 `endif

@@ -2,7 +2,7 @@
 `include "../include/ucode_ctrl.vh"
 `include "../include/cpu_types.vh"
 `include "../include/ppu_defines.vh"
-`include "../include/apu_defines.vh"
+`include "../apu/apu_defines.vh"
 
 module ChipInterface
   (input  logic CLOCK_50, 
