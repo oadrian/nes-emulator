@@ -7,6 +7,7 @@ module apu (
   input logic [7:0] reg_data,
   input logic reg_en, reg_we,
 
+  output logic irq_l,
   output logic [15:0] audio_out);
 
   logic [23:0] reg_updates;
@@ -23,6 +24,8 @@ module apu (
   status_t status_signals;
   frame_counter_t fc_signals;
 
+  assign irq_l = ~frame_interrupt;
+
   always_comb begin
     triangle_sigs = get_triangle_signals(reg_array);
     pulse0_sigs = get_pulse_signals(reg_array, 1'b0);
@@ -35,12 +38,12 @@ module apu (
   logic quarter_clk_en, half_clk_en;
   logic frame_interrupt;
 
-  frame_counter fc (
-    .clk, .rst_l, .cpu_clk_en, .mode(fc_signals.mode), 
-    .load(reg_updates[23]),
-    .inhibit_interrupt(fc_signals.inhibit_interrupt), 
-    .interrupt(frame_interrupt),
-    .quarter_clk_en, .half_clk_en);
+  apu_frame_counter (
+    .clk_in(clk), .rst_in(~rst_l), .cpu_cycle_pulse_in(cpu_clk_en),
+    .apu_cycle_pulse_in(apu_clk_en), 
+    .mode_in({fc_signals.mode, fc_signals.inhibit_interrupt}),
+    .mode_wr_in(reg_updates[23]), .e_pulse_out(quarter_clk_en),
+    .l_pulse_out(half_clk_en), .f_pulse_out(frame_interrupt));
 
   logic [4:0] lengths_non_zero;
   triangle_channel tc (
