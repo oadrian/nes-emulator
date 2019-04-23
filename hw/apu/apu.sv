@@ -37,21 +37,22 @@ module apu (
 
   logic quarter_clk_en, half_clk_en;
   logic frame_interrupt;
-
+/*
   apu_frame_counter (
     .clk_in(clk), .rst_in(~rst_l), .cpu_cycle_pulse_in(cpu_clk_en),
     .apu_cycle_pulse_in(apu_clk_en), 
     .mode_in({fc_signals.mode, fc_signals.inhibit_interrupt}),
     .mode_wr_in(reg_updates[23]), .e_pulse_out(quarter_clk_en),
     .l_pulse_out(half_clk_en), .f_pulse_out());
-/*
+*/
+
    frame_counter fc (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .mode(fc_signals.mode), 
     .load(reg_updates[23]),
     .inhibit_interrupt(fc_signals.inhibit_interrupt), 
     .interrupt(frame_interrupt),
     .quarter_clk_en, .half_clk_en);
-*/
+
 
   logic [1:0] a_in;
   logic [7:0] d_in;
