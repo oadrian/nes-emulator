@@ -1,6 +1,6 @@
 `default_nettype none
 
-module pulse_channel #(parameter PULSE_CHANNEL=1) (
+module pulse_channel #(parameter PULSE_CARRY=0) (
   input logic clk, rst_l,
 
   input logic cpu_clk_en, apu_clk_en,
@@ -63,7 +63,7 @@ module pulse_channel #(parameter PULSE_CHANNEL=1) (
     .clk, .rst_l, .clk_en(apu_clk_en), .load(update_timer_period), 
     .load_data(timer_period), .pulse(timer_pulse));
 
-  sweep #(.CARRY(PULSE_CHANNEL)) sweep_unit (
+  sweep #(.CARRY(PULSE_CARRY)) sweep_unit (
     .clk, .rst_l, .cpu_clk_en, .half_clk_en, .enable(sweep_sigs.enable),
     .negate(sweep_sigs.negate), .load(sweep_load), 
     .div_period(sweep_sigs.period), 
