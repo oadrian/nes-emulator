@@ -156,13 +156,14 @@ module top ();
         doReset;
         @(posedge clock);
         cnt = 0;
-        while(cnt < 12*`CPU_CYCLES) begin
-            /*if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
+        while(cpu.PC != 16'hE057) begin
+        //while(cnt < 12*`CPU_CYCLES) begin
+            if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
                         can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
                 $fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
-            end*/
+            end
             @(posedge clock);
             cnt++; 
         end

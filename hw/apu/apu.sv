@@ -27,6 +27,9 @@ module apu (
   status_t status_signals;
   frame_counter_t fc_signals;
 
+  logic quarter_clk_en, half_clk_en;
+  logic frame_interrupt;
+
   assign irq_l = ~frame_interrupt;
 
   always_comb begin
@@ -37,9 +40,6 @@ module apu (
     status_signals = get_status_signals(reg_array);
     fc_signals = get_frame_counter_signals(reg_array);
   end
-
-  logic quarter_clk_en, half_clk_en;
-  logic frame_interrupt;
 
   frame_counter fc (
   .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .mode(fc_signals.mode), 
