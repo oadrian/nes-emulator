@@ -18,7 +18,7 @@ module sweep #(parameter CARRY=0)(
   logic [10:0] change_amount;
   logic [11:0] target_period;
 
-  assign mute = target_period > 11'h7ff || timer_period_in < 11'h8;
+  assign mute = target_period > 12'h7ff || timer_period_in < 11'h8;
 
   always_comb begin
     change_amount = timer_period_in >> shift_count;
@@ -46,7 +46,8 @@ module sweep #(parameter CARRY=0)(
         end else
           change_timer_period <= 1'b0;
         
-        reload <= 1'b0;
+        if (div_pulse || reload)
+          reload <= 1'b0;
       end
     end
         
