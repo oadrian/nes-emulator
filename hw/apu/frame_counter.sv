@@ -24,6 +24,7 @@ always_comb
     quarter_clk_en = 1'b0;
     half_clk_en = 1'b0;
     interrupt = 1'b0;
+    
     if (apu_clk_en) begin
       next_num_cycles = num_cycles + 16'b1;
 
