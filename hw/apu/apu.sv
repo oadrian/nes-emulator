@@ -24,7 +24,7 @@ module apu (
   status_t status_signals;
   frame_counter_t fc_signals;
 
-  assign irq_l = 1'b1;
+  assign irq_l = ~frame_interrupt;
 
   always_comb begin
     triangle_sigs = get_triangle_signals(reg_array);
@@ -43,41 +43,14 @@ module apu (
     .apu_cycle_pulse_in(apu_clk_en), 
     .mode_in({fc_signals.mode, fc_signals.inhibit_interrupt}),
     .mode_wr_in(reg_updates[23]), .e_pulse_out(quarter_clk_en),
-    .l_pulse_out(half_clk_en), .f_pulse_out());
+    .l_pulse_out(half_clk_en), .f_pulse_out(frame_interrupt));
 
   logic [4:0] lengths_non_zero;
-  logic [1:0] a_in;
-  logic [7:0] d_in;
-  logic wr_in;
-
-  always_comb
-    if (reg_updates[8]) begin
-      a_in = 2'b00;
-      d_in = reg_array[8];
-      wr_in = 1'b1;
-    end else if (reg_updates[9]) begin
-      a_in = 2'b01;
-      d_in = reg_array[9];
-      wr_in = 1'b1;
-    end else if (reg_updates[10]) begin
-      a_in = 2'b10;
-      d_in = reg_array[10];
-      wr_in = 1'b1;
-    end else if (reg_updates[11]) begin
-      a_in = 2'b11;
-      d_in = reg_array[11];
-      wr_in = 1'b1;
-    end else begin
-      a_in = 2'b00;
-      d_in = 8'b0;
-      wr_in = 1'b0;
-    end
-
   triangle_channel tc (
     .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
     .disable_l(status_signals.triangle_en), 
     .length_halt(triangle_sigs.length_halt), 
-    .linear_load(reg_updates[11]), 
+    .linear_load(reg_updates[8] | reg_updates[11]), 
     .length_load(reg_updates[11]), 
     .linear_load_data(triangle_sigs.linear_load_data),
     .timer_load_data(triangle_sigs.timer_load_data),
@@ -85,7 +58,7 @@ module apu (
     .length_non_zero(lengths_non_zero[2]),
     .out(triangle_out));
 
-  pulse_channel #(.PULSE_CHANNEL(0)) pulse0_channel (
+  pulse_channel #(.PULSE_CARRY(1)) pulse0_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,
     .half_clk_en, .disable_l(status_signals.pulse0_en),
     .duty(pulse0_sigs.duty), .length_halt(pulse0_sigs.length_halt),
@@ -98,7 +71,7 @@ module apu (
     .length_non_zero(lengths_non_zero[0]),
     .out(pulse0_out));
 
-  pulse_channel #(.PULSE_CHANNEL(1)) pulse1_channel (
+  pulse_channel #(.PULSE_CARRY(0)) pulse1_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,
     .half_clk_en, .disable_l(status_signals.pulse1_en),
     .duty(pulse1_sigs.duty), .length_halt(pulse1_sigs.length_halt),
