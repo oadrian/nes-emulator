@@ -4,9 +4,10 @@ module apu (
   input logic clk, rst_l,
   input logic cpu_clk_en, apu_clk_en,
   input logic [4:0] reg_addr,
-  input logic [7:0] reg_data,
+  input logic [7:0] reg_data_in,
   input logic reg_en, reg_we,
 
+  output logic [7:0] reg_data_out,
   output logic irq_l,
   output logic [15:0] audio_out);
 
@@ -15,10 +16,13 @@ module apu (
 
   logic [3:0] pulse0_out, pulse1_out, triangle_out, noise_out;
   logic [6:0] dmc_out;
+  logic dmc_irq; //TODO: HOOKUP dmc_irq to dmc channel
 
   logic [4:0] lengths_non_zero;
 
+  logic status_read;
 
+  assign status_read = ~reg_we & reg_en & (reg_addr == 5'h15); 
   mem_map_registers mm_reg (.*);
 
   triangle_t triangle_sigs;
@@ -27,7 +31,13 @@ module apu (
   status_t status_signals;
   frame_counter_t fc_signals;
 
+  logic quarter_clk_en, half_clk_en;
+  logic frame_interrupt;
+
   assign irq_l = ~frame_interrupt;
+  //TODO: DMC does not seem to have non_zero signal
+
+  assign reg_data_out = {dmc_irq, frame_interrupt, 1'b0, lengths_non_zero};
 
   always_comb begin
     triangle_sigs = get_triangle_signals(reg_array);
@@ -38,27 +48,13 @@ module apu (
     fc_signals = get_frame_counter_signals(reg_array);
   end
 
-  logic quarter_clk_en, half_clk_en;
-  logic frame_interrupt;
-
   frame_counter fc (
   .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .mode(fc_signals.mode), 
   .load(reg_updates[23]),
-  .inhibit_interrupt(fc_signals.inhibit_interrupt), 
+  .inhibit_interrupt(fc_signals.inhibit_interrupt),
+  .clear_interrupt(status_read | (reg_updates[23] & fc_signals.inhibit_interrupt)),
   .interrupt(frame_interrupt),
   .quarter_clk_en, .half_clk_en);
-  
-  triangle_channel tc (
-    .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
-    .disable_l(status_signals.triangle_en), 
-    .length_halt(triangle_sigs.length_halt), 
-    .linear_load(reg_updates[11]), 
-    .length_load(reg_updates[11]), 
-    .linear_load_data(triangle_sigs.linear_load_data),
-    .timer_load_data(triangle_sigs.timer_load_data),
-    .length_load_data(triangle_sigs.length_load_data),
-    .length_non_zero(lengths_non_zero[2]),
-    .out(triangle_out));
 
   pulse_channel #(.PULSE_CARRY(1)) pulse0_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,
@@ -85,6 +81,18 @@ module apu (
     .length_load_data(pulse1_sigs.length_load_data),
     .length_non_zero(lengths_non_zero[1]),
     .out(pulse1_out));
+
+  triangle_channel tc (
+    .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
+    .disable_l(status_signals.triangle_en), 
+    .length_halt(triangle_sigs.length_halt), 
+    .linear_load(reg_updates[11]), 
+    .length_load(reg_updates[11]), 
+    .linear_load_data(triangle_sigs.linear_load_data),
+    .timer_load_data(triangle_sigs.timer_load_data),
+    .length_load_data(triangle_sigs.length_load_data),
+    .length_non_zero(lengths_non_zero[2]),
+    .out(triangle_out));
 
   noise_channel noise_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,

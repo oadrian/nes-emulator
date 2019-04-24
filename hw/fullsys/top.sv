@@ -80,7 +80,6 @@ module top ();
     logic [7:0] mem_rd_data_c;
     logic irq_n;
 
-    assign irq_n = 1'b1;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
@@ -90,8 +89,11 @@ module top ();
 
     apu apooh (
       .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr, 
-      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .audio_out);
-      
+      .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
+      .irq_l(irq_n),
+      .reg_data_out(reg_read_data),
+      .audio_out);
+
 
     // CPU Memory Interface
     logic [15:0] mem_addr;
@@ -156,13 +158,14 @@ module top ();
         doReset;
         @(posedge clock);
         cnt = 0;
-        while(cnt < 12*`CPU_CYCLES) begin
-            /*if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
+        while(cpu.PC != 16'hE057) begin
+        //while(cnt < 12*`CPU_CYCLES) begin
+            if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
                         can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
                 $fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
-            end*/
+            end
             @(posedge clock);
             cnt++; 
         end
