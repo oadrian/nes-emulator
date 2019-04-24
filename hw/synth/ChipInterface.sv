@@ -139,7 +139,8 @@ module ChipInterface
 
     apu apooh (
       .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr,
-      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, 
+      .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
+		.reg_data_out(reg_read_data),
       .irq_l(irq_n), .audio_out);
     
     logic VGA_CTRL_CLK, AUD_CTRL_CLK;    //  For Audio Controller
