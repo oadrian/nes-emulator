@@ -1,11 +1,10 @@
 `default_nettype none
 
-//TODO: ALLOW FOR READING OF THE STATUS apu_register
 module mem_map_registers (
   input logic clk, rst_l,
   input logic cpu_clk_en,
   input logic [4:0] reg_addr,
-  input logic [7:0] reg_data,
+  input logic [7:0] reg_data_in,
   input logic reg_en, reg_we,
 
   output logic [23:0] reg_updates,
@@ -16,7 +15,7 @@ module mem_map_registers (
 
   always_comb begin
     next_reg_array = reg_array;
-    next_reg_array[reg_addr] = reg_data;
+    next_reg_array[reg_addr] = reg_data_in;
 
     next_reg_updates = 24'b0;
     next_reg_updates[reg_addr] = reg_en & reg_we;

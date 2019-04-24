@@ -56,7 +56,7 @@ module noise_channel (
     .clk, .rst_l, .clk_en(apu_clk_en), .en(timer_pulse), 
     .d(next_shift_data), .q(shift_data));
 
-  divider #(.WIDTH(4), .RES_VAL(0)) timer (
+  divider #(.WIDTH(12), .RES_VAL(0)) timer (
     .clk, .rst_l, .clk_en(apu_clk_en), .load(1'b0), 
     .load_data(timer_period), .pulse(timer_pulse));
 
