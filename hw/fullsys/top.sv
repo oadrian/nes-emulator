@@ -80,7 +80,6 @@ module top ();
     logic [7:0] mem_rd_data_c;
     logic irq_n;
 
-    assign irq_n = 1'b1;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
@@ -90,8 +89,11 @@ module top ();
 
     apu apooh (
       .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr, 
-      .reg_data(reg_write_data), .reg_en(data_valid), .reg_we, .audio_out);
-      
+      .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
+      .irq_l(irq_n),
+      .reg_data_out(reg_read_data),
+      .audio_out);
+
 
     // CPU Memory Interface
     logic [15:0] mem_addr;

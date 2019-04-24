@@ -112,6 +112,16 @@ module cpu_memory(
     
     );
 
+    logic prev_apu_read;
+
+    always_ff @(posedge clock or negedge reset_n)
+      if (~reset_n)
+        prev_apu_read <= 1'b0;
+      else if (clock_en & (addr == 16'h4015))
+        prev_apu_read <= 1'b1;
+      else if (clock_en)
+        prev_apu_read <= 1'b0;
+
     // TODO: HOOK UP APU READS
     // Driving APU registers
     always_comb begin
@@ -176,8 +186,8 @@ module cpu_memory(
 			r_data = button_data_rd;
 		else if(prev_reg_en) 
 			r_data = reg_data_rd;
-		else
-			r_data = mem_data_rd;
+		else if (prev_apu_read)
+			r_data = reg_read_data;
 	 end
 	 
 
