@@ -102,17 +102,20 @@ module top ();
     // debug
     logic [15:0] PC_debug;
 
+
     assign irq_n = 1'b1;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
              .nmi(vblank_nmi), .irq_n, .PC_debug);
 
+
     // CPU Memory Interface
     logic [15:0] mem_addr;
     logic mem_re;
     logic [7:0] mem_wr_data, mem_rd_data;
-    logic ctlr_data, ctlr_pulse, ctlr_latch;
+    logic ctlr_data_p1, ctlr_data_p2, 
+    logic ctlr_pulse_p1, ctlr_pulse_p2, ctlr_latch,
     logic [7:0] read_prom;
 
     assign ctlr_data = 1'b1;
@@ -128,7 +131,9 @@ module top ();
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
-                   .ctlr_data, .ctlr_pulse, .ctlr_latch, .read_prom);
+                   .ctlr_data_p1(1'b1), .ctlr_data_p2(1'b1),
+                   .ctlr_pulse_p1, .ctlr_pulse_p2, .ctlr_latch,
+                   .read_prom);
 
     initial begin 
         clock = 1'b0;
