@@ -33,73 +33,27 @@ module bg_pixel (
     output logic [3:0] bg_color_idx,
 
     // scrolling
-    input logic [7:0] ppuscrollX, ppuscrollY // (x,y) in name_tbl to start
-                                             // rendering from
+    input addr_t vAddr, 
+    input [2:0] fX
 );
-    logic [8:0] act_row, act_col, row, col;
-    logic row_ovf, col_ovf;
-
-    assign act_row = (ppuscrollY < 8'd240) ? sl_row + {1'b0,ppuscrollY} : sl_row - {1'b0, (~ppuscrollY + 8'd1)};
-    assign act_col = sl_col + {1'b0, ppuscrollX};
-
-    assign row_ovf = act_row >= 9'd240;
-    assign col_ovf = act_col[8];        // col >= 256
-
-    assign row = (row_ovf) ? act_row - 9'd240 : act_row;
-    assign col = {1'b0, act_col[7:0]};
 
     //////////// Nametable ////////////
-    logic [5:0] nametbl_row, nametbl_col;
-    logic [2:0] tile_row, tile_col;
-
-    logic [10:0] nametbl_idx, nametbl_off;
     logic [7:0] tile_idx;
+    logic [15:0] nt_addr;
 
-    assign nametbl_row = row[8:3];  //  row / 8
-    assign nametbl_col = col[8:3]; //  col / 8
+    assign nt_addr = 16'h2000 | vAddr.r[11:0];
 
-    assign tile_row = row[2:0];    // row % 8
-    assign tile_col = col[2:0];    // col % 8
-
-    always_comb begin
-        nametbl_off = 11'h000;
-        if(mirroring == VER_MIRROR) begin 
-            case (name_tbl) 
-                TOP_L_TBL: nametbl_off = (!col_ovf) ? 11'h000 : 11'h400;
-                TOP_R_TBL: nametbl_off = (!col_ovf) ? 11'h400 : 11'h000;
-                BOT_L_TBL: nametbl_off = (!col_ovf) ? 11'h000 : 11'h400;   // depends on mirroring
-                BOT_R_TBL: nametbl_off = (!col_ovf) ? 11'h400 : 11'h000;   // deppends on mirroring
-            endcase
-        end else if(mirroring == HOR_MIRROR) begin
-            case (name_tbl) 
-                TOP_L_TBL: nametbl_off = (!row_ovf) ? 11'h000 : 11'h400;
-                TOP_R_TBL: nametbl_off = (!row_ovf) ? 11'h000 : 11'h400;
-                BOT_L_TBL: nametbl_off = (!row_ovf) ? 11'h400 : 11'h000;   // depends on mirroring
-                BOT_R_TBL: nametbl_off = (!row_ovf) ? 11'h400 : 11'h000;   // deppends on mirroring
-            endcase
-        end 
-    end
-
-    assign nametbl_idx = {nametbl_row, 5'b0} + {5'b0,nametbl_col}; 
-    assign vram_addr1= nametbl_off + nametbl_idx;
+    vram_mirroring vm1(.addr(nt_addr), .mirroring, .vram_addr(vram_addr1));
+    
     assign tile_idx = vram_data1;  // tile info
 
     //////////// Attribute table ////////////
     logic [1:0] pal_idx;
-    logic [3:0] attrtbl_row, attrtbl_col;
-    logic [4:0] block_row, block_col;
-
-    logic [10:0] attrtbl_idx;
     logic [7:0] attr_blk;
+    logic [15:0] at_addr;
 
-    assign attrtbl_row = row[8:5]; // row / 32
-    assign attrtbl_col = col[8:5]; // col / 32
-
-    assign block_row = row[4:0];   // row % 32
-    assign block_col = col[4:0];   // col % 32
-
-    assign attrtbl_idx = {4'b0,attrtbl_row,3'b0} + {7'b0, attrtbl_col}; 
-    assign vram_addr2 = nametbl_off + `ATTR_TBL_OFF + attrtbl_idx;
+    assign at_addr = 16'h23C0 | {4'b0, vAddr.nt, 4'b0, vAddr.cY[4:2], vAddr.cX[4:2]};
+    vram_mirroring vm2(.addr(at_addr), .mirroring, .vram_addr(vram_addr2));
     assign attr_blk = vram_data2;
 
     always_comb begin

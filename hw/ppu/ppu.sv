@@ -37,7 +37,7 @@ module ppu (
     input logic [7:0] cpu_rd_data, 
 
     // debug
-    output logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY,
+    output logic [7:0] ppuctrl, ppumask,
 
     // mirroring
     input mirror_t mirroring
@@ -91,8 +91,6 @@ module ppu (
     logic sp_zero_set, sp_zero_clr;
     logic vblank_set, vblank_clr;
 
-    // logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
-
     // OAM  (Async read)
     logic [7:0] oam_addr_ri; 
     logic oam_we_ri, oam_re_ri;
@@ -120,6 +118,14 @@ module ppu (
     assign pal_d_in = pal_wr_data_ri;
     assign pal_rd_data_ri = pal_d_out;
 
+    // register interface
+    addr_t vAddr;
+    logic [2:0] fX;
+    logic h_scroll, v_scroll, h_update, v_update;
+    logic rendering;
+
+    // show background or sprites
+    assign rendering = ppumask[3] | ppumask[4];
     reg_inter ri(.clk, .cpu_clk_en, .ppu_clk_en, .rst_n,
                  .reg_sel, .reg_en, .reg_rw, .reg_data_in, .reg_data_out,
                  .cpu_cyc_par, .cpu_sus,
@@ -139,8 +145,10 @@ module ppu (
                  .cpu_addr, .cpu_re, .cpu_rd_data, 
 
                  .ppuctrl_out(ppuctrl), .ppumask_out(ppumask), 
-                 .ppuscrollX_out(ppuscrollX), .ppuscrollY_out(ppuscrollY)
-                 );
+                 
+                 .vAddr, .fX,
+                 .h_scroll, .v_scroll, .h_update, .v_update,
+                 .rendering);
 
     //////////// row, col logic   /////////////
 
@@ -336,8 +344,7 @@ module ppu (
                 .mirroring, 
                 .chr_rom_addr1(bg_chr_rom_addr1), .chr_rom_addr2(bg_chr_rom_addr2), 
                 .chr_rom_data1(chr_rom_out1), .chr_rom_data2(chr_rom_out2),
-                .bg_color_idx(bg_color_idx_t),
-                .ppuscrollX, .ppuscrollY);
+                .bg_color_idx(bg_color_idx_t));
 
     // ppumask control bits
     assign bg_color_idx_en = (ppumask[3]) ? bg_color_idx_t : 4'b0000;

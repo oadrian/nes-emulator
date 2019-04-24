@@ -55,16 +55,16 @@ typedef enum logic [2:0] {
 
 // pattern table 
 typedef enum logic {
-    LEFT_TBL,  // 0x0000-0x0FFF
-    RIGHT_TBL  // 0x1000-0x1FFF
+    LEFT_TBL = 1'b0,  // 0x0000-0x0FFF
+    RIGHT_TBL = 1'b1 // 0x1000-0x1FFF
 } pattern_tbl_t;
 
 // nametable 
 typedef enum logic [1:0] {
-    TOP_L_TBL,  // 0x2000
-    TOP_R_TBL,  // 0x2400
-    BOT_L_TBL,  // 0x2800
-    BOT_R_TBL   // 0x2C00
+    TOP_L_TBL = 2'b00,  // 0x2000
+    TOP_R_TBL = 2'b01,  // 0x2400
+    BOT_L_TBL = 2'b10,  // 0x2800
+    BOT_R_TBL = 2'b11   // 0x2C00
 } name_tbl_t;
 
 typedef struct packed{
@@ -95,5 +95,23 @@ typedef enum logic [1:0] {
     ONE_SCR_MIRROR,
     FOUR_SCR_MIRROR
 } mirror_t;
+
+typedef struct packed {
+    logic [4:0] cX;  // Coarse X.
+    logic [4:0] cY;  // Coarse Y.
+    logic [1:0] nt;  // Nametable.
+    logic [2:0] fY;  // Fine Y.
+} addr_1;
+
+typedef struct packed {
+    logic [7:0] l;
+    logic [6:0] h;
+} addr_2;
+
+typedef union packed {
+    addr_1 pixel_gran;
+    addr_2 split;
+    logic [14:0] r;
+} addr_t;
 
 `endif
