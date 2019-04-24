@@ -1,7 +1,9 @@
 `default_nettype none
 `include "../include/ppu_defines.vh"
+`include "../include/apu_defines.vh"
 
 `define CPU_CYCLES 176296
+
 
 module top ();
     string logFile = "logs/fullsys-log.txt";
@@ -16,6 +18,9 @@ module top ();
 
     logic cpu_clk_en;  // Master / 12
     clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en));
+
+    logic apu_clk_en;
+    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en));
 
     // ppu cycle
     logic [63:0] ppu_cycle;
@@ -82,6 +87,11 @@ module top ();
             default : mirroring = VER_MIRROR;
         endcase
     end
+    // APU
+    logic [4:0] reg_addr;
+    logic [7:0] reg_write_data;
+    logic [7:0] reg_read_data;
+    logic data_valid, reg_we;
 
     assign cpu_cyc_par = cpu_cycle[0];
 
@@ -102,12 +112,19 @@ module top ();
     // debug
     logic [15:0] PC_debug;
 
-
-    assign irq_n = 1'b1;
-
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
              .nmi(vblank_nmi), .irq_n, .PC_debug);
+
+
+    logic [15:0] audio_out;
+
+    apu apooh (
+      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr, 
+      .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
+      .irq_l(irq_n),
+      .reg_data_out(reg_read_data),
+      .audio_out);
 
 
     // CPU Memory Interface
@@ -131,9 +148,11 @@ module top ();
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
+                   .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
                    .ctlr_data_p1(1'b1), .ctlr_data_p2(1'b1),
                    .ctlr_pulse_p1, .ctlr_pulse_p2, .ctlr_latch,
                    .read_prom);
+
 
     initial begin 
         clock = 1'b0;
@@ -180,7 +199,8 @@ module top ();
         doReset;
         @(posedge clock);
         cnt = 0;
-        while(cnt < 12*`CPU_CYCLES) begin
+        while(cpu.PC != 16'hE057) begin
+        //while(cnt < 12*`CPU_CYCLES) begin
             if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",

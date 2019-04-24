@@ -2,6 +2,7 @@
 `include "../include/ucode_ctrl.vh"
 `include "../include/cpu_types.vh"
 `include "../include/ppu_defines.vh"
+`include "../apu/apu_defines.vh"
 
 module ChipInterface
   (input  logic CLOCK_50, 
@@ -14,12 +15,24 @@ module ChipInterface
    output logic [7:0]  VGA_R, VGA_G, VGA_B, 
    output logic        VGA_BLANK_N, VGA_CLK, VGA_SYNC_N, 
    output logic        VGA_VS, VGA_HS,
+
+  input  AUD_ADCDAT,
+  inout  AUD_ADCLRCK,
+  inout  AUD_BCLK,
+  output AUD_DACDAT,
+  inout  AUD_DACLRCK,
+  output AUD_XCK,
+
+  output I2C_SCLK,
+  inout I2C_SDAT,
    // GPIO PINS
    inout logic [35:0] GPIO
    ); 
 
 	logic reset_n;
-    assign reset_n = SW[17];
+  logic rst_n;
+  assign reset_n = SW[17];
+  assign rst_n = reset_n;
 	
 	// 21.477272 MHz  and 10.738636 MHz clock
 	logic areset, CLOCK_21, CLOCK_10, locked;
@@ -44,6 +57,8 @@ module ChipInterface
     clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en));
 //	 Stepper step(.clock, .reset_n, .key_n(KEY[3]), .clk_en(cpu_clk_en));
 
+    logic apu_clk_en;
+    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en));
     // ppu cycle
     logic [63:0] ppu_cycle;
     always_ff @(posedge clock or negedge reset_n) begin
@@ -114,6 +129,40 @@ module ChipInterface
             .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY,
             .mirroring);
 
+    // APU
+    logic [4:0] reg_addr;
+    logic [7:0] reg_write_data;
+    logic [7:0] reg_read_data;
+    logic data_valid, reg_we;
+
+    logic [15:0] audio_out;
+
+    apu apooh (
+      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr,
+      .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
+		.reg_data_out(reg_read_data),
+      .irq_l(irq_n), .audio_out);
+    
+    logic VGA_CTRL_CLK, AUD_CTRL_CLK;    //  For Audio Controller
+    assign AUD_DACLRCK = 1'bz;                         
+    assign AUD_DACDAT = 1'bz;                         
+    assign AUD_BCLK = 1'bz;                          
+    assign AUD_XCK = 1'bz;     
+    assign AUD_XCK = AUD_CTRL_CLK;
+
+    // IPs to drive audio from Quartus
+    VGA_Audio_PLL audio_pll (
+      .areset(~reset_n), .inclk0(CLOCK_50), .c0(VGA_CTRL_CLK), 
+      .c1(AUD_CTRL_CLK), .c2());
+
+    //  Audio CODEC and video decoder setting
+    I2C_AV_Config audio_config (
+      .iCLK(CLOCK_50), .iRST_N(reset_n), .I2C_SCLK(I2C_SCLK), 
+      .I2C_SDAT(I2C_SDAT));
+
+    audio_dac dac (
+      .clk(AUD_CTRL_CLK), .rst_l(reset_n), .audio(audio_out), .*);
+      
     // CPU stuff
     logic [15:0] mem_addr_c;
     logic mem_re_c;
@@ -121,8 +170,6 @@ module ChipInterface
     logic [7:0] mem_rd_data_c;
     logic [15:0] PC;
     logic irq_n;
-
-    assign irq_n = 1'b1;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
@@ -171,6 +218,7 @@ module ChipInterface
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
+                   .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
                    .read_prom,
                    .ctlr_pulse_p1(GPIO[26]), .ctlr_pulse_p2(GPIO[11]),
                    .ctlr_latch, 
