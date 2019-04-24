@@ -13,7 +13,7 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
   input logic const_vol,
   input logic [3:0] vol, // Also the period for envelope divider
 
-  input logic env_load, sweep_load, length_load,
+  input logic env_load, sweep_load, length_load, timer_load,
 
   input sweep_t sweep_sigs,
   input logic [10:0] timer_period_in,
@@ -51,16 +51,26 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
     seq_out = seq[seq_i];
   end
 
+  logic choose_sweep;
+
   assign loop_flag = length_halt;
-  assign timer_period = update_timer_period ? sweep_timer_period : 
+  assign timer_period = choose_sweep ? sweep_timer_period : 
                                               timer_period_in;
+
+  always_ff @(posedge clk or negedge rst_l)
+    if(~rst_l)
+      choose_sweep <= 1'b0;
+    else if (update_timer_period)
+      choose_sweep <= 1'b1;
+    else if (timer_load)
+      choose_sweep <= 1'b0;
 
   up_counter #(.WIDTH(3), .RES_VAL(0)) seq_i_counter (
     .clk, .rst_l, .clk_en(apu_clk_en), .en(timer_pulse), .load(length_load),
     .load_data(3'b0), .count(seq_i));
 
   divider #(.WIDTH(11), .RES_VAL(0)) timer (
-    .clk, .rst_l, .clk_en(apu_clk_en), .load(update_timer_period), 
+    .clk, .rst_l, .clk_en(apu_clk_en), .load(1'b0), 
     .load_data(timer_period), .pulse(timer_pulse));
 
   sweep #(.CARRY(PULSE_CARRY)) sweep_unit (

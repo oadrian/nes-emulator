@@ -30,26 +30,18 @@ module sweep #(parameter CARRY=0)(
     .clk, .rst_l, .clk_en(half_clk_en), .load(reload), .load_data(div_period),
     .pulse(div_pulse));
 
+  assign timer_period_out = target_period[10:0];
+  assign change_timer_period = half_clk_en && div_pulse && enable && ~mute && 
+                               shift_count > 0;
+
+
   always_ff @(posedge clk, negedge rst_l)
-    if (~rst_l) begin
-      timer_period_out <= 11'b0;
-      change_timer_period <= 1'b0;
+    if (~rst_l)
       reload <= 1'b0;
-    end else begin
-      if (cpu_clk_en & load)
-        reload <= 1'b1;
-      
-      if (half_clk_en) begin
-        if (div_pulse && enable && ~mute && shift_count > 0) begin
-          timer_period_out <= target_period[10:0];
-          change_timer_period <= 1'b1;
-        end else
-          change_timer_period <= 1'b0;
-        
-        if (div_pulse || reload)
-          reload <= 1'b0;
-      end
-    end
+    else if (cpu_clk_en & load)
+      reload <= 1'b1;
+    else if (half_clk_en)
+      reload <= 1'b0;
         
 
 
