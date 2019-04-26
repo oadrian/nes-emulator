@@ -1,8 +1,8 @@
 `default_nettype none
 `include "../include/ppu_defines.vh"
-`include "../include/apu_defines.vh"
+`include "../apu/apu_defines.vh"
 
-`define CPU_CYCLES 176296
+`define CPU_CYCLES 1000000
 
 
 module top ();
@@ -131,11 +131,12 @@ module top ();
     logic [15:0] mem_addr;
     logic mem_re;
     logic [7:0] mem_wr_data, mem_rd_data;
-    logic ctlr_data_p1, ctlr_data_p2, 
-    logic ctlr_pulse_p1, ctlr_pulse_p2, ctlr_latch,
+    logic ctlr_data_p1, ctlr_data_p2;
+    logic ctlr_pulse_p1, ctlr_pulse_p2, ctlr_latch;
     logic [7:0] read_prom;
 
-    assign ctlr_data = 1'b1;
+    assign ctlr_data_p1 = 1'b1;
+    assign ctlr_data_p2 = 1'b1;
 
     assign mem_addr = (cpu_sus) ? mem_addr_p : mem_addr_c;
     assign mem_re = (cpu_sus) ? mem_re_p : mem_re_c;
@@ -149,7 +150,7 @@ module top ();
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
                    .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
-                   .ctlr_data_p1(1'b1), .ctlr_data_p2(1'b1),
+                   .ctlr_data_p1, .ctlr_data_p2,
                    .ctlr_pulse_p1, .ctlr_pulse_p2, .ctlr_latch,
                    .read_prom);
 
@@ -199,8 +200,8 @@ module top ();
         doReset;
         @(posedge clock);
         cnt = 0;
-        while(cpu.PC != 16'hE057) begin
-        //while(cnt < 12*`CPU_CYCLES) begin
+        // while(cpu.PC != 16'hE057) begin
+        while(cnt < 12*`CPU_CYCLES) begin
             if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
