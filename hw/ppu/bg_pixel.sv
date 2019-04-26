@@ -44,7 +44,10 @@ module bg_pixel (
         if(~rst_n) begin
             tile_pixel <= 0;
         end else if(clk_en) begin
-            tile_pixel <= tile_pixel + 3'd1;
+            if(sl_col == 9'd340)
+                tile_pixel <= 3'd0;
+            else
+                tile_pixel <= tile_pixel + 3'd1;
         end
     end
 

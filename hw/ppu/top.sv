@@ -36,6 +36,8 @@ module top ();
 
     mirror_t mirroring;
 
+    assign mirroring = VER_MIRROR;
+
 
     // CPU clock enable
     clock_div #(4) ppu_ck(.clk, .rst_n, .clk_en(ppu_clk_en));    

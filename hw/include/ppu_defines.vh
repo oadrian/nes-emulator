@@ -97,15 +97,15 @@ typedef enum logic [1:0] {
 } mirror_t;
 
 typedef struct packed {
-    logic [4:0] cX;  // Coarse X.
-    logic [4:0] cY;  // Coarse Y.
-    logic [1:0] nt;  // Nametable.
     logic [2:0] fY;  // Fine Y.
+    logic [1:0] nt;  // Nametable.
+    logic [4:0] cY;  // Coarse Y.
+    logic [4:0] cX;  // Coarse X.
 } addr_1;
 
 typedef struct packed {
-    logic [7:0] l;
     logic [6:0] h;
+    logic [7:0] l;
 } addr_2;
 
 typedef union packed {
