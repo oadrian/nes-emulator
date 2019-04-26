@@ -119,7 +119,7 @@ module ppu (
     assign pal_rd_data_ri = pal_d_out;
 
     // register interface
-    addr_t vAddr;
+    logic [15:0] vAddr;
     logic [2:0] fX;
     logic h_scroll, v_scroll, h_update, v_update;
     logic rendering;

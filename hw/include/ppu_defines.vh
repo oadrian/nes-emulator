@@ -96,22 +96,25 @@ typedef enum logic [1:0] {
     FOUR_SCR_MIRROR
 } mirror_t;
 
-typedef struct packed {
-    logic [2:0] fY;  // Fine Y.
-    logic [1:0] nt;  // Nametable.
-    logic [4:0] cY;  // Coarse Y.
-    logic [4:0] cX;  // Coarse X.
-} addr_1;
-
-typedef struct packed {
-    logic [6:0] h;
-    logic [7:0] l;
-} addr_2;
-
-typedef union packed {
-    addr_1 pixel_gran;
-    addr_2 split;
-    logic [14:0] r;
-} addr_t;
+///   15| 14 | 13 | 12 | 11 | 10 | 9  | 8  | 7  | 6  | 5  | 4  | 3  | 2  | 1  | 0
+///   0 |      fY      |    nt   |           cY           |           cX 
+///   0 | fY | fY | fY | nt | nt | cY | cY | cY | cY | cY | cX | cX | cX | cX | cX
+//typedef struct packed {
+//    logic [2:0] fY;  // Fine Y.
+//    logic [1:0] nt;  // Nametable.
+//    logic [4:0] cY;  // Coarse Y.
+//    logic [4:0] cX;  // Coarse X.
+//} addr_1;
+//
+//typedef struct packed {
+//    logic [6:0] h;
+//    logic [7:0] l;
+//} addr_2;
+//
+//typedef union packed {
+//    addr_1 pixel_gran;
+//    addr_2 split;
+//    logic [14:0] r;
+//} addr_t;
 
 `endif

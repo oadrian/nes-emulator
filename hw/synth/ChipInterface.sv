@@ -93,7 +93,7 @@ module ChipInterface
     logic [7:0] mem_rd_data_p;
 
     assign cpu_cyc_par = cpu_cycle[0];
-    logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
+    logic [7:0] ppuctrl, ppumask;
 
     mirror_t mirroring;
 
@@ -126,7 +126,7 @@ module ChipInterface
             .cpu_clk_en, .reg_sel, .reg_en, .reg_rw, .reg_data_in(reg_data_wr), .reg_data_out(reg_data_rd),
             .cpu_cyc_par, .cpu_sus, 
             .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p), 
-            .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY,
+            .ppuctrl, .ppumask,
             .mirroring);
 
     // APU

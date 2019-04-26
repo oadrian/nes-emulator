@@ -67,7 +67,7 @@ module reg_inter (
     output logic [7:0] ppumask_out,
 
     // vram address connections
-    output addr_t vAddr, 
+    output logic [15:0] vAddr, 
     output logic [2:0] fX,
 
     input logic h_scroll, v_scroll, h_update, v_update,
@@ -139,8 +139,8 @@ module reg_inter (
     ///////////////////////// VRAM registers ////////////////////////////////  
     logic [15:0] vAddr_inc_amnt;
     
-    addr_t tAddr;
-    addr_t vAddr_in, tAddr_in; 
+    logic [15:0] tAddr;
+    logic [15:0] vAddr_in, tAddr_in; 
     logic [2:0] fX_in;
 
     logic vAddr_upd, tAddr_upd, fX_upd;
@@ -161,19 +161,19 @@ module reg_inter (
     logic vram_we_reg;
     assign vram_we = vram_we_reg;
 
-    vram_mirroring vm(.addr({1'b0, vAddr.r}), .mirroring, .vram_addr);
+    vram_mirroring vm(.addr(vAddr), .mirroring, .vram_addr);
 
     ////////// PAL ram address to read or write to //////////////
     logic pal_we_reg;
     assign pal_we = pal_we_reg; 
 
     always_comb begin
-        case (vAddr.r[4:0])
+        case (vAddr[4:0])
             5'h10: pal_addr = 5'h00;
             5'h14: pal_addr = 5'h04;
             5'h18: pal_addr = 5'h08;
             5'h1C: pal_addr = 5'h0C;
-            default : pal_addr = vAddr.r[4:0];
+            default : pal_addr = vAddr[4:0];
         endcase
     end
 
@@ -391,7 +391,7 @@ module reg_inter (
                     ppuctrl_in = reg_data_in;
 
                     // write nt bits of tAddr
-                    tAddr_in.pixel_gran.nt = reg_data_in[1:0];
+                    tAddr_in[11:10] = reg_data_in[1:0];
                     tAddr_upd = 1'b1;
 
                     last_write = reg_data_in;
@@ -417,17 +417,17 @@ module reg_inter (
                     fX_upd = 1'b1;
 
                     // write tAddr cX
-                    tAddr_in.pixel_gran.cX = reg_data_in[7:3]; 
+                    tAddr_in[4:0] = reg_data_in[7:3]; 
                     tAddr_upd = 1'b1;
 
                     last_write = reg_data_in;
                 end else if(reg_en && reg_rw && wr_curr_state == SECOND_WRITE) begin 
                     wr_next_state = FIRST_WRITE;
                     // write tAddr fY
-                    tAddr_in.pixel_gran.fY = reg_data_in[2:0];
+                    tAddr_in[14:12] = reg_data_in[2:0];
 
                     // write tAddr cY
-                    tAddr_in.pixel_gran.cY = reg_data_in[7:3]; 
+                    tAddr_in[9:5] = reg_data_in[7:3]; 
                     tAddr_upd = 1'b1;
 
                     last_write = reg_data_in;
@@ -437,19 +437,19 @@ module reg_inter (
                 if(reg_en && reg_rw && wr_curr_state == FIRST_WRITE) begin 
                     wr_next_state = SECOND_WRITE;
                     // write tAddr h
-                    tAddr_in.split.h = reg_data_in[6:0]; 
+                    tAddr_in[15:8] = {2'b0, reg_data_in[5:0]}; 
                     tAddr_upd = 1'b1;
 
                     last_write = reg_data_in;
                 end else if(reg_en && reg_rw && wr_curr_state == SECOND_WRITE) begin 
                     wr_next_state = FIRST_WRITE;
                     // write tAddr l
-                    tAddr_in.split.l = reg_data_in[7:0]; 
+                    tAddr_in[7:0] = reg_data_in[7:0]; 
                     tAddr_upd = 1'b1;
 
                     // write vAddr
-                    vAddr_in.split.l = reg_data_in[7:0];
-                    vAddr_in.split.h = tAddr_in.split.h;
+                    vAddr_in[7:0] = reg_data_in[7:0];
+                    vAddr_in[15:8] = tAddr[15:8];
                     vAddr_upd = 1'b1;
 
                     last_write = reg_data_in;
@@ -484,14 +484,14 @@ module reg_inter (
                     vAddr_upd = 1'b1;
                     last_write = reg_data_in;
 
-                    if(14'h0000 <= vAddr.r[13:0] && vAddr.r[13:0] <= 14'h1FFF) begin 
+                    if(14'h0000 <= vAddr[13:0] && vAddr[13:0] <= 14'h1FFF) begin 
                         // CHR RAM
                         
-                    end else if(14'h2000 <= vAddr.r[13:0] && vAddr.r[13:0] <= 14'h3EFF) begin 
+                    end else if(14'h2000 <= vAddr[13:0] && vAddr[13:0] <= 14'h3EFF) begin 
                         // NT RAM
                         vram_we_reg = 1'b1;
                         vram_wr_data = reg_data_in;
-                    end else if(14'h3f00 <= vAddr.r[13:0] && vAddr.r[13:0] <= 14'h3fff) begin 
+                    end else if(14'h3f00 <= vAddr[13:0] && vAddr[13:0] <= 14'h3fff) begin 
                         // PAL RAM
                         pal_we_reg = 1'b1;
                         pal_wr_data = reg_data_in;
@@ -501,13 +501,13 @@ module reg_inter (
                     vAddr_in = vAddr + vAddr_inc_amnt;
                     vAddr_upd = 1'b1;
 
-                    if(14'h0000 <= vAddr.r[13:0] && vAddr.r[13:0] <= 14'h1FFF) begin 
+                    if(14'h0000 <= vAddr[13:0] && vAddr[13:0] <= 14'h1FFF) begin 
                         
-                    end else if(14'h2000 <= vAddr.r[13:0] && vAddr.r[13:0] <= 14'h3EFF) begin 
+                    end else if(14'h2000 <= vAddr[13:0] && vAddr[13:0] <= 14'h3EFF) begin 
                         vram_re = 1'b1;
                         read_buf_next = vram_rd_data;
                         reg_data_out_next = read_buf_curr;
-                    end else if(14'h3f00 <= vAddr.r[13:0] && vAddr.r[13:0] <= 14'h3fff) begin 
+                    end else if(14'h3f00 <= vAddr[13:0] && vAddr[13:0] <= 14'h3fff) begin 
                         pal_re = 1'b1;
                         reg_data_out_next = pal_rd_data;
                     end
@@ -535,13 +535,13 @@ module vram_addr_register (
     input clk_en, // Clock Enable
     input rst_n,  // Asynchronous reset active low
     
-    output addr_t vAddr, tAddr, 
+    output logic [15:0] vAddr, tAddr, 
     output logic [2:0] fX,
 
     // standard update of register
     input logic vAddr_upd, tAddr_upd, fX_upd,
 
-    input addr_t vAddr_in, tAddr_in, 
+    input logic [15:0] vAddr_in, tAddr_in, 
     input logic [2:0] fX_in,
 
     // more complex commands
@@ -563,7 +563,7 @@ module vram_addr_register (
     // tAddr register
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
-            tAddr <= 15'd0;
+            tAddr <= 16'd0;
         end else if(clk_en && tAddr_upd) begin
             tAddr <= tAddr_in;
         end
@@ -572,35 +572,35 @@ module vram_addr_register (
     // vAddr register
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
-            vAddr <= 15'd0;
+            vAddr <= 16'd0;
         end else if(clk_en) begin
             if(vAddr_upd) begin
                 vAddr <= vAddr_in;
             end else if(rendering && h_scroll) begin
-                if(vAddr.pixel_gran.cX == 5'd31) begin 
-                    vAddr.r <= vAddr.r ^ 15'h41F;
+                if(vAddr[4:0] == 5'd31) begin 
+                    vAddr <= vAddr ^ 16'h41F;
                 end else begin 
-                    vAddr.pixel_gran.cX <= vAddr.pixel_gran.cX + 5'd1;
+                    vAddr[4:0] <= vAddr[4:0] + 5'd1;
                 end
             end else if(rendering && v_scroll) begin
-                if(vAddr.pixel_gran.fY < 3'd7) begin 
-                    vAddr.pixel_gran.fY <= vAddr.pixel_gran.fY + 3'd1;
+                if(vAddr[14:12] < 3'd7) begin 
+                    vAddr[14:12] <= vAddr[14:12] + 3'd1;
                 end else begin 
-                    vAddr.pixel_gran.fY <= 5'd0;
-                    if (vAddr.pixel_gran.cY == 5'd31)
-                        vAddr.pixel_gran.cY <= 5'd0;
-                    else if (vAddr.pixel_gran.cY == 5'd29) begin  
-                        vAddr.pixel_gran.cY <= 5'd0; 
-                        vAddr.pixel_gran.nt <= vAddr.pixel_gran.nt ^ 2'b10;
+                    vAddr[14:12] <= 3'd0;
+                    if (vAddr[9:5] == 5'd31)
+                        vAddr[9:5] <= 5'd0;
+                    else if (vAddr[9:5] == 5'd29) begin  
+                        vAddr[9:5] <= 5'd0; 
+                        vAddr[11:10] <= vAddr[11:10] ^ 2'b10;
                     end 
                     else begin
-                        vAddr.pixel_gran.cY <= vAddr.pixel_gran.cY + 5'd1;
+                        vAddr[9:5] <= vAddr[9:5] + 5'd1;
                     end
                 end
             end else if(rendering && h_update) begin
-                vAddr.r <= (vAddr.r & ~15'h041F) | (tAddr.r & 15'h041F);
+                vAddr <= (vAddr & ~16'h041F) | (tAddr & 16'h041F);
             end else if(rendering && v_update) begin
-                vAddr.r <= (vAddr.r & ~15'h7BE0) | (tAddr.r & 15'h7BE0); 
+                vAddr <= (vAddr & ~16'h7BE0) | (tAddr & 16'h7BE0); 
             end
         end
     end

@@ -34,7 +34,7 @@ module bg_pixel (
     output logic [3:0] bg_color_idx,
 
     // scrolling
-    input addr_t vAddr, 
+    input logic [15:0] vAddr, 
     input [2:0] fX,
 
     output logic h_scroll, v_scroll, h_update, v_update
@@ -71,7 +71,7 @@ module bg_pixel (
     logic [7:0] tile_idx;
     logic [15:0] nt_addr;
 
-    assign nt_addr = 16'h2000 | vAddr.r[11:0];
+    assign nt_addr = 16'h2000 | vAddr[11:0];
 
     vram_mirroring vm1(.addr(nt_addr), .mirroring, .vram_addr(vram_addr1));
     
@@ -82,19 +82,19 @@ module bg_pixel (
     logic [7:0] attr_blk;
     logic [15:0] at_addr;
 
-    assign at_addr = 16'h23C0 | {4'b0, vAddr.pixel_gran.nt, 4'b0, vAddr.pixel_gran.cY[4:2], vAddr.pixel_gran.cX[4:2]};
+    assign at_addr = 16'h23C0 | {4'b0, vAddr[11:10], 4'b0, vAddr[9:7], vAddr[4:2]};
     vram_mirroring vm2(.addr(at_addr), .mirroring, .vram_addr(vram_addr2));
     assign attr_blk = vram_data2;
 
     always_comb begin
         pal_idx = attr_blk[1:0];
-        if(vAddr.pixel_gran.cY[1] == 1'b0 && vAddr.pixel_gran.cX[1] == 1'b0)
+        if(vAddr[6] == 1'b0 && vAddr[1] == 1'b0)
             pal_idx = attr_blk[1:0];       // TOPLEFT
-        else if(vAddr.pixel_gran.cY[1] == 1'b0 && vAddr.pixel_gran.cX[1] == 1'b1)
+        else if(vAddr[6] == 1'b0 && vAddr[1] == 1'b1)
             pal_idx = attr_blk[3:2];       // TOPRIGHT
-        else if(vAddr.pixel_gran.cY[1] == 1'b1 && vAddr.pixel_gran.cX[1] == 1'b0)
+        else if(vAddr[6] == 1'b1 && vAddr[1] == 1'b0)
             pal_idx = attr_blk[5:4];       // BOTLEFT
-        else if(vAddr.pixel_gran.cY[1] == 1'b1 && vAddr.pixel_gran.cX[1] == 1'b1)
+        else if(vAddr[6] == 1'b1 && vAddr[1] == 1'b1)
             pal_idx = attr_blk[7:6];       // BOTRIGHT   
     end
 
@@ -112,7 +112,7 @@ module bg_pixel (
     
     end
 
-    assign pattbl_idx = {1'b0, tile_idx, 1'b0, vAddr.pixel_gran.fY};
+    assign pattbl_idx = {1'b0, tile_idx, 1'b0, vAddr[14:12]};
     assign chr_rom_addr1 = pattbl_off | pattbl_idx;
     assign chr_rom_addr2 = chr_rom_addr1 | 13'd8;
 
