@@ -32,7 +32,7 @@ module top ();
     logic cpu_re;
     logic [7:0] cpu_rd_data;
 
-    logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
+    logic [7:0] ppuctrl, ppumask;
 
     mirror_t mirroring;
 

@@ -337,14 +337,17 @@ module ppu (
 
     // first row is garbage, used for prefetching sprites for first visible sl
     logic [10:0] vram_addr1_bg, vram_addr2_bg;
-    bg_pixel bg(.sl_row(row-9'd1), .sl_col(col), 
-                .patt_tbl(bg_patt_tbl), .name_tbl(bg_name_tbl), 
+    bg_pixel bg(.clk, .clk_en(ppu_clk_en), .rst_n,
+                .sl_row(row-9'd1), .sl_col(col), 
+                .patt_tbl(bg_patt_tbl), 
                 .vram_addr1(vram_addr1_bg), .vram_data1(vram_d_out1), 
                 .vram_addr2(vram_addr2_bg), .vram_data2(vram_d_out2),
                 .mirroring, 
                 .chr_rom_addr1(bg_chr_rom_addr1), .chr_rom_addr2(bg_chr_rom_addr2), 
                 .chr_rom_data1(chr_rom_out1), .chr_rom_data2(chr_rom_out2),
-                .bg_color_idx(bg_color_idx_t));
+                .bg_color_idx(bg_color_idx_t),
+                .vAddr, .fX,
+                .h_scroll, .v_scroll, .h_update, .v_update);
 
     // ppumask control bits
     assign bg_color_idx_en = (ppumask[3]) ? bg_color_idx_t : 4'b0000;

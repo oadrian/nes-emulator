@@ -6,20 +6,20 @@ import subprocess
 # Takes a PPU memory trace 
 
 # text files
-PATTBL_FILE = "init/chr_rom_init.txt"
-NAMETBL_FILE = "init/vram_init.txt"
-PAL_FILE = "init/pal_init.txt"
-OAM_FILE = "init/oam_init.txt"
+PATTBL_FILE = "../init/chr_rom_init.txt"
+NAMETBL_FILE = "../init/vram_init.txt"
+PAL_FILE = "../init/pal_init.txt"
+OAM_FILE = "../init/oam_init.txt"
 
 # bin files
-PATTBL_BIN = "init-intel/chr_rom_init.bin"
-NAMETBL_BIN = "init-intel/vram_init.bin"
-OAM_BIN = "init-intel/oam_init.bin"
+PATTBL_BIN = "../init-intel/chr_rom_init.bin"
+NAMETBL_BIN = "../init-intel/vram_init.bin"
+OAM_BIN = "../init-intel/oam_init.bin"
 
 # hex files
-PATTBL_HEX = "init-intel/chr_rom_init.hex"
-NAMETBL_HEX = "init-intel/vram_init.hex"
-OAM_HEX = "init-intel/oam_init.hex"
+PATTBL_HEX = "../init-intel/chr_rom_init.hex"
+NAMETBL_HEX = "../init-intel/vram_init.hex"
+OAM_HEX = "../init-intel/oam_init.hex"
 
 def split(filename, pattbl_fl, nametbl_fl, pal_fl, oam_fl):
     pattbl, nametbl, pal, oam = trace_lib.parseMemoryFile(filename)

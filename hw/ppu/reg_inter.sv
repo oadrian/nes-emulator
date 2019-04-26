@@ -578,7 +578,7 @@ module vram_addr_register (
                 vAddr <= vAddr_in;
             end else if(rendering && h_scroll) begin
                 if(vAddr.pixel_gran.cX == 5'd31) begin 
-                    vAddr.pixel_gran.r <= vAddr.pixel_gran.r ^ 15'h41F;
+                    vAddr.r <= vAddr.r ^ 15'h41F;
                 end else begin 
                     vAddr.pixel_gran.cX <= vAddr.pixel_gran.cX + 5'd1;
                 end

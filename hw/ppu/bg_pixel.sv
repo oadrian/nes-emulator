@@ -4,15 +4,16 @@
 `define ATTR_TBL_OFF 11'h3C0
 
 module bg_pixel (
+    input logic clk, 
+    input logic rst_n,
+    input logic clk_en,
+
     // current pixel to draw
     input logic [8:0] sl_row,  // 262
     input logic [8:0] sl_col,  // 341
 
     // pattern table
     input pattern_tbl_t patt_tbl,
-
-    // nametable 
-    input name_tbl_t name_tbl,
 
     // vram  
             // access nametable
@@ -34,8 +35,34 @@ module bg_pixel (
 
     // scrolling
     input addr_t vAddr, 
-    input [2:0] fX
+    input [2:0] fX,
+
+    output logic h_scroll, v_scroll, h_update, v_update
 );
+    logic [2:0] tile_pixel;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            tile_pixel <= 0;
+        end else if(clk_en) begin
+            tile_pixel <= tile_pixel + 3'd1;
+        end
+    end
+
+    logic [2:0] net_fX;
+    assign net_fX = fX + tile_pixel;
+
+    assign h_scroll = net_fX == 3'd7 && 
+                    (9'd0 <= sl_row && sl_row < 9'd240) &&
+                    (9'd0 <= sl_col && sl_col < 9'd256);
+    assign v_scroll = sl_col == 9'd256 && 
+                    (9'd0 <= sl_row && sl_row < 9'd240);
+
+    assign h_update = sl_col == 9'd257 && 
+                    (9'd0 <= sl_row && sl_row < 9'd240);
+
+    assign v_update = (9'd280 <= sl_col && sl_col <= 9'd304) &&
+                    sl_row == 9'h1FF;  // -1 scanline
+    
 
     //////////// Nametable ////////////
     logic [7:0] tile_idx;
@@ -52,20 +79,19 @@ module bg_pixel (
     logic [7:0] attr_blk;
     logic [15:0] at_addr;
 
-    assign at_addr = 16'h23C0 | {4'b0, vAddr.nt, 4'b0, vAddr.cY[4:2], vAddr.cX[4:2]};
+    assign at_addr = 16'h23C0 | {4'b0, vAddr.pixel_gran.nt, 4'b0, vAddr.pixel_gran.cY[4:2], vAddr.pixel_gran.cX[4:2]};
     vram_mirroring vm2(.addr(at_addr), .mirroring, .vram_addr(vram_addr2));
     assign attr_blk = vram_data2;
 
     always_comb begin
         pal_idx = attr_blk[1:0];
-
-        if(block_row < 5'd16 && block_col < 5'd16)
+        if(vAddr.pixel_gran.cY[1] == 1'b0 && vAddr.pixel_gran.cX[1] == 1'b0)
             pal_idx = attr_blk[1:0];       // TOPLEFT
-        else if(block_row < 5'd16 && block_col >= 5'd16)
+        else if(vAddr.pixel_gran.cY[1] == 1'b0 && vAddr.pixel_gran.cX[1] == 1'b1)
             pal_idx = attr_blk[3:2];       // TOPRIGHT
-        else if(block_row >= 5'd16 && block_col < 5'd16)
+        else if(vAddr.pixel_gran.cY[1] == 1'b1 && vAddr.pixel_gran.cX[1] == 1'b0)
             pal_idx = attr_blk[5:4];       // BOTLEFT
-        else if(block_row >= 5'd16 && block_col >= 5'd16)
+        else if(vAddr.pixel_gran.cY[1] == 1'b1 && vAddr.pixel_gran.cX[1] == 1'b1)
             pal_idx = attr_blk[7:6];       // BOTRIGHT   
     end
 
@@ -83,15 +109,15 @@ module bg_pixel (
     
     end
 
-    assign pattbl_idx = {1'b0, tile_idx, 1'b0, tile_row};
-    assign chr_rom_addr1 = pattbl_off + pattbl_idx;
-    assign chr_rom_addr2 = chr_rom_addr1 + 13'd8;
+    assign pattbl_idx = {1'b0, tile_idx, 1'b0, vAddr.pixel_gran.fY};
+    assign chr_rom_addr1 = pattbl_off | pattbl_idx;
+    assign chr_rom_addr2 = chr_rom_addr1 | 13'd8;
 
     assign tile_lsb = chr_rom_data1;
     assign tile_msb = chr_rom_data2;
 
     logic [2:0] bit_idx;
-    assign bit_idx = 3'd7-tile_col;
+    assign bit_idx = 3'd7 - net_fX;
     assign color_idx = {tile_msb[bit_idx], tile_lsb[bit_idx]};
 
     // background color index
