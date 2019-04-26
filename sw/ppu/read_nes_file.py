@@ -84,7 +84,7 @@ def readNES(filename):
         prgrom = ""
         if(prgrom_sz == 1):
             # 16 KB - pad lower 16kb with ff
-            prgrom = ('\xff'*16384) + f.read(16384*prgrom_sz)
+            prgrom = 2*f.read(16384*prgrom_sz)
         else:
             # 32 KB
             prgrom = f.read(16384*prgrom_sz)
