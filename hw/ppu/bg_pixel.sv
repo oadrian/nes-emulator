@@ -37,7 +37,10 @@ module bg_pixel (
     input logic [15:0] vAddr, 
     input [2:0] fX,
 
-    output logic h_scroll, v_scroll, h_update, v_update
+    output logic h_scroll, v_scroll, h_update, v_update,
+
+    input vs_state_t vs_state,
+    input hs_state_t hs_state
 );
     logic [2:0] tile_pixel;
     always_ff @(posedge clk or negedge rst_n) begin
@@ -54,14 +57,10 @@ module bg_pixel (
     logic [2:0] net_fX;
     assign net_fX = fX + tile_pixel;
 
-    assign h_scroll = net_fX == 3'd7 && 
-                    (9'd0 <= sl_row && sl_row < 9'd240) &&
-                    (9'd0 <= sl_col && sl_col < 9'd256);
-    assign v_scroll = sl_col == 9'd256 && 
-                    (9'd0 <= sl_row && sl_row < 9'd240);
+    assign h_scroll = net_fX == 3'd7 && (vs_state == VIS_SL) && (hs_state == SL_PRE_CYC);
+    assign v_scroll = sl_col == 9'd256 && (vs_state == VIS_SL);
 
-    assign h_update = sl_col == 9'd257 && 
-                    (9'd0 <= sl_row && sl_row < 9'd240);
+    assign h_update = sl_col == 9'd257 && (vs_state == VIS_SL);
 
     assign v_update = (9'd280 <= sl_col && sl_col <= 9'd304) &&
                     sl_row == 9'h1FF;  // -1 scanline
