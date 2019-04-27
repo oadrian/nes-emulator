@@ -25,6 +25,10 @@ module core(
     input  logic clock,
     input  logic reset_n,
     input  logic irq_n,
+    input  logic save_state_load_en,
+    input  logic [`SAVE_STATE_BITS-1:0] save_state_addr,
+    input  logic [15:0] save_state_load_data,
+    output logic [15:0] save_state_save_data,
 
     // debug
     output logic [15:0] PC_debug);

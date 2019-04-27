@@ -10,14 +10,20 @@
 
 `define CTRL_PULSE_LEN 3
 
-module cpu_register #(WIDTH=8, RESET_VAL=0) (
+module cpu_register #(WIDTH=8, RESET_VAL=0, SAVE_STATE_ADDR=0) (
     input  logic clock, clock_en, reset_n, data_en,
-    input logic[WIDTH-1:0] data_in,
+    input  logic[WIDTH-1:0] data_in,
+    input  logic save_state_load_en,
+    input  logic[15:0] save_state_load_data,
+    input  logic[`SAVE_STATE_BITS-1:0] save_state_addr,
     output logic[WIDTH-1:0] data_out);
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
             data_out <= RESET_VAL;
+        end
+        if (save_state_load_en && save_state_addr == SAVE_STATE_ADDR) begin
+            data_out <= save_state_load_data[WIDTH-1:0];
         end
         else if (clock_en && data_en) begin
             data_out <= data_in;
@@ -27,15 +33,21 @@ module cpu_register #(WIDTH=8, RESET_VAL=0) (
 endmodule : cpu_register
 
 
-module cpu_wide_counter_register #(RESET_VAL=0) (
+module cpu_wide_counter_register #(RESET_VAL=0, SAVE_STATE_ADDR=0) (
     input  logic clock, clock_en, reset_n, inc_en,
     input  logic[1:0] data_en,
-    input logic[15:0] data_in,
+    input  logic[15:0] data_in,
+    input  logic save_state_load_en,
+    input  logic[15:0] save_state_load_data,
+    input  logic[`SAVE_STATE_BITS-1:0] save_state_addr,
     output logic[15:0] data_out);
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
             data_out <= RESET_VAL;
+        end
+        if (save_state_load_en && save_state_addr == SAVE_STATE_ADDR) begin
+            data_out <= save_state_load_data;
         end
         else if (clock_en) begin
             case (data_en)
@@ -50,10 +62,13 @@ module cpu_wide_counter_register #(RESET_VAL=0) (
 endmodule : cpu_wide_counter_register
 
 
-module cpu_wide_write_thru_register #(RESET_VAL=0) (
+module cpu_wide_write_thru_register #(RESET_VAL=0, SAVE_STATE_ADDR=0) (
     input  logic clock, clock_en, reset_n,
     input  logic[1:0] data_en,
-    input logic[15:0] data_in,
+    input  logic[15:0] data_in,
+    input  logic save_state_load_en,
+    input  logic[15:0] save_state_load_data,
+    input  logic[`SAVE_STATE_BITS-1:0] save_state_addr,
     output logic[15:0] data_out);
 
     logic [15:0] data_val;
@@ -71,6 +86,9 @@ module cpu_wide_write_thru_register #(RESET_VAL=0) (
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
             data_val <= RESET_VAL;
+        end
+        if (save_state_load_en && save_state_addr == SAVE_STATE_ADDR) begin
+            data_out <= save_state_load_data;
         end
         else if (clock_en) begin
             data_val <= data_out;
