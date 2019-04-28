@@ -6,9 +6,9 @@
 `endif
 
 `define chr_rom_init
-`define oam_init
-`define vram_init
-`define pal_init
+//`define oam_init
+//`define vram_init
+//`define pal_init
 
 // chr rom is 8KB 8 bit words
 `define CHR_ROM_WIDTH 13
