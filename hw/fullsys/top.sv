@@ -197,8 +197,8 @@ module top ();
 
     task cpuTrace(input int fd);
         cnt = 0;
-        while(cpu.PC != 16'hE057) begin
-        //while(cnt < 12*`CPU_CYCLES) begin
+        // while(cpu.PC != 16'hE057) begin
+        while(cnt < 12*`CPU_CYCLES) begin
             if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
