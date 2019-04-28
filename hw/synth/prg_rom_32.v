@@ -38,13 +38,13 @@
 `timescale 1 ps / 1 ps
 // synopsys translate_on
 module prg_rom_32 (
-	address,
+	address_a, address_b,
 	clock,
-	q);
+	q_a, q_b);
 
-	input	[14:0]  address;
+	input	[14:0]  address_a, address_b;
 	input	  clock;
-	output	[7:0]  q;
+	output	[7:0]  q_a, q_b;
 `ifndef ALTERA_RESERVED_QIS
 // synopsys translate_off
 `endif
@@ -54,15 +54,17 @@ module prg_rom_32 (
 `endif
 
 	wire [7:0] sub_wire0;
-	wire [7:0] q = sub_wire0[7:0];
+	wire [7:0] q_a = sub_wire0[7:0];
+	wire [7:0] sub_wire1;
+	wire [7:0] q_b = sub_wire1[7:0];
 
 	altsyncram	altsyncram_component (
-				.address_a (address),
+				.address_a,
 				.clock0 (clock),
 				.q_a (sub_wire0),
 				.aclr0 (1'b0),
 				.aclr1 (1'b0),
-				.address_b (1'b1),
+				.address_b,
 				.addressstall_a (1'b0),
 				.addressstall_b (1'b0),
 				.byteena_a (1'b1),
@@ -75,7 +77,7 @@ module prg_rom_32 (
 				.data_a ({8{1'b1}}),
 				.data_b (1'b1),
 				.eccstatus (),
-				.q_b (),
+				.q_b (sub_wire1),
 				.rden_a (1'b1),
 				.rden_b (1'b1),
 				.wren_a (1'b0),
