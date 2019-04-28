@@ -21,6 +21,7 @@ module dmc (
   input logic direct_load,
   input logic [6:0] direct_load_data,
 
+  output logic non_zero,
   output logic [6:0] out);
 
   logic [0:15][8:0] lut;
@@ -58,33 +59,39 @@ module memory_reader (
   input logic cpu_clk_en,
 
   input logic clear_irq_l,
+  output logic irq_l,
+
   input logic loop,
   input logic disable_l,
+  output logic non_zero,
 
   input logic addr_load, length_load,
   input logic [7:0] addr_in, length_in,
 
   input logic [7:0] mem_data,
-  input logic buffer_empty,
-
-  output logic irq_l,
+  output logic mem_re,
   output logic [14:0] addr_out,
+  
+  input logic buffer_empty,
   output logic buffer_load,
   output logic [7:0] buffer_data);
 
+
   logic [14:0] next_addr_out;
   logic [11:0] next_bytes_remaining, bytes_remaining;
-
+  logic next_buffer_load;
   logic next_irq_l;
 
   logic [14:0] sample_address;
   logic [11:0] sample_length;
 
-  assign sample_address = {2'b11, addr_in, 6'b0};
+  assign sample_address = {1'b1, addr_in, 6'b0};
   assign sample_length = {length_in, 4'b1};
 
   assign buffer_data = mem_data;
-  assign buffer_load = buffer_empty;
+  assign next_buffer_load = buffer_empty;
+  assign mem_re = buffer_empty;
+  assign non_zero = !bytes_remaining;
 
   always_comb
     if (addr_load)
@@ -93,10 +100,10 @@ module memory_reader (
       next_addr_out = sample_address;
     else if (!bytes_remaining & ~loop)
       next_addr_out = addr_out;
-    else if (addr_out == 16'hFFFF)
-      next_addr_out = 16'h8000;
+    else if (addr_out == 15'h7FFF)
+      next_addr_out = 15'h0000;
     else
-      next_addr_out = addr_out + 16'b1;
+      next_addr_out = addr_out + 15'b1;
 
   always_comb begin
     next_irq_l = irq_l;
@@ -114,8 +121,12 @@ module memory_reader (
     end else 
       next_bytes_remaining = bytes_remaining - 1'b1;
   end
+
+  apu_register #(.WIDTH(1), .RES_VAL(1)) buffer_load_reg (
+    .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
+    .d(next_buffer_load), .q(buffer_load));
   
-  apu_register #(.WIDTH(1), .RES_VAL(1)) irq_l_reg(
+  apu_register #(.WIDTH(1), .RES_VAL(1)) irq_l_reg (
     .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
     .d(next_irq_l), .q(irq_l));
 

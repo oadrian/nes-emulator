@@ -104,8 +104,8 @@ module cpu_memory(
     output logic data_valid, reg_we,
 
     input logic dmc_re,
-    input logic dmc_addr,
-    output logic dmc_read_data,
+    input logic [14:0] dmc_addr,
+    output logic [7:0] dmc_read_data,
 	 
 	 // Controller GPIO pins
      input logic ctlr_data_p1, ctlr_data_p2, 
@@ -200,13 +200,12 @@ module cpu_memory(
     logic prom_rden;
     logic [7:0] prom_data_rd;
 
-    logic [14:0] dmc_address;
-    logic dmc_re;
+
     logic [7:0] dmc_rom_data;
 
     prg_rom_32 prom(.address(prom_address), .clock,  .q(prom_data_rd));
     dmc_rom dm_rom (
-      .address(dmc_address), .clock, .q(dmc_rom_data));
+      .address(dmc_addr), .clock, .q(dmc_rom_data));
 
     logic [10:0]  cram_address;
     logic [7:0]  cram_data_wr;

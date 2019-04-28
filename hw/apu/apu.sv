@@ -20,7 +20,6 @@ module apu (
 
   logic [3:0] pulse0_out, pulse1_out, triangle_out, noise_out;
   logic [6:0] dmc_out;
-  logic dmc_irq; //TODO: HOOKUP dmc_irq to dmc channel
 
   logic [4:0] lengths_non_zero;
 
@@ -43,10 +42,10 @@ module apu (
   logic frame_interrupt;
   logic dmc_irq_l;
 
-  assign irq_l = ~frame_interrupt;
+  assign irq_l = ~frame_interrupt & dmc_irq_l;
   //TODO: DMC does not seem to have non_zero signal
 
-  assign reg_data_out = {dmc_irq, frame_interrupt, 1'b0, lengths_non_zero};
+  assign reg_data_out = {~dmc_irq_l, frame_interrupt, 1'b0, lengths_non_zero};
 
   always_comb begin
     triangle_sigs = get_triangle_signals(reg_array);
@@ -129,7 +128,10 @@ module apu (
     .irq_l(dmc_irq_l), .mem_re(dmc_re), .addr_out(dmc_addr), 
     .direct_load(reg_updates[17]),
     .direct_load_data(dmc_sigs.direct_load_data),
-    .out(dmc_out), .*);
+    .out(dmc_out), 
+    .clear_irq_l(reg_updates[21] | (reg_updates[16] & ~reg_array[16][7])),
+    .non_zero(lengths_non_zero[4]),
+    .*);
 
   mixer non_linear_mixer (
     .pulse0(pulse0_out), .pulse1(pulse1_out), .triangle(triangle_out),
