@@ -196,8 +196,13 @@ module cpu_memory(
     logic prom_rden;
     logic [7:0] prom_data_rd;
 
-  //TODO: ADD DMC SIGNALS TO PROM
-    prg_rom_32 prom(.address_a(prom_address), .clock,  .q_a(prom_data_rd));
+    logic [14:0] dmc_address;
+    logic dmc_re;
+    logic [7:0] dmc_read_data;
+
+    prg_rom_32 prom(.address(prom_address), .clock,  .q(prom_data_rd));
+    dmc_rom dm_rom (
+      .address(dmc_address), .clock, .q(dmc_read_data));
 
     logic [10:0]  cram_address;
     logic [7:0]  cram_data_wr;

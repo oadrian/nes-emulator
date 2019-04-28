@@ -7,6 +7,10 @@ module apu (
   input logic [7:0] reg_data_in,
   input logic reg_en, reg_we,
 
+  input logic [7:0] mem_read_data,
+  output logic mem_re,
+  output logic [14:0] mem_addr,
+
   output logic [7:0] reg_data_out,
   output logic irq_l,
   output logic [15:0] audio_out);
@@ -22,17 +26,22 @@ module apu (
 
   logic status_read;
 
+//TODO: HOOK THIS UP
+  logic clear_irq_l;
+
   assign status_read = ~reg_we & reg_en & (reg_addr == 5'h15); 
   mem_map_registers mm_reg (.*);
 
   triangle_t triangle_sigs;
   pulse_t pulse0_sigs, pulse1_sigs;
   noise_t noise_sigs;
+  dmc_t dmc_sigs;
   status_t status_signals;
   frame_counter_t fc_signals;
 
   logic quarter_clk_en, half_clk_en;
   logic frame_interrupt;
+  logic dmc_irq_l;
 
   assign irq_l = ~frame_interrupt;
   //TODO: DMC does not seem to have non_zero signal
@@ -44,6 +53,7 @@ module apu (
     pulse0_sigs = get_pulse_signals(reg_array, 1'b0);
     pulse1_sigs = get_pulse_signals(reg_array, 1'b1);
     noise_sigs = get_noise_signals(reg_array);
+    dmc_sigs = get_dmc_signals(reg_array);
     status_signals = get_status_signals(reg_array);
     fc_signals = get_frame_counter_signals(reg_array);
   end
@@ -109,8 +119,16 @@ module apu (
     .length_non_zero(lengths_non_zero[3]),
     .out(noise_out));
 
-  // TODO: Instantiate the dmc channel
-  assign dmc_out = 7'b0;
+//TODO: VERIFY THAT MEMDATA IS CONNECTED AND ITS SYNCHRONOUS OR COMBINATIONAL
+//TODO: DRIVE IRQ_L WITH DMC IRQ_L. NOT JUST FRAM COUNTER
+  dmc dm_channel (
+    .loop(dmc_sigs.loop), .disable_l(status_signals.dmc_en),
+    .rate_index(dmc_sigs.rate_index), .addr_load(reg_updates[18]),
+    .length_load(reg_updates[19]), .addr_in(dmc_sigs.addr),
+    .length_in(dmc_sigs.length), .mem_data(mem_read_data), 
+    .irq_l(dmc_irq_l), .addr_out(mem_addr), .direct_load(reg_updates[17]),
+    .direct_load_data(dmc_sigs.direct_load_data),
+    .out(dmc_out), .*);
 
   mixer non_linear_mixer (
     .pulse0(pulse0_out), .pulse1(pulse1_out), .triangle(triangle_out),
@@ -164,4 +182,17 @@ function frame_counter_t get_frame_counter_signals (
   input [23:0][7:0] reg_array);
 
   return reg_array[23][7:6];
+endfunction
+
+function dmc_t get_dmc_signals (
+  input [23:0][7:0] reg_array);
+
+  dmc_t result;
+  result.rate_index = reg_array[16][3:0];
+  result.loop = reg_array[16][6];
+  result.irq_en = reg_array[16][7];
+  result.direct_load_data = reg_array[17][6:0];
+  result.addr = reg_array[18];
+  result.length = reg_array[19];
+  return result;
 endfunction

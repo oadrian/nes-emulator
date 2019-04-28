@@ -6,6 +6,7 @@ module dmc (
 
   input logic clear_irq_l,
   input logic loop,
+  input logic disable_l,
 
   input logic rate_index,
   input logic addr_load, length_load,
@@ -14,12 +15,13 @@ module dmc (
   input logic [7:0] mem_data,
 
   output logic irq_l,
-  output logic [15:0] addr_out,
+  output logic mem_re,
+  output logic [14:0] addr_out,
 
   input logic direct_load,
   input logic [6:0] direct_load_data,
 
-  output logic [6:0] vol_out);
+  output logic [6:0] out);
 
   logic [0:15][8:0] lut;
   logic [8:0] timer_period;
@@ -46,7 +48,8 @@ module dmc (
     .clk_en(cpu_clk_en), .load(1'b0), .load_data(timer_period), 
     .pulse(timer_clk_en), .*);
 
-  output_unit out_unit (.buffer_data(buffer_data_out), .*);
+  output_unit out_unit (
+    .buffer_data(buffer_data_out), .vol_out(out), .*);
 
 endmodule: dmc
 
@@ -56,6 +59,7 @@ module memory_reader (
 
   input logic clear_irq_l,
   input logic loop,
+  input logic disable_l,
 
   input logic addr_load, length_load,
   input logic [7:0] addr_in, length_in,
@@ -98,8 +102,9 @@ module memory_reader (
     next_irq_l = irq_l;
     if (clear_irq_l)
       next_irq_l = 1'b1;
-
-    if (length_load)
+    if (disable_l)
+      next_bytes_remaining = 12'b0;
+    else if (length_load)
       next_bytes_remaining = sample_length;
     else if (!bytes_remaining & loop) 
       next_bytes_remaining = sample_length;
@@ -185,6 +190,7 @@ module output_unit (
   assign next_silence = buffer_empty;
 
   always_comb begin
+    next_shift_data = shift_data;
     buffer_read = 1'b0;
     if (new_cycle & ~buffer_empty) begin
       next_shift_data = buffer_data;
