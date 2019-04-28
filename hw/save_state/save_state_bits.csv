@@ -1,0 +1,25 @@
+,number of bits,signal name,area
+,8,ucode_index,cpu
+,6,instr_ctrl_index,cpu
+,2,state,cpu
+,1,nmi_active,cpu
+,1,reset_active,cpu
+,2,current_interupt,cpu
+,8,A,cpu
+,8,X,cpu
+,8,Y,cpu
+,8,SP,cpu
+,1,n_flag,cpu
+,1,v_flag,cpu
+,1,d_flag,cpu
+,1,i_flag,cpu
+,1,z_flag,cpu
+,1,c_flag,cpu
+,16,PC,cpu
+,8,r_data_buffer,cpu
+,16,addr,cpu
+,8,alu_out,cpu
+,1,alu_c_out,cpu
+,1,alu_v_out,cpu
+,1,alu_z_out,cpu
+,1,alu_n_out,cpu
