@@ -62,8 +62,7 @@ module bg_pixel (
 
     assign h_update = sl_col == 9'd257 && (vs_state == VIS_SL);
 
-    assign v_update = (9'd280 <= sl_col && sl_col <= 9'd304) &&
-                    sl_row == 9'h1FF;  // -1 scanline
+    assign v_update = (9'd280 <= sl_col && sl_col <= 9'd304) && (vs_state == PRE_SL);
     
 
     //////////// Nametable ////////////
