@@ -184,16 +184,13 @@ module reg_inter (
     enum logic {
         FIRST_WRITE,
         SECOND_WRITE
-    } scroll_wr_curr_state, scroll_wr_next_state,
-      addr_wr_curr_state, addr_wr_next_state;
+    } wr_curr_state, wr_next_state;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
-            scroll_wr_curr_state <= FIRST_WRITE;
-            addr_wr_curr_state <= FIRST_WRITE;
+            wr_curr_state <= FIRST_WRITE;
         end else if(cpu_clk_en) begin
-            scroll_wr_curr_state <= scroll_wr_next_state;
-            addr_wr_curr_state <= addr_wr_next_state;
+            wr_curr_state <= wr_next_state;
         end
     end
 
@@ -347,17 +344,16 @@ module reg_inter (
         ppuctrl_in = ppuctrl_out;
         ppumask_in = ppumask_out;
         oamaddr_in = oamaddr_out;
-        ppuscrollX_in = (ppustatus_rd_clr) ? 8'd0 : ppuscrollX_out;
-        ppuscrollY_in = (ppustatus_rd_clr) ? 8'd0 : ppuscrollY_out;
-        ppuaddr_in = (ppustatus_rd_clr) ? 16'd0 : ppuaddr_out;
+        ppuscrollX_in = ppuscrollX_out;
+        ppuscrollY_in = ppuscrollY_out;
+        ppuaddr_in = ppuaddr_out;
         oamdma_in = oamdma_out;
 
         // last write
         last_write = ppustatus_out;
 
         // mult writes 
-        scroll_wr_next_state = scroll_wr_curr_state;
-        addr_wr_next_state = addr_wr_curr_state;
+        wr_next_state = (ppustatus_rd_clr) ? FIRST_WRITE : wr_curr_state;
 
         // dma fsm controll
         begin_dma = 1'b0;
@@ -405,23 +401,23 @@ module reg_inter (
                 end
             end
             PPUSCROLL: begin     // write twice
-                if(reg_en && reg_rw && scroll_wr_curr_state == FIRST_WRITE) begin 
-                    scroll_wr_next_state = SECOND_WRITE;
+                if(reg_en && reg_rw && wr_curr_state == FIRST_WRITE) begin 
+                    wr_next_state = SECOND_WRITE;
                     ppuscrollX_in = reg_data_in;
                     last_write = reg_data_in;
-                end else if(reg_en && reg_rw && scroll_wr_curr_state == SECOND_WRITE) begin 
-                    scroll_wr_next_state = FIRST_WRITE;
+                end else if(reg_en && reg_rw && wr_curr_state == SECOND_WRITE) begin 
+                    wr_next_state = FIRST_WRITE;
                     ppuscrollY_in = reg_data_in;
                     last_write = reg_data_in;
                 end
             end   
             PPUADDR: begin       // write twice
-                if(reg_en && reg_rw && addr_wr_curr_state == FIRST_WRITE) begin 
-                    addr_wr_next_state = SECOND_WRITE;
+                if(reg_en && reg_rw && wr_curr_state == FIRST_WRITE) begin 
+                    wr_next_state = SECOND_WRITE;
                     ppuaddr_in = {reg_data_in, ppuaddr_out[7:0]};
                     last_write = reg_data_in;
-                end else if(reg_en && reg_rw && addr_wr_curr_state == SECOND_WRITE) begin 
-                    addr_wr_next_state = FIRST_WRITE;
+                end else if(reg_en && reg_rw && wr_curr_state == SECOND_WRITE) begin 
+                    wr_next_state = FIRST_WRITE;
                     ppuaddr_in = {ppuaddr_out[15:8], reg_data_in};
                     last_write = reg_data_in;
                 end
@@ -453,10 +449,10 @@ module reg_inter (
                     /* write */
                     ppuaddr_in = ppuaddr_out + ppuaddr_inc_amnt;
                     last_write = reg_data_in;
-                    if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h3EFF) begin 
+                    if(14'h2000 <= ppuaddr_out[13:0] && ppuaddr_out[13:0] <= 14'h3EFF) begin 
                         vram_we_reg = 1'b1;
                         vram_wr_data = reg_data_in;
-                    end else if(16'h3f00 <= ppuaddr_out && ppuaddr_out <= 16'h3fff) begin 
+                    end else if(14'h3f00 <= ppuaddr_out[13:0] && ppuaddr_out[13:0] <= 14'h3fff) begin 
                         pal_we_reg = 1'b1;
                         pal_wr_data = reg_data_in;
                     end 
@@ -465,11 +461,11 @@ module reg_inter (
                 end else if(reg_en && !reg_rw) begin 
                     /* read */
                     ppuaddr_in = ppuaddr_out + ppuaddr_inc_amnt;
-                    if(16'h2000 <= ppuaddr_out && ppuaddr_out <= 16'h3EFF) begin 
+                    if(14'h2000 <= ppuaddr_out[13:0] && ppuaddr_out[13:0] <= 14'h3EFF) begin 
                         vram_re = 1'b1;
                         read_buf_next = vram_rd_data;
                         reg_data_out_next = read_buf_curr;
-                    end else if(16'h3f00 <= ppuaddr_out && ppuaddr_out <= 16'h3fff) begin 
+                    end else if(14'h3f00 <= ppuaddr_out[13:0] && ppuaddr_out[13:0] <= 14'h3fff) begin 
                         pal_re = 1'b1;
                         reg_data_out_next = pal_rd_data;
                     end

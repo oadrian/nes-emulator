@@ -1,11 +1,13 @@
 `default_nettype none
 `include "../include/ppu_defines.vh"
-`include "../include/apu_defines.vh"
+`include "../apu/apu_defines.vh"
 
-`define CPU_CYCLES 5000000
+`define CPU_CYCLES 1000000
+
 
 module top ();
     string logFile = "logs/fullsys-log.txt";
+    string vramFile = "logs/vram.txt";
 
     logic clock;
     logic reset_n;
@@ -59,6 +61,32 @@ module top ();
     logic mem_re_p;
     logic [7:0] mem_rd_data_p;
 
+    // debug
+    logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
+    mirror_t mirroring;
+
+    logic [7:0] header [15:0];
+    logic [7:0] flag6, prgsz, chrsz;
+
+    always_ff @(posedge clock or negedge reset_n) begin
+      if(~reset_n) begin
+        $readmemh("../init/header_init.txt", header);
+      end
+    end
+
+    assign prgsz = header[4];
+    assign chrsz = header[5];
+    assign flag6 = header[6];
+
+    always_comb begin
+        case ({flag6[3], flag6[0]})
+            2'b00: mirroring = HOR_MIRROR;
+            2'b01: mirroring = VER_MIRROR;
+            2'b10: mirroring = FOUR_SCR_MIRROR;   // ONE_SCR_MIRROR?
+            2'b11: mirroring = FOUR_SCR_MIRROR;
+            default : mirroring = VER_MIRROR;
+        endcase
+    end
     // APU
     logic [4:0] reg_addr;
     logic [7:0] reg_write_data;
@@ -71,7 +99,8 @@ module top ();
             .vsync_n, .hsync_n, .vga_r, .vga_g, .vga_b, .blank, 
             .cpu_clk_en, .reg_sel, .reg_en, .reg_rw, .reg_data_in(reg_data_wr), .reg_data_out(reg_data_rd),
             .cpu_cyc_par, .cpu_sus, 
-            .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p));
+            .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p),
+            .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY, .mirroring);
 
     // CPU stuff
     logic [15:0] mem_addr_c;
@@ -80,10 +109,13 @@ module top ();
     logic [7:0] mem_rd_data_c;
     logic irq_n;
 
+    // debug
+    logic [15:0] PC_debug;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .irq_n, .nmi(vblank_nmi));
+             .nmi(vblank_nmi), .irq_n, .PC_debug);
+
 
     logic [15:0] audio_out;
 
@@ -99,6 +131,12 @@ module top ();
     logic [15:0] mem_addr;
     logic mem_re;
     logic [7:0] mem_wr_data, mem_rd_data;
+    logic ctlr_data_p1, ctlr_data_p2;
+    logic ctlr_pulse_p1, ctlr_pulse_p2, ctlr_latch;
+    logic [7:0] read_prom;
+
+    assign ctlr_data_p1 = 1'b1;
+    assign ctlr_data_p2 = 1'b1;
 
     assign mem_addr = (cpu_sus) ? mem_addr_p : mem_addr_c;
     assign mem_re = (cpu_sus) ? mem_re_p : mem_re_c;
@@ -112,7 +150,10 @@ module top ();
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
                    .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
-                   .ctlr_data_p1(1'b1), .ctlr_data_p2(1'b1));
+                   .ctlr_data_p1, .ctlr_data_p2,
+                   .ctlr_pulse_p1, .ctlr_pulse_p2, .ctlr_latch,
+                   .read_prom);
+
 
     initial begin 
         clock = 1'b0;
@@ -127,7 +168,7 @@ module top ();
         #1 reset_n <= 1'b1;
     endtask : doReset
 
-    int fd;
+    int fd, vram_fd;
     int cnt;
 
     logic [7:0] can_A, can_X, can_Y, can_status, can_SP;
@@ -155,15 +196,16 @@ module top ();
 
     initial begin
         fd = $fopen(logFile,"w");
+        vram_fd = $fopen(vramFile,"w");
         doReset;
         @(posedge clock);
         cnt = 0;
-        while(cpu.PC != 16'hE057) begin
-        //while(cnt < 12*`CPU_CYCLES) begin
+        // while(cpu.PC != 16'hE057) begin
+        while(cnt < 12*`CPU_CYCLES) begin
             if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
-                        can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
+                       can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
                 $fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
             end
             @(posedge clock);
@@ -171,6 +213,9 @@ module top ();
         end
         @(posedge clock);
         @(posedge clock);
+        for (int i = 0; i < 4096; i++) begin
+            $fwrite(vram_fd,"%.2x ", peep.vr.mem[i%2048]);
+        end
         @(posedge clock);
         @(posedge clock);
         $finish;
