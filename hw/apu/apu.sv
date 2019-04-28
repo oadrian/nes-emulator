@@ -7,9 +7,9 @@ module apu (
   input logic [7:0] reg_data_in,
   input logic reg_en, reg_we,
 
-  input logic [7:0] mem_read_data,
-  output logic mem_re,
-  output logic [14:0] mem_addr,
+  input logic [7:0] dmc_read_data,
+  output logic dmc_re,
+  output logic [14:0] dmc_addr,
 
   output logic [7:0] reg_data_out,
   output logic irq_l,
@@ -125,8 +125,9 @@ module apu (
     .loop(dmc_sigs.loop), .disable_l(status_signals.dmc_en),
     .rate_index(dmc_sigs.rate_index), .addr_load(reg_updates[18]),
     .length_load(reg_updates[19]), .addr_in(dmc_sigs.addr),
-    .length_in(dmc_sigs.length), .mem_data(mem_read_data), 
-    .irq_l(dmc_irq_l), .addr_out(mem_addr), .direct_load(reg_updates[17]),
+    .length_in(dmc_sigs.length), .mem_data(dmc_read_data), 
+    .irq_l(dmc_irq_l), .mem_re(dmc_re), .addr_out(dmc_addr), 
+    .direct_load(reg_updates[17]),
     .direct_load_data(dmc_sigs.direct_load_data),
     .out(dmc_out), .*);
 

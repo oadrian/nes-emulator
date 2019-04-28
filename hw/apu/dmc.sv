@@ -8,7 +8,7 @@ module dmc (
   input logic loop,
   input logic disable_l,
 
-  input logic rate_index,
+  input logic [3:0] rate_index,
   input logic addr_load, length_load,
   input logic [7:0] addr_in, length_in,
 
@@ -68,16 +68,16 @@ module memory_reader (
   input logic buffer_empty,
 
   output logic irq_l,
-  output logic [15:0] addr_out,
+  output logic [14:0] addr_out,
   output logic buffer_load,
   output logic [7:0] buffer_data);
 
-  logic [15:0] next_addr_out;
+  logic [14:0] next_addr_out;
   logic [11:0] next_bytes_remaining, bytes_remaining;
 
   logic next_irq_l;
 
-  logic [15:0] sample_address;
+  logic [14:0] sample_address;
   logic [11:0] sample_length;
 
   assign sample_address = {2'b11, addr_in, 6'b0};
@@ -119,7 +119,7 @@ module memory_reader (
     .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
     .d(next_irq_l), .q(irq_l));
 
-  apu_register #(.WIDTH(16), .RES_VAL(0)) addr_out_reg (
+  apu_register #(.WIDTH(15), .RES_VAL(0)) addr_out_reg (
     .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
     .d(next_addr_out), .q(addr_out));
 
