@@ -36,16 +36,11 @@ module core(
     //assign clock_en = 1'b1;
 
     // roms
-    logic rom_en;
-
     logic [0:255][5:0] instr_ctrl_signals_indices;
     instr_ctrl_signals_t [0:`INSTR_CTRL_SIZE-1] instr_ctrl_signals_rom;
-
     logic [0:255][7:0] ucode_ctrl_signals_indices;
     ucode_ctrl_signals_t [0:`UCODE_ROM_SIZE-1] ucode_ctrl_signals_rom;
-
     logic [0:255][1:0] decode_ctrl_signals_rom;
-
 
     // state and ctrl signals
     processor_state_t state;
@@ -112,32 +107,45 @@ module core(
 ////////////////////////////////////////////////////////////////////////////////
 // ROM //
 
-    assign rom_en = 1'b0;
+    assign instr_ctrl_signals_indices = `INSTR_CTRL_SIGNALS_INDICES;
+    assign instr_ctrl_signals_rom = `INSTR_CTRL_SIGNALS_ROM;
+    assign ucode_ctrl_signals_indices = `UCODE_CTRL_SIGNALS_INDICES;
+    assign ucode_ctrl_signals_rom = `UCODE_CTRL_SIGNALS_ROM;
+    assign decode_ctrl_signals_rom = `DECODE_CTRL_SIGNALS_ROM;
 
-    cpu_register #(.WIDTH(256*6), .RESET_VAL(`INSTR_CTRL_SIGNALS_INDICES))
-        instr_ctrl_indices_reg(.data_en(rom_en), 
-                               .data_in(instr_ctrl_signals_indices), 
-                               .data_out(instr_ctrl_signals_indices), .*);
-    cpu_register #(.WIDTH($bits(instr_ctrl_signals_t)*`INSTR_CTRL_SIZE),
-                   .RESET_VAL(`INSTR_CTRL_SIGNALS_ROM))
-        instr_ctrl_signals_rom_reg(.data_en(rom_en),
-                                   .data_in(instr_ctrl_signals_rom),
-                                   .data_out(instr_ctrl_signals_rom), .*);
 
-    cpu_register #(.WIDTH(256*8), .RESET_VAL(`UCODE_CTRL_SIGNALS_INDICES))
-        ucode_ctrl_signals_indices_reg(.data_en(rom_en),
-                                       .data_in(ucode_ctrl_signals_indices),
-                                       .data_out(ucode_ctrl_signals_indices), .*);
-    cpu_register #(.WIDTH($bits(ucode_ctrl_signals_t)*`UCODE_ROM_SIZE),
-                   .RESET_VAL(`UCODE_CTRL_SIGNALS_ROM))
-        ucode_ctrl_signals_rom_reg(.data_en(rom_en),
-                                   .data_in(ucode_ctrl_signals_rom),
-                                   .data_out(ucode_ctrl_signals_rom), .*);
+////////////////////////////////////////////////////////////////////////////////
+// SAVE STATE SAVE DATA //
 
-    cpu_register #(.WIDTH(256*2), .RESET_VAL(`DECODE_CTRL_SIGNALS_ROM))
-        decode_ctrl_signals_rom_reg(.data_en(rom_en),
-                                    .data_in(decode_ctrl_signals_rom),
-                                    .data_out(decode_ctrl_signals_rom), .*);
+    always_comb begin
+        case (save_state_addr)
+            `SAVE_STATE_CPU_UCODE_INDEX: save_state_save_data = {8'b0, ucode_index};
+            `SAVE_STATE_CPU_INSTR_CTRL_INDEX: save_state_save_data = {10'b0, instr_ctrl_index};
+            `SAVE_STATE_CPU_STATE: save_state_save_data = {14'b0, state};
+            `SAVE_STATE_CPU_NMI_ACTIVE: save_state_save_data = {15'b0, nmi_active};
+            `SAVE_STATE_CPU_RESET_ACTIVE: save_state_save_data = {15'b0, reset_active};
+            `SAVE_STATE_CPU_CURRENT_INTERUPT: save_state_save_data = {14'b0, curr_interrupt};
+            `SAVE_STATE_CPU_A: save_state_save_data = {8'b0, A};
+            `SAVE_STATE_CPU_X: save_state_save_data = {8'b0, X};
+            `SAVE_STATE_CPU_Y: save_state_save_data = {8'b0, Y};
+            `SAVE_STATE_CPU_SP: save_state_save_data = {8'b0, SP};
+            `SAVE_STATE_CPU_N_FLAG: save_state_save_data = {15'b0, n_flag};
+            `SAVE_STATE_CPU_V_FLAG: save_state_save_data = {15'b0, v_flag};
+            `SAVE_STATE_CPU_D_FLAG: save_state_save_data = {15'b0, d_flag};
+            `SAVE_STATE_CPU_I_FLAG: save_state_save_data = {15'b0, i_flag};
+            `SAVE_STATE_CPU_Z_FLAG: save_state_save_data = {15'b0, z_flag};
+            `SAVE_STATE_CPU_C_FLAG: save_state_save_data = {15'b0, c_flag};
+            `SAVE_STATE_CPU_PC: save_state_save_data = PC;
+            `SAVE_STATE_CPU_R_DATA_BUFFER: save_state_save_data = {8'b0, r_data_buffer};
+            `SAVE_STATE_CPU_ADDR: save_state_save_data = addr;
+            `SAVE_STATE_CPU_ALU_OUT: save_state_save_data = {8'b0, alu_out};
+            `SAVE_STATE_CPU_ALU_C_OUT: save_state_save_data = {15'b0, alu_c_out};
+            `SAVE_STATE_CPU_ALU_V_OUT: save_state_save_data = {15'b0, alu_v_out};
+            `SAVE_STATE_CPU_ALU_Z_OUT: save_state_save_data = {15'b0, alu_z_out};
+            `SAVE_STATE_CPU_ALU_N_OUT: save_state_save_data = {15'b0, alu_n_out};
+            default: save_state_save_data = 16'b0;
+        endcase
+    end
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -155,15 +163,16 @@ module core(
     assign ucode_index_en = 1'b1;
 
     // ucode always defaults to index 0 - will trigger break on a fetch
-    cpu_register ucode_index_reg(
-//		cpu_register #(.RESET_VAL(0)) ucode_index_reg(
+    cpu_register #(.SAVE_STATE_ADDR(`SAVE_STATE_CPU_UCODE_INDEX)) 
+    ucode_index_reg(
         .data_en(ucode_index_en), .data_in(next_ucode_index), 
         .data_out(ucode_index), .*);
 
     assign next_instr_ctrl_index = instr_ctrl_signals_indices[opcode];
     assign instr_ctrl_index_en = state == STATE_DECODE;
 
-    cpu_register #(.WIDTH(6)) instr_ctrl_index_reg(
+    cpu_register #(.WIDTH(6), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_INSTR_CTRL_INDEX)) 
+    instr_ctrl_index_reg(
         .data_en(instr_ctrl_index_en), .data_in(next_instr_ctrl_index), 
         .data_out(instr_ctrl_index), .*);
 
@@ -172,7 +181,8 @@ module core(
 
 	// start fetching on a reset - will discard values once we leave decode
     // since we will be forced into a break
-    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_FETCH)) state_reg(
+    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_FETCH), SAVE_STATE_ADDR(`SAVE_STATE_CPU_STATE)) 
+    state_reg(
         .data_en(state_en), .data_in(next_state[1:0]), .data_out(state[1:0]), .*);
 
 
@@ -195,7 +205,8 @@ module core(
         end
     end
 
-    cpu_register #(.WIDTH(1)) nmi_active_reg(
+    cpu_register #(.WIDTH(1), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_NMI_ACTIVE))
+    nmi_active_reg(
         .data_en(nmi_active_en), .data_in(next_nmi_active),
         .data_out(nmi_active), .*);
 
@@ -207,7 +218,8 @@ module core(
 
 
     // #nestest set the .RESET_VAL from 1 to 0
-    cpu_register #(.WIDTH(1), .RESET_VAL(1)) reset_reg(
+    cpu_register #(.WIDTH(1), .RESET_VAL(1), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_RESET_ACTIVE))
+    reset_reg(
         .data_en(reset_active_en), .data_in(next_reset_active),
         .data_out(reset_active), .*);
 
@@ -232,7 +244,8 @@ module core(
         end
     end
 
-    cpu_register #(.WIDTH(2), .RESET_VAL(INTERRUPT_NONE)) interrupt_reg(
+    cpu_register #(.WIDTH(2), .RESET_VAL(INTERRUPT_NONE), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_CURRENT_INTERUPT))
+    interrupt_reg(
         .data_en(curr_interrupt_en), .data_in(next_interrupt[1:0]),
         .data_out(curr_interrupt[1:0]), .*);
 
@@ -254,28 +267,31 @@ module core(
     assign next_Y = alu_out;
     assign next_SP = alu_out;
 
-    cpu_register A_reg(.data_en(A_en), .data_in(next_A), .data_out(A), .*);
-    cpu_register X_reg(.data_en(X_en), .data_in(next_X), .data_out(X), .*);
-    cpu_register Y_reg(.data_en(Y_en), .data_in(next_Y), .data_out(Y), .*);
+    cpu_register #(.SAVE_STATE_ADDR(`SAVE_STATE_CPU_A))
+    A_reg(.data_en(A_en), .data_in(next_A), .data_out(A), .*);
+    cpu_register #(.SAVE_STATE_ADDR(`SAVE_STATE_CPU_X))
+    X_reg(.data_en(X_en), .data_in(next_X), .data_out(X), .*);
+    cpu_register #(.SAVE_STATE_ADDR(`SAVE_STATE_CPU_Y))
+    Y_reg(.data_en(Y_en), .data_in(next_Y), .data_out(Y), .*);
     
-    cpu_register #(.RESET_VAL(`DEFAULT_SP)) SP_reg(
-                        .data_en(SP_en), .data_in(next_SP), .data_out(SP), .*);
+    cpu_register #(.RESET_VAL(`DEFAULT_SP), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_SP))
+    SP_reg(.data_en(SP_en), .data_in(next_SP), .data_out(SP), .*);
     
-    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_N)) n_flag_reg(
-            .data_en(n_flag_en), .data_in(next_n_flag), .data_out(n_flag), .*);
-    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_V)) v_flag_reg(
-            .data_en(v_flag_en), .data_in(next_v_flag), .data_out(v_flag), .*);
-    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_D)) d_flag_reg(
-            .data_en(d_flag_en), .data_in(next_d_flag), .data_out(d_flag), .*);
-    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_I)) i_flag_reg(
-            .data_en(i_flag_en), .data_in(next_i_flag), .data_out(i_flag), .*);
-    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_Z)) z_flag_reg(
-            .data_en(z_flag_en), .data_in(next_z_flag), .data_out(z_flag), .*);
-    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_C)) c_flag_reg(
-            .data_en(c_flag_en), .data_in(next_c_flag), .data_out(c_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_N), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_N_FLAG)) 
+    n_flag_reg(.data_en(n_flag_en), .data_in(next_n_flag), .data_out(n_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_V), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_V_FLAG)) 
+    v_flag_reg(.data_en(v_flag_en), .data_in(next_v_flag), .data_out(v_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_D), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_D_FLAG))
+    d_flag_reg(.data_en(d_flag_en), .data_in(next_d_flag), .data_out(d_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_I), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_I_FLAG))
+    i_flag_reg(.data_en(i_flag_en), .data_in(next_i_flag), .data_out(i_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_Z), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_Z_FLAG))
+    z_flag_reg(.data_en(z_flag_en), .data_in(next_z_flag), .data_out(z_flag), .*);
+    cpu_register #(.WIDTH(1), .RESET_VAL(`DEFAULT_C), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_C_FLAG))
+    c_flag_reg(.data_en(c_flag_en), .data_in(next_c_flag), .data_out(c_flag), .*);
 
-    cpu_wide_counter_register #(.RESET_VAL(`DEFAULT_PC)) PC_reg(
-        .inc_en(inc_PC), .data_en(PC_en), .data_in(next_PC), .data_out(PC), .*);
+    cpu_wide_counter_register #(.RESET_VAL(`DEFAULT_PC), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_PC)) 
+    PC_reg(.inc_en(inc_PC), .data_en(PC_en), .data_in(next_PC), .data_out(PC), .*);
 
     assign fetched_PC_en = state == STATE_FETCH;
     assign next_fetched_PC = PC;
@@ -295,10 +311,12 @@ module core(
     assign next_r_data_buffer = r_data;
     assign r_data_buffer_en = mem_r_en;
 
-    cpu_register r_data_buffer_reg(.data_en(mem_r_en),
+    cpu_register #(.SAVE_STATE_ADDR(`SAVE_STATE_CPU_R_DATA_BUFFER))
+    r_data_buffer_reg(.data_en(mem_r_en),
         .data_in(next_r_data_buffer), .data_out(r_data_buffer), .*);
 
-    cpu_wide_write_thru_register addr_reg(.data_en(addr_en), 
+    cpu_wide_write_thru_register #(.SAVE_STATE_ADDR(SAVE_STATE_CPU_ADDR))
+    addr_reg(.data_en(addr_en), 
         .data_in(next_addr), .data_out(addr), .*);
 
 
@@ -316,16 +334,21 @@ module core(
 
     assign alu_en = alu_op != ALUOP_HOLD;
 
-    cpu_register alu_out_reg(.data_en(alu_en), .data_in(next_alu_out),
+    cpu_register #(.SAVE_STATE_ADDR(`SAVE_STATE_CPU_ALU_OUT))
+    alu_out_reg(.data_en(alu_en), .data_in(next_alu_out),
                          .data_out(alu_out), .*);
 
-    cpu_register #(.WIDTH(1)) alu_c_out_reg(
+    cpu_register #(.WIDTH(1), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_ALU_C_OUT)) 
+    alu_c_out_reg(
         .data_en(alu_en), .data_in(next_alu_c_out), .data_out(alu_c_out), .*);
-    cpu_register #(.WIDTH(1)) alu_v_out_reg(
+    cpu_register #(.WIDTH(1), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_ALU_V_OUT))
+    alu_v_out_reg(
         .data_en(alu_en), .data_in(next_alu_v_out), .data_out(alu_v_out), .*);
-    cpu_register #(.WIDTH(1)) alu_z_out_reg(
+    cpu_register #(.WIDTH(1), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_ALU_Z_OUT))
+    alu_z_out_reg(
         .data_en(alu_en), .data_in(next_alu_z_out), .data_out(alu_z_out), .*);
-    cpu_register #(.WIDTH(1)) alu_n_out_reg(
+    cpu_register #(.WIDTH(1), ..SAVE_STATE_ADDR(`SAVE_STATE_CPU_ALU_N_OUT))
+    alu_n_out_reg(
         .data_en(alu_en), .data_in(next_alu_n_out), .data_out(alu_n_out), .*);
 
 
