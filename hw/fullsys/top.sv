@@ -125,7 +125,7 @@ module top ();
     assign can_z = (cpu.z_flag_en) ? cpu.next_z_flag : cpu.z_flag;
     assign can_c = (cpu.c_flag_en) ? cpu.next_c_flag : cpu.c_flag;
 
-    assign can_status = {can_n, can_v, 1'b1, 1'b0, 
+    assign can_status = {can_n, can_v, 1'b0, 1'b0, 
                          can_d, can_i, can_z, can_c};
 
     // initial begin 
@@ -139,11 +139,11 @@ module top ();
         @(posedge clock);
         cnt = 0;
         while(cnt < 12*`CPU_CYCLES) begin
-            if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
+            if(cpu.state == STATE_DECODE && cnt % 12 == 0 && cnt > 12*7) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
-                $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
+                $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d\n",
                         can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
-                $fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
+                //$fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
             end
             @(posedge clock);
             cnt++; 

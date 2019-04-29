@@ -10,7 +10,7 @@ def writeFile(path, contents):
 
 class Cpu_Log(object):
     def __str__(self):
-        s = "%s %s A:%s X:%s Y:%s P:%s SP:%s CYC:%d" % (self.pc, self.opcode, self.a, self.x, self.y, self.status, self.sp, self.cycle)
+        s = "%s %s A:%s X:%s Y:%s P:%s SP:%s CYC:%d" % (self.pc, "OP", self.a, self.x, self.y, self.status, "SP", self.cycle)
         return s
 
     def __eq__(self, other):
@@ -30,6 +30,7 @@ class Output_Log(Cpu_Log):
         self.sp = entries[6][3:].upper()
         self.cycle = int(entries[7][4:])
 
+'''
 class Golden_Log(Cpu_Log):
     def __init__(self, line):
         #"C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD PPU:  0,  0 CYC:7"
@@ -43,6 +44,23 @@ class Golden_Log(Cpu_Log):
         self.y = entries[2][:2]
         self.status = entries[3][:2]
         self.sp = entries[4][:2]
+        self.cycle = int(entries[-1])
+'''
+
+class Golden_Log(Cpu_Log):
+    def __init__(self, line):
+        #"C79E A:00 X:00 Y:00 P:04 SP:FD 0"
+
+        entries = line.split(" ")
+        self.pc = entries[0]
+        #self.opcode = halves[0][6:8]
+
+        #entries = halves[1].split(":")
+        self.a = entries[1][2:]
+        self.x = entries[2][2:]
+        self.y = entries[3][2:]
+        self.status = entries[4][2:]
+        self.sp = entries[5][3:]
         self.cycle = int(entries[-1])
 
 def find_first_dif(golden_contents, output_contents):
@@ -72,8 +90,8 @@ def find_first_dif(golden_contents, output_contents):
 
 
 def main():
-    golden_path = "logs/nestest.log.txt"
-    output_path = "logs/cpu-out.log.txt"
+    golden_path = "../../../mesen-logs/Donkey-Kong.txt"
+    output_path = "../fullsys/logs/fullsys-log.txt"
 
     golden_contents = readFile(golden_path)
     output_contents = readFile(output_path).upper()
