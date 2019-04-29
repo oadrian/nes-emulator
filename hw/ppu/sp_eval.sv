@@ -47,7 +47,7 @@ module sp_eval (
     output logic chr_rom_re
 );
     logic [8:0] next_row;
-    assign next_row = row;
+    assign next_row = row - 9'd1;
 
     // register for current sprite information
     second_oam_t curr_sprite_in, curr_sprite;

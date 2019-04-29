@@ -2,12 +2,13 @@
 `include "../include/ppu_defines.vh"
 `include "../apu/apu_defines.vh"
 
-`define CPU_CYCLES 1000000
-
+`define CPU_CYCLES 297807
+`define NUM_FRAMES 20
 
 module top ();
     string logFile = "logs/fullsys-log.txt";
-    string vramFile = "logs/vram.txt";
+    string vramFile = "logs/vram-traces/vram";
+    string frameCount;
 
     logic clock;
     logic reset_n;
@@ -62,7 +63,7 @@ module top ();
     logic [7:0] mem_rd_data_p;
 
     // debug
-    logic [7:0] ppuctrl, ppumask, ppuscrollX, ppuscrollY;
+    logic [7:0] ppuctrl, ppumask;
     mirror_t mirroring;
 
     logic [7:0] header [15:0];
@@ -100,7 +101,7 @@ module top ();
             .cpu_clk_en, .reg_sel, .reg_en, .reg_rw, .reg_data_in(reg_data_wr), .reg_data_out(reg_data_rd),
             .cpu_cyc_par, .cpu_sus, 
             .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p),
-            .ppuctrl, .ppumask, .ppuscrollX, .ppuscrollY, .mirroring);
+            .ppuctrl, .ppumask, .mirroring);
 
     // CPU stuff
     logic [15:0] mem_addr_c;
@@ -194,11 +195,7 @@ module top ();
     //     $finish;
     // end
 
-    initial begin
-        fd = $fopen(logFile,"w");
-        vram_fd = $fopen(vramFile,"w");
-        doReset;
-        @(posedge clock);
+    task cpuTrace(input int fd);
         cnt = 0;
         // while(cpu.PC != 16'hE057) begin
         while(cnt < 12*`CPU_CYCLES) begin
@@ -213,11 +210,105 @@ module top ();
         end
         @(posedge clock);
         @(posedge clock);
-        for (int i = 0; i < 4096; i++) begin
-            $fwrite(vram_fd,"%.2x ", peep.vr.mem[i%2048]);
+        @(posedge clock);
+        @(posedge clock);
+    endtask : cpuTrace
+
+    int i;
+    task vramTrace(input int fd);
+        // wait until nmi
+        while(vblank_nmi) begin 
+            @(posedge clock);
         end
-        @(posedge clock);
-        @(posedge clock);
+
+        // write chr_rom data
+        for (i = 0; i < 'h2000; i++) begin
+            $fwrite(fd,"%.2x ", peep.cr.mem[i%8192]);
+        end
+
+        // write name table data
+        if(mirroring == VER_MIRROR) begin 
+            for (i = 0; i < 4096; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[i%2048]);
+            end
+        end else if(mirroring == HOR_MIRROR) begin 
+            for (i = 0; i < 2048; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[i%1024]);
+            end
+            for (int i = 0; i < 2048; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[(i%1024) + 1024]);
+            end
+        end
+
+        // write mirror name table data
+        if(mirroring == VER_MIRROR) begin 
+            for (i = 0; i < 3840; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[i%2048]);
+            end
+        end else if(mirroring == HOR_MIRROR) begin 
+            for (i = 0; i < 2048; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[i%1024]);
+            end
+            for (int i = 0; i < 1792; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[(i%1024) + 1024]);
+            end
+        end
+
+        // write pal ram data and mirrors
+        for (i = 0; i < 'h100; i++) begin
+            $fwrite(fd,"%.2x ", peep.pr.mem[i%32]);
+        end
+
+        // new line
+        $fwrite(fd,"\n");
+
+        // pal ram data line
+        for (i = 0; i < 'h20; i++) begin
+            $fwrite(fd,"%.2x ", peep.pr.mem[i%32]);
+        end
+
+        // new line
+        $fwrite(fd,"\n");
+
+        // oam data line
+        for (i = 0; i < 'h100; i++) begin
+            $fwrite(fd,"%.2x ", peep.om.mem[i%256]);
+        end
+
+
+        while(!vblank_nmi)
+            @(posedge clock);
+    endtask : vramTrace
+
+    initial begin
+        if($test$plusargs("CPUTRACE")) begin 
+            fd = $fopen(logFile,"w");
+
+            $display({"\n",
+                      "---------------------\n",
+                      "<Getting a CPU trace>\n",
+                      "---------------------\n" });
+            doReset;
+            @(posedge clock);
+            cpuTrace(fd);
+        end
+
+        if($test$plusargs("VRAMTRACE")) begin 
+            $display({"\n",
+                      "---------------------\n",
+                      "<Getting a PPU vram trace>\n",
+                      "---------------------\n" });
+            doReset;
+            @(posedge clock);
+            for (int i = 0; i < `NUM_FRAMES; i++) begin
+                frameCount.itoa(i);
+                vram_fd = $fopen({vramFile, frameCount, ".txt"},"w");
+                vramTrace(vram_fd);
+                $fclose(vram_fd);
+                @(posedge clock);
+            end
+        end
+
         $finish;
     end
 
