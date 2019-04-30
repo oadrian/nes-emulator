@@ -374,6 +374,9 @@ module reg_inter (
         oam_re_reg = 1'b0;
         oam_we_reg = 1'b0;
         oam_wr_data_reg = 8'd0;
+		  
+		  // CHR ROM
+		  chr_rom_re = 1'b0;
 
         // PPU VRAM
         vram_re = 1'b0;
