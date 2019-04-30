@@ -164,23 +164,15 @@ module vram_mirroring (
 
     output logic [10:0] vram_addr
 );
-    logic [15:0] norm_addr;
-
-    assign norm_addr = addr & ~16'h1000;
 
     always_comb begin 
         vram_addr = 11'd0;
         case (mirroring)
             VER_MIRROR: begin 
-                vram_addr = norm_addr[10:0];
+                vram_addr = addr[10:0];
             end
             HOR_MIRROR: begin 
-                if({norm_addr[15:10], 2'b0} == 8'h20 || 
-                   {norm_addr[15:10], 2'b0} == 8'h24) 
-                    vram_addr = {1'b0, norm_addr[9:0]};
-                else if({norm_addr[15:10], 2'b0} == 8'h28 || 
-                        {norm_addr[15:10], 2'b0} == 8'h2C)
-                    vram_addr = {1'b1, norm_addr[9:0]};
+                vram_addr = {addr[11], addr[9:0]};
             end
             default : /* default */;
         endcase
