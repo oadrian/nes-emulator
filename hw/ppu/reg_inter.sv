@@ -594,17 +594,14 @@ module vram_addr_register (
                     vAddr[4:0] <= vAddr[4:0] + 5'd1;
                 end
             end else if(rendering && v_scroll) begin
-                if(vAddr[14:12] < 3'd7) begin 
-                    vAddr[14:12] <= vAddr[14:12] + 3'd1;
-                end else begin 
-                    vAddr[14:12] <= 3'd0;
-                    if (vAddr[9:5] == 5'd31)
+                vAddr[14:12] <= vAddr[14:12] + 3'd1;
+                if(vAddr[14:12] == 3'd7) begin 
+                    if (vAddr[9:5] == 5'd31) begin
                         vAddr[9:5] <= 5'd0;
-                    else if (vAddr[9:5] == 5'd29) begin  
+                    end else if (vAddr[9:5] == 5'd29) begin  
                         vAddr[9:5] <= 5'd0; 
-                        vAddr[11:10] <= vAddr[11:10] ^ 2'b10;
-                    end 
-                    else begin
+                        vAddr[11] <= vAddr[11] ^ 1'b1;
+                    end else begin
                         vAddr[9:5] <= vAddr[9:5] + 5'd1;
                     end
                 end
