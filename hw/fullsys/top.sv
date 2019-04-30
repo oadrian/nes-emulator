@@ -3,7 +3,7 @@
 `include "../apu/apu_defines.vh"
 
 `define CPU_CYCLES 297807
-`define NUM_FRAMES 20
+`define NUM_FRAMES 30
 
 module top ();
     string logFile = "logs/fullsys-log.txt";
@@ -220,18 +220,24 @@ module top ();
             @(posedge clock);
         end
         // wait until 
-        $display("Visible Pixel\n");
-        $display("tAddr: %X", peep.ri.addr_reg.tAddr);
-        $display(" vAddr: %X", peep.ri.addr_reg.vAddr);
-        $display(" NT Addr: %X",peep.bg.nt_addr);
+        if($test$plusargs("DEBUG")) begin
+            $display("Visible Pixel\n");
+            $display("tAddr: %X", peep.ri.addr_reg.tAddr);
+            $display(" vAddr: %X", peep.ri.addr_reg.vAddr);
+            $display(" NT Addr: %X",peep.bg.nt_addr);
+        end
 
         // wait until nmi
         while(vblank_nmi) begin 
             @(posedge clock);
         end
-        $display("NMI\n");
-        $display("tAddr: %X", peep.ri.addr_reg.tAddr);
-        $display(" vAddr: %X\n", peep.ri.addr_reg.vAddr);
+
+        if($test$plusargs("DEBUG")) begin 
+            $display("NMI\n");
+            $display("tAddr: %X", peep.ri.addr_reg.tAddr);
+            $display(" vAddr: %X\n", peep.ri.addr_reg.vAddr);            
+        end
+
 
         // write chr_rom data
         for (i = 0; i < 'h2000; i++) begin
