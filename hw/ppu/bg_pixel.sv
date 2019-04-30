@@ -58,10 +58,9 @@ module bg_pixel (
     assign net_fX = fX + tile_pixel;
 
     assign h_scroll = net_fX == 3'd7 && (vs_state == VIS_SL) && (hs_state == SL_PRE_CYC);
-    assign v_scroll = sl_col == 9'd256 && (vs_state == VIS_SL);
+    assign v_scroll = sl_col == 9'd256 && vs_state == VIS_SL;
 
-    assign h_update = sl_col == 9'd257 && (vs_state == VIS_SL);
-
+    assign h_update = sl_col == 9'd257 && (vs_state == VIS_SL || vs_state == PRE_SL);
     assign v_update = (9'd280 <= sl_col && sl_col <= 9'd304) && (vs_state == PRE_SL);
     
 
