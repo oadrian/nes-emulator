@@ -97,18 +97,21 @@ module ChipInterface
 
     mirror_t mirroring;
 
-    logic [7:0] header [15:0];
-    logic [7:0] flag6, prgsz, chrsz;
+    // header 
+    logic [7:0] flag6;
+    logic [4:0] header_addr;
+    logic [7:0] header_wr_data, header_rd_data;
+    logic header_wr_en;
 
-    always_ff @(posedge clock or negedge reset_n) begin
-      if(~reset_n) begin
-        $readmemh("../init/header_init.txt", header);
-      end
-    end
+    assign header_addr = 5'd6;   // flag 6 addr
+    assign header_wr_data = 8'd0;
+    assign header_wr_en = 1'b0;
 
-    assign prgsz = header[4];
-    assign chrsz = header[5];
-    assign flag6 = header[6];
+    header_ram hd_ram(.address(header_addr), .clock(clock), 
+                      .data(header_wr_data), .wren(header_wr_en),
+                      .q(header_rd_data));
+
+    assign flag6 = header_rd_data;
 
     always_comb begin
         case ({flag6[3], flag6[0]})
@@ -238,8 +241,8 @@ module ChipInterface
     SevenSegmentDigit ppu_ctrl_hi(.bcd(ppuctrl[7:4]), .segment(HEX7), .blank(1'b0));
     SevenSegmentDigit ppu_ctrl_lo(.bcd(ppuctrl[3:0]), .segment(HEX6), .blank(1'b0));
 
-    SevenSegmentDigit ppu_mask_hi(.bcd(ppumask[7:4]), .segment(HEX5), .blank(1'b0));
-    SevenSegmentDigit ppu_mask_lo(.bcd(ppumask[3:0]), .segment(HEX4), .blank(1'b0));
+    SevenSegmentDigit ppu_mask_hi(.bcd(flag6[7:4]), .segment(HEX5), .blank(1'b0));
+    SevenSegmentDigit ppu_mask_lo(.bcd(flag6[3:0]), .segment(HEX4), .blank(1'b0));
 
     SevenSegmentDigit pc_3(.bcd(mem_addr_c[15:12]), .segment(HEX3), .blank(1'b0));
     SevenSegmentDigit pc_2(.bcd(mem_addr_c[11:8]), .segment(HEX2), .blank(1'b0));

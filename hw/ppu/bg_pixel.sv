@@ -43,7 +43,7 @@ module bg_pixel (
     input hs_state_t hs_state
 );
 
-    assign v_scroll = sl_col == 9'd256 && vs_state == VIS_SL;
+    assign v_scroll = sl_col == 9'd256 && vs_state == VIS_SL; 
     assign h_update = 
                 // (mirroring == VER_MIRROR) ? 
                 // sl_col == 9'd257 && (vs_state == VIS_SL) : 
