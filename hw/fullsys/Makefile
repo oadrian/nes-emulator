@@ -5,6 +5,7 @@ TARGET = simv
 SRC := $(wildcard ../include/*.vh) \
 	   $(wildcard ../ppu/*.sv) \
 	   $(wildcard ../cpu/*.sv) \
+	   $(wildcard ../save_state/*.sv) \
 	   $(wildcard *.sv) 
 
 SRC := $(filter-out ../ppu/top.sv, $(SRC))

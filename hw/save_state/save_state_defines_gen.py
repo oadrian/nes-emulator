@@ -1,4 +1,4 @@
-
+import math
 
 # from 15-112 website lol
 def readFile(path):
@@ -16,21 +16,33 @@ def get_signal_defines(text):
     signal_header = "SAVE_STATE"
     signal_list = []
 
+    index = 0
+
     # skip header line
     lines = text.splitlines()[1:]
 
     for line in lines:
         # should be [blank, num bits, signal_name, signal_area]
         entries = line.split(",")
-        # for now don't do anything with the bit value
+        
+        num_bits = int(entries[1])
         signal_name = entries[2].upper()
         signal_area = entries[3].upper()
-        index = len(signal_list)
-        define_line = "`define %s_%s_%s %d" % (signal_header, signal_area, signal_name, index)
-        signal_list.append(define_line)
+        if num_bits <= 16:
+            define_line = "`define %s_%s_%s %d" % (signal_header, signal_area, signal_name, index)
+            signal_list.append(define_line)
+        else:
+            # values that are more than 16 bits are likely memory
+            num_lines = math.ceil(num_bits/16)
+            start_line = "`define %s_%s_%s_LO %d" % (signal_header, signal_area, signal_name, index)
+            signal_list.append(start_line)
+            index = index + num_lines - 1
+            end_line = "`define %s_%s_%s_HI %d" % (signal_header, signal_area, signal_name, index)
+            signal_list.append(end_line)
+        index += 1
 
     signal_defines = "\n".join(signal_list)
-    num_indices = len(signal_list)
+    num_indices = index
 
     return signal_defines, num_indices
 

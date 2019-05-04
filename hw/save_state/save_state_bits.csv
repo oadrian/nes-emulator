@@ -23,3 +23,5 @@
 ,1,alu_v_out,cpu
 ,1,alu_z_out,cpu
 ,1,alu_n_out,cpu
+,32768,ram,mem
+,8,read_data,mem

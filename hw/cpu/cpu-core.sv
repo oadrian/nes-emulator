@@ -2,7 +2,13 @@
 `include "../include/cpu_types.vh"
 `include "../include/ucode_ctrl.vh"
 
+`define NESTEST
+
+`ifdef NESTEST
 `define DEFAULT_SP 8'hFD
+`else
+`define DEFAULT_SP 8'h00
+`endif
 
 `define DEFAULT_N 1'b0
 `define DEFAULT_V 1'b0
@@ -117,34 +123,45 @@ module core(
 ////////////////////////////////////////////////////////////////////////////////
 // SAVE STATE SAVE DATA //
 
+    logic [15:0] next_save_state_save_data;
+
     always_comb begin
         case (save_state_addr)
-            `SAVE_STATE_CPU_UCODE_INDEX: save_state_save_data = {8'b0, ucode_index};
-            `SAVE_STATE_CPU_INSTR_CTRL_INDEX: save_state_save_data = {10'b0, instr_ctrl_index};
-            `SAVE_STATE_CPU_STATE: save_state_save_data = {14'b0, state};
-            `SAVE_STATE_CPU_NMI_ACTIVE: save_state_save_data = {15'b0, nmi_active};
-            `SAVE_STATE_CPU_RESET_ACTIVE: save_state_save_data = {15'b0, reset_active};
-            `SAVE_STATE_CPU_CURRENT_INTERUPT: save_state_save_data = {14'b0, curr_interrupt};
-            `SAVE_STATE_CPU_A: save_state_save_data = {8'b0, A};
-            `SAVE_STATE_CPU_X: save_state_save_data = {8'b0, X};
-            `SAVE_STATE_CPU_Y: save_state_save_data = {8'b0, Y};
-            `SAVE_STATE_CPU_SP: save_state_save_data = {8'b0, SP};
-            `SAVE_STATE_CPU_N_FLAG: save_state_save_data = {15'b0, n_flag};
-            `SAVE_STATE_CPU_V_FLAG: save_state_save_data = {15'b0, v_flag};
-            `SAVE_STATE_CPU_D_FLAG: save_state_save_data = {15'b0, d_flag};
-            `SAVE_STATE_CPU_I_FLAG: save_state_save_data = {15'b0, i_flag};
-            `SAVE_STATE_CPU_Z_FLAG: save_state_save_data = {15'b0, z_flag};
-            `SAVE_STATE_CPU_C_FLAG: save_state_save_data = {15'b0, c_flag};
-            `SAVE_STATE_CPU_PC: save_state_save_data = PC;
-            `SAVE_STATE_CPU_R_DATA_BUFFER: save_state_save_data = {8'b0, r_data_buffer};
-            `SAVE_STATE_CPU_ADDR: save_state_save_data = addr;
-            `SAVE_STATE_CPU_ALU_OUT: save_state_save_data = {8'b0, alu_out};
-            `SAVE_STATE_CPU_ALU_C_OUT: save_state_save_data = {15'b0, alu_c_out};
-            `SAVE_STATE_CPU_ALU_V_OUT: save_state_save_data = {15'b0, alu_v_out};
-            `SAVE_STATE_CPU_ALU_Z_OUT: save_state_save_data = {15'b0, alu_z_out};
-            `SAVE_STATE_CPU_ALU_N_OUT: save_state_save_data = {15'b0, alu_n_out};
-            default: save_state_save_data = 16'b0;
+            `SAVE_STATE_CPU_UCODE_INDEX: next_save_state_save_data = {8'b0, ucode_index};
+            `SAVE_STATE_CPU_INSTR_CTRL_INDEX: next_save_state_save_data = {10'b0, instr_ctrl_index};
+            `SAVE_STATE_CPU_STATE: next_save_state_save_data = {14'b0, state};
+            `SAVE_STATE_CPU_NMI_ACTIVE: next_save_state_save_data = {15'b0, nmi_active};
+            `SAVE_STATE_CPU_RESET_ACTIVE: next_save_state_save_data = {15'b0, reset_active};
+            `SAVE_STATE_CPU_CURRENT_INTERUPT: next_save_state_save_data = {14'b0, curr_interrupt};
+            `SAVE_STATE_CPU_A: next_save_state_save_data = {8'b0, A};
+            `SAVE_STATE_CPU_X: next_save_state_save_data = {8'b0, X};
+            `SAVE_STATE_CPU_Y: next_save_state_save_data = {8'b0, Y};
+            `SAVE_STATE_CPU_SP: next_save_state_save_data = {8'b0, SP};
+            `SAVE_STATE_CPU_N_FLAG: next_save_state_save_data = {15'b0, n_flag};
+            `SAVE_STATE_CPU_V_FLAG: next_save_state_save_data = {15'b0, v_flag};
+            `SAVE_STATE_CPU_D_FLAG: next_save_state_save_data = {15'b0, d_flag};
+            `SAVE_STATE_CPU_I_FLAG: next_save_state_save_data = {15'b0, i_flag};
+            `SAVE_STATE_CPU_Z_FLAG: next_save_state_save_data = {15'b0, z_flag};
+            `SAVE_STATE_CPU_C_FLAG: next_save_state_save_data = {15'b0, c_flag};
+            `SAVE_STATE_CPU_PC: next_save_state_save_data = PC;
+            `SAVE_STATE_CPU_R_DATA_BUFFER: next_save_state_save_data = {8'b0, r_data_buffer};
+            `SAVE_STATE_CPU_ADDR: next_save_state_save_data = addr;
+            `SAVE_STATE_CPU_ALU_OUT: next_save_state_save_data = {8'b0, alu_out};
+            `SAVE_STATE_CPU_ALU_C_OUT: next_save_state_save_data = {15'b0, alu_c_out};
+            `SAVE_STATE_CPU_ALU_V_OUT: next_save_state_save_data = {15'b0, alu_v_out};
+            `SAVE_STATE_CPU_ALU_Z_OUT: next_save_state_save_data = {15'b0, alu_z_out};
+            `SAVE_STATE_CPU_ALU_N_OUT: next_save_state_save_data = {15'b0, alu_n_out};
+            default: next_save_state_save_data = 16'b0;
         endcase
+    end
+
+    always_ff @(posedge clock, negedge reset_n) begin
+        if (!reset_n) begin
+            save_state_save_data <= 16'b0;
+        end
+        else begin
+            save_state_save_data <= next_save_state_save_data;
+        end
     end
 
 
@@ -181,7 +198,7 @@ module core(
 
 	// start fetching on a reset - will discard values once we leave decode
     // since we will be forced into a break
-    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_FETCH), SAVE_STATE_ADDR(`SAVE_STATE_CPU_STATE)) 
+    cpu_register #(.WIDTH(2), .RESET_VAL(STATE_FETCH), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_STATE)) 
     state_reg(
         .data_en(state_en), .data_in(next_state[1:0]), .data_out(state[1:0]), .*);
 
@@ -218,7 +235,11 @@ module core(
 
 
     // #nestest set the .RESET_VAL from 1 to 0
+`ifdef NESTEST
+    cpu_register #(.WIDTH(1), .RESET_VAL(0), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_RESET_ACTIVE))
+`else
     cpu_register #(.WIDTH(1), .RESET_VAL(1), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_RESET_ACTIVE))
+`endif
     reset_reg(
         .data_en(reset_active_en), .data_in(next_reset_active),
         .data_out(reset_active), .*);
@@ -315,7 +336,7 @@ module core(
     r_data_buffer_reg(.data_en(mem_r_en),
         .data_in(next_r_data_buffer), .data_out(r_data_buffer), .*);
 
-    cpu_wide_write_thru_register #(.SAVE_STATE_ADDR(SAVE_STATE_CPU_ADDR))
+    cpu_wide_write_thru_register #(.SAVE_STATE_ADDR(`SAVE_STATE_CPU_ADDR))
     addr_reg(.data_en(addr_en), 
         .data_in(next_addr), .data_out(addr), .*);
 
@@ -347,7 +368,7 @@ module core(
     cpu_register #(.WIDTH(1), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_ALU_Z_OUT))
     alu_z_out_reg(
         .data_en(alu_en), .data_in(next_alu_z_out), .data_out(alu_z_out), .*);
-    cpu_register #(.WIDTH(1), ..SAVE_STATE_ADDR(`SAVE_STATE_CPU_ALU_N_OUT))
+    cpu_register #(.WIDTH(1), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_ALU_N_OUT))
     alu_n_out_reg(
         .data_en(alu_en), .data_in(next_alu_n_out), .data_out(alu_n_out), .*);
 

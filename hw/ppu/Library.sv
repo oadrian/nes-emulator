@@ -4,7 +4,7 @@ module clock_div
   #(parameter DIV=2)
   (input logic clk,   // Clock
   input logic rst_n,  // Asynchronous reset active low
-
+  input logic stall,
   output logic clk_en
 );
 
@@ -15,6 +15,8 @@ module clock_div
   always_ff @(posedge clk or negedge rst_n) begin
     if(~rst_n) begin
       counter <= DIV - 'd1;
+    end else if (stall) begin
+      counter <= counter;
     end else if(counter == 1'b0) begin
       counter <= DIV - 'd1; 
     end else begin
