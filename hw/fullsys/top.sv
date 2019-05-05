@@ -1,10 +1,14 @@
 `default_nettype none
 `include "../include/ppu_defines.vh"
+`include "../apu/apu_defines.vh"
 
-`define CPU_CYCLES 200000
+`define CPU_CYCLES 297807
+`define NUM_FRAMES 30
 
 module top ();
     string logFile = "logs/fullsys-log.txt";
+    string vramFile = "logs/vram-traces/vram";
+    string frameCount;
 
     logic clock;
     logic reset_n;
@@ -19,6 +23,9 @@ module top ();
 
     logic cpu_clk_en;  // Master / 12
     clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en), .stall(svst_stall));
+
+    logic apu_clk_en;
+    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en));
 
     // ppu cycle
     logic [63:0] ppu_cycle;
@@ -96,13 +103,46 @@ module top ();
     logic mem_re_p;
     logic [7:0] mem_rd_data_p;
 
+    // debug
+    logic [7:0] ppuctrl, ppumask;
+    mirror_t mirroring;
+
+    logic [7:0] header [15:0];
+    logic [7:0] flag6, prgsz, chrsz;
+
+    always_ff @(posedge clock or negedge reset_n) begin
+      if(~reset_n) begin
+        $readmemh("../init/header_init.txt", header);
+      end
+    end
+
+    assign prgsz = header[4];
+    assign chrsz = header[5];
+    assign flag6 = header[6];
+
+    always_comb begin
+        case ({flag6[3], flag6[0]})
+            2'b00: mirroring = HOR_MIRROR;
+            2'b01: mirroring = VER_MIRROR;
+            2'b10: mirroring = FOUR_SCR_MIRROR;   // ONE_SCR_MIRROR?
+            2'b11: mirroring = FOUR_SCR_MIRROR;
+            default : mirroring = VER_MIRROR;
+        endcase
+    end
+    // APU
+    logic [4:0] reg_addr;
+    logic [7:0] reg_write_data;
+    logic [7:0] reg_read_data;
+    logic data_valid, reg_we;
+
     assign cpu_cyc_par = cpu_cycle[0];
 
     ppu peep(.clk(clock), .rst_n(reset_n), .ppu_clk_en, .vblank_nmi, 
             .vsync_n, .hsync_n, .vga_r, .vga_g, .vga_b, .blank, 
             .cpu_clk_en, .reg_sel, .reg_en, .reg_rw, .reg_data_in(reg_data_wr), .reg_data_out(reg_data_rd),
             .cpu_cyc_par, .cpu_sus, 
-            .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p));
+            .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p),
+            .ppuctrl, .ppumask, .mirroring);
 
     // CPU stuff
     logic [15:0] mem_addr_c;
@@ -111,7 +151,8 @@ module top ();
     logic [7:0] mem_rd_data_c;
     logic irq_n;
 
-    assign irq_n = 1'b1;
+    // debug
+    logic [15:0] PC_debug;
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
@@ -121,10 +162,25 @@ module top ();
              .save_state_load_data(svst_state_write_data),
              .save_state_save_data(cpu_state_read_data));
 
+    logic [15:0] audio_out;
+
+    apu apooh (
+      .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr, 
+      .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
+      .irq_l(irq_n),
+      .reg_data_out(reg_read_data),
+      .audio_out);
+
     // CPU Memory Interface
     logic [15:0] mem_addr;
     logic mem_re;
     logic [7:0] mem_wr_data, mem_rd_data;
+    logic ctlr_data_p1, ctlr_data_p2;
+    logic ctlr_pulse_p1, ctlr_pulse_p2, ctlr_latch;
+    logic [7:0] read_prom;
+
+    assign ctlr_data_p1 = 1'b1;
+    assign ctlr_data_p2 = 1'b1;
 
     assign mem_addr = (cpu_sus) ? mem_addr_p : mem_addr_c;
     assign mem_re = (cpu_sus) ? mem_re_p : mem_re_c;
@@ -140,9 +196,11 @@ module top ();
                    .ctlr_data_p1(1'b1), .ctlr_data_p2(1'b1),
                    .svst_state_read_data(mem_state_read_data),
                    .svst_state_write_en, .svst_state_read_en,
-                   .svst_state_addr, .svst_state_write_data);
+                   .svst_state_addr, .svst_state_write_data,
+                   .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
+                   .ctlr_data_p1, .ctlr_data_p2,
+                   .read_prom);
 
-    ////////////////////////////////////////////////////////////////////////////
 
     initial begin 
         clock = 1'b0;
@@ -203,7 +261,7 @@ module top ();
         $display("mismatch_count: %d", mismatch_count);
     endtask : compare_save_data
 
-    int fd;
+    int fd, vram_fd;
     int cnt;
 
     logic [7:0] can_A, can_X, can_Y, can_status, can_SP;
@@ -231,17 +289,13 @@ module top ();
     logic saved_once, loaded_once;
     logic just_enabled_all, just_stalled;
 
-    initial begin
-        fd = $fopen(logFile,"w");
-        doReset;
-        @(posedge clock);
+    task cpuTrace(input int fd);
         cnt = 0;
         load_save_counter = 0;
         saved_once = 1'b0;
         loaded_once = 1'b0;
         just_enabled_all = 1'b0;
         just_stalled = 1'b0;
-
         while(cnt < 12*`CPU_CYCLES) begin
 
             svst_begin_save_state = 1'b0;
@@ -281,6 +335,128 @@ module top ();
         @(posedge clock);
         @(posedge clock);
         @(posedge clock);
+    endtask : cpuTrace
+
+    int i;
+    task vramTrace(input int fd);
+        while(!(peep.vs_curr_state == VIS_SL && peep.col == 9'd0)) begin 
+            @(posedge clock);
+        end
+        // wait until 
+        if($test$plusargs("DEBUG")) begin
+            $display("Visible Pixel\n");
+            $display("tAddr: %X", peep.ri.addr_reg.tAddr);
+            $display(" vAddr: %X", peep.ri.addr_reg.vAddr);
+            $display(" NT Addr: %X",peep.bg.nt_addr);
+        end
+
+        // wait until nmi
+        while(vblank_nmi) begin 
+            @(posedge clock);
+        end
+
+        if($test$plusargs("DEBUG")) begin 
+            $display("NMI\n");
+            $display("tAddr: %X", peep.ri.addr_reg.tAddr);
+            $display(" vAddr: %X\n", peep.ri.addr_reg.vAddr);            
+        end
+
+
+        // write chr_rom data
+        for (i = 0; i < 'h2000; i++) begin
+            $fwrite(fd,"%.2x ", peep.cr.mem[i%8192]);
+        end
+
+        // write name table data
+        if(mirroring == VER_MIRROR) begin 
+            for (i = 0; i < 4096; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[i%2048]);
+            end
+        end else if(mirroring == HOR_MIRROR) begin 
+            for (i = 0; i < 2048; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[i%1024]);
+            end
+            for (int i = 0; i < 2048; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[(i%1024) + 1024]);
+            end
+        end
+
+        // write mirror name table data
+        if(mirroring == VER_MIRROR) begin 
+            for (i = 0; i < 3840; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[i%2048]);
+            end
+        end else if(mirroring == HOR_MIRROR) begin 
+            for (i = 0; i < 2048; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[i%1024]);
+            end
+            for (int i = 0; i < 1792; i++) begin
+                $fwrite(fd,"%.2x ", peep.vr.mem[(i%1024) + 1024]);
+            end
+        end
+
+        // write pal ram data and mirrors
+        for (i = 0; i < 'h100; i++) begin
+            $fwrite(fd,"%.2x ", peep.pr.mem[i%32]);
+        end
+
+        // new line
+        $fwrite(fd,"\n");
+
+        // pal ram data line
+        for (i = 0; i < 'h20; i++) begin
+            $fwrite(fd,"%.2x ", peep.pr.mem[i%32]);
+        end
+
+        // new line
+        $fwrite(fd,"\n");
+
+        // oam data line
+        for (i = 0; i < 'h100; i++) begin
+            $fwrite(fd,"%.2x ", peep.om.mem[i%256]);
+        end
+
+
+        while(!vblank_nmi)
+            @(posedge clock);
+    endtask : vramTrace
+
+    initial begin
+        if($test$plusargs("CPUTRACE")) begin 
+            fd = $fopen(logFile,"w");
+
+            $display({"\n",
+                      "---------------------\n",
+                      "<Getting a CPU trace>\n",
+                      "---------------------\n" });
+            doReset;
+            @(posedge clock);
+            cpuTrace(fd);
+        end
+
+        if($test$plusargs("VRAMTRACE")) begin 
+            $display({"\n",
+                      "---------------------\n",
+                      "<Getting a PPU vram trace>\n",
+                      "---------------------\n" });
+            doReset;
+            @(posedge clock);
+            if(mirroring == VER_MIRROR) begin 
+                $display("Vertical mirroring");
+            end else if(mirroring == HOR_MIRROR) begin
+                $display("Horizontal mirroring");
+            end else begin 
+                $error("mirroring was wrong");
+            end
+            for (int i = 0; i < `NUM_FRAMES; i++) begin
+                frameCount.itoa(i);
+                vram_fd = $fopen({vramFile, frameCount, ".txt"},"w");
+                vramTrace(vram_fd);
+                $fclose(vram_fd);
+                @(posedge clock);
+            end
+        end
+
         $finish;
     end
 

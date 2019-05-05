@@ -113,6 +113,12 @@ module cpu_memory(
     output logic reg_rw,
     output logic [7:0] reg_data_wr,
     input logic [7:0] reg_data_rd,
+
+    // APU register interface 
+    output logic [4:0] reg_addr,
+    output logic [7:0] reg_write_data,
+    input logic [7:0] reg_read_data,
+    output logic data_valid, reg_we,
 	 
 	 // Controller GPIO pins
      input logic ctlr_data_p1, ctlr_data_p2, 
@@ -126,11 +132,34 @@ module cpu_memory(
      
      input  logic svst_state_write_en, svst_state_read_en, 
      input  logic [`SAVE_STATE_BITS-1:0] svst_state_addr,
-     input  logic [15:0] svst_state_write_data    
+     input  logic [15:0] svst_state_write_data,
+
+      // write prg rom
+    input logic [14:0] prom_wr_addr,
+    input logic prom_we,
+    input logic [7:0] prom_wr_data
     );
 
     logic save_state_active;
     assign save_state_active = svst_state_write_en | svst_state_read_en;
+    logic prev_apu_read;
+
+    always_ff @(posedge clock or negedge reset_n)
+      if (~reset_n)
+        prev_apu_read <= 1'b0;
+      else if (clock_en & (addr == 16'h4015))
+        prev_apu_read <= 1'b1;
+      else if (clock_en)
+        prev_apu_read <= 1'b0;
+
+    // TODO: HOOK UP APU READS
+    // Driving APU registers
+    always_comb begin
+        reg_addr = addr[4:0];
+        reg_write_data = w_data;
+        reg_we = ~r_en;
+        data_valid = 16'h4000 <= addr && addr <= 16'h4017;
+    end
 
     // prev reg_en
     logic prev_reg_en, prev_but_rd;
@@ -187,8 +216,8 @@ module cpu_memory(
 			r_data = button_data_rd;
 		else if(prev_reg_en) 
 			r_data = reg_data_rd;
-		else
-			r_data = mem_data_rd;
+		else if (prev_apu_read)
+			r_data = reg_read_data;
 	 end
 	 
 
@@ -197,7 +226,15 @@ module cpu_memory(
     logic prom_rden;
     logic [7:0] prom_data_rd;
 
-    prg_rom_32 prom(.address(prom_address), .clock,  .q(prom_data_rd));
+    prg_ram prom(.address(prom_address), .clock,  
+                 .data(prom_wr_data), .wren(prom_we),
+                 .q(prom_data_rd));
+
+    assign prom_rden = (addr[15] == 1'b1 && r_en);
+    assign prom_address = (prom_we) ? prom_wr_addr : addr[14:0];
+
+    assign read_prom = prom_data_rd;
+
 
     logic [10:0]  cram_address;
     logic [7:0]  cram_data_wr;

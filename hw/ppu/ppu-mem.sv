@@ -6,9 +6,9 @@
 `endif
 
 `define chr_rom_init
-`define oam_init
-`define vram_init
-`define pal_init
+//`define oam_init
+//`define vram_init
+//`define pal_init
 
 // chr rom is 8KB 8 bit words
 `define CHR_ROM_WIDTH 13
@@ -27,11 +27,15 @@ module chr_rom (
     input logic [`CHR_ROM_WIDTH-1:0] addr1,
     input logic [`CHR_ROM_WIDTH-1:0] addr2,
     
-    output logic [7:0] data_out1,
-    output logic [7:0] data_out2
+    input logic we1, we2, // write enable
+    input logic [7:0] data_in1, data_in2,
+    output logic [7:0] data_out1, data_out2
 );
     `ifdef SYNTH
-    rom r_bb(.address_a(addr1), .address_b(addr2), .clock(clk), .q_a(data_out1), .q_b(data_out2));
+    chr_ram r_bb(.address_a(addr1), .address_b(addr2), .clock(clk), 
+                 .data_a(data_in1), .data_b(data_in2),
+                 .wren_a(we1), .wren_b(we2),
+                 .q_a(data_out1), .q_b(data_out2));
     `else
 
     logic [7:0] mem[2**`CHR_ROM_WIDTH-1:0]; //2KB 8-bit words
@@ -44,6 +48,13 @@ module chr_rom (
         `ifdef chr_rom_init
             $readmemh("../init/chr_rom_init.txt", mem);
         `endif
+        end else if(clk_en) begin
+            if(we1) begin
+                mem[addr1] <= data_in1;
+            end 
+            if(we2) begin
+                mem[addr2] <= data_in2;
+            end
         end
     end
 
@@ -155,5 +166,27 @@ module pal_ram (
     end
 
     assign data_out = mem[addr];
+
+endmodule
+
+module vram_mirroring (
+    input logic [15:0] addr,
+    input mirror_t mirroring,
+
+    output logic [10:0] vram_addr
+);
+
+    always_comb begin 
+        vram_addr = 11'd0;
+        case (mirroring)
+            VER_MIRROR: begin 
+                vram_addr = addr[10:0];
+            end
+            HOR_MIRROR: begin 
+                vram_addr = {addr[11], addr[9:0]};
+            end
+            default : /* default */;
+        endcase
+    end
 
 endmodule

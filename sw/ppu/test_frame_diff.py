@@ -27,21 +27,21 @@ def testSW(traces, trace_folder):
         print("Matched: "+str(100*good/total)+"% (" + str(good) + "/" + str(total) + ") of pixels\n\n")
 
 def testHW(traces, trace_folder):
-    pattbl_fl = "init/chr_rom_init.txt"
-    nametbl_fl = "init/vram_init.txt"
-    pal_fl = "init/pal_init.txt"
-    oam_fl = "init/oam_init.txt"
+    pattbl_fl = "../init/chr_rom_init.txt"
+    nametbl_fl = "../init/vram_init.txt"
+    pal_fl = "../init/pal_init.txt"
+    oam_fl = "../init/oam_init.txt"
     for trace in traces:
         print("testing trace: " + trace)
         txt_path = trace_folder+ "/" + trace+".txt"
         png_path = trace_folder+ "/" + trace+".png"
 
-        # split ppu mem to init/ folder for hw simulation
+        # split ppu mem to ../init/ folder for hw simulation
         splitter.split(txt_path, pattbl_fl, nametbl_fl, pal_fl, oam_fl)
 
         # run ./simv 
         FNULL = open(os.devnull, 'w')
-        subprocess.call(["./simv"], stdout=FNULL, stderr=FNULL)
+        subprocess.call(["./simv", "+FRAMETEST"], stdout=FNULL, stderr=FNULL)
 
         # convert generated frame data to bitmap
         bitmap0 = hw_gen.createBitmap("my_frame.txt")
@@ -50,16 +50,16 @@ def testHW(traces, trace_folder):
         print("Matched: "+str(100*good/total)+"% (" + str(good) + "/" + str(total) + ") of pixels\n\n")
 
 def testALL(traces, trace_folder):
-    pattbl_fl = "init/chr_rom_init.txt"
-    nametbl_fl = "init/vram_init.txt"
-    pal_fl = "init/pal_init.txt"
-    oam_fl = "init/oam_init.txt"
+    pattbl_fl = "../init/chr_rom_init.txt"
+    nametbl_fl = "../init/vram_init.txt"
+    pal_fl = "../init/pal_init.txt"
+    oam_fl = "../init/oam_init.txt"
     for trace in traces:
         print("testing trace: " + trace)
         txt_path = trace_folder+ "/" + trace+".txt"
         png_path = trace_folder+ "/" + trace+".png"
 
-        # split ppu mem to init/ folder for hw simulation
+        # split ppu mem to ../init/ folder for hw simulation
         splitter.split(txt_path, pattbl_fl, nametbl_fl, pal_fl, oam_fl)
 
         # run ./simv 

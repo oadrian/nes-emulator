@@ -1,0 +1,5 @@
+#!/bin/bash
+
+python ../../sw/ppu/split_ppu_mem.py $1
+./simv +FRAMETEST
+python ../../sw/ppu/frame_gen.py my_frame.txt test.png

@@ -4,6 +4,8 @@ TARGET = simv
 # Source files
 SRC := $(wildcard ../include/*.vh) \
 	   $(wildcard ../ppu/*.sv) \
+	   $(wildcard ../apu/*.vh) \
+	   $(wildcard ../apu/*.sv) \
 	   $(wildcard ../cpu/*.sv) \
 	   $(wildcard ../save_state/*.sv) \
 	   $(wildcard *.sv) 

@@ -4,15 +4,16 @@
 `define ATTR_TBL_OFF 11'h3C0
 
 module bg_pixel (
+    input logic clk, 
+    input logic rst_n,
+    input logic clk_en,
+
     // current pixel to draw
     input logic [8:0] sl_row,  // 262
     input logic [8:0] sl_col,  // 341
 
     // pattern table
     input pattern_tbl_t patt_tbl,
-
-    // nametable 
-    input name_tbl_t name_tbl,
 
     // vram  
             // access nametable
@@ -33,111 +34,214 @@ module bg_pixel (
     output logic [3:0] bg_color_idx,
 
     // scrolling
-    input logic [7:0] ppuscrollX, ppuscrollY // (x,y) in name_tbl to start
-                                             // rendering from
+    input logic [15:0] vAddr, 
+    input [2:0] fX,
+
+    output logic h_scroll, v_scroll, h_update, v_update,
+
+    input vs_state_t vs_state,
+    input hs_state_t hs_state
 );
-    logic [8:0] act_row, act_col, row, col;
-    logic row_ovf, col_ovf;
 
-    assign act_row = (ppuscrollY < 8'd240) ? sl_row + {1'b0,ppuscrollY} : sl_row - {1'b0, (~ppuscrollY + 8'd1)};
-    assign act_col = sl_col + {1'b0, ppuscrollX};
-
-    assign row_ovf = act_row >= 9'd240;
-    assign col_ovf = act_col[8];        // col >= 256
-
-    assign row = (row_ovf) ? act_row - 9'd240 : act_row;
-    assign col = {1'b0, act_col[7:0]};
+    assign v_scroll = sl_col == 9'd256 && vs_state == VIS_SL; 
+    assign h_update = sl_col == 9'd257 && (vs_state == VIS_SL || vs_state == PRE_SL);
+    assign v_update = (9'd280 <= sl_col && sl_col <= 9'd304) && (vs_state == PRE_SL);
 
     //////////// Nametable ////////////
-    logic [5:0] nametbl_row, nametbl_col;
-    logic [2:0] tile_row, tile_col;
+    logic [7:0] nt;
+    logic nt_ld;
+    logic [15:0] nt_addr;
 
-    logic [10:0] nametbl_idx, nametbl_off;
-    logic [7:0] tile_idx;
+    assign nt_addr = 16'h2000 | vAddr[11:0];
 
-    assign nametbl_row = row[8:3];  //  row / 8
-    assign nametbl_col = col[8:3]; //  col / 8
+    vram_mirroring vm1(.addr(nt_addr), .mirroring, .vram_addr(vram_addr1));
 
-    assign tile_row = row[2:0];    // row % 8
-    assign tile_col = col[2:0];    // col % 8
-
-    always_comb begin
-        nametbl_off = 11'h000;
-        if(mirroring == VER_MIRROR) begin 
-            case (name_tbl) 
-                TOP_L_TBL: nametbl_off = (!col_ovf) ? 11'h000 : 11'h400;
-                TOP_R_TBL: nametbl_off = (!col_ovf) ? 11'h400 : 11'h000;
-                BOT_L_TBL: nametbl_off = (!col_ovf) ? 11'h000 : 11'h400;   // depends on mirroring
-                BOT_R_TBL: nametbl_off = (!col_ovf) ? 11'h400 : 11'h000;   // deppends on mirroring
-            endcase
-        end else if(mirroring == HOR_MIRROR) begin
-            case (name_tbl) 
-                TOP_L_TBL: nametbl_off = (!row_ovf) ? 11'h000 : 11'h400;
-                TOP_R_TBL: nametbl_off = (!row_ovf) ? 11'h000 : 11'h400;
-                BOT_L_TBL: nametbl_off = (!row_ovf) ? 11'h400 : 11'h000;   // depends on mirroring
-                BOT_R_TBL: nametbl_off = (!row_ovf) ? 11'h400 : 11'h000;   // deppends on mirroring
-            endcase
-        end 
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            nt <= 8'd0;
+        end else if(clk_en) begin
+            if(nt_ld)
+                nt <= vram_data1;
+        end
     end
-
-    assign nametbl_idx = {nametbl_row, 5'b0} + {5'b0,nametbl_col}; 
-    assign vram_addr1= nametbl_off + nametbl_idx;
-    assign tile_idx = vram_data1;  // tile info
-
+    
     //////////// Attribute table ////////////
-    logic [1:0] pal_idx;
-    logic [3:0] attrtbl_row, attrtbl_col;
-    logic [4:0] block_row, block_col;
+    logic [1:0] at;
+    logic at_ld;
+    logic [15:0] at_addr;
 
-    logic [10:0] attrtbl_idx;
-    logic [7:0] attr_blk;
+    assign at_addr = 16'h23C0 | {4'b0, vAddr[11:10], 4'b0, vAddr[9:7], vAddr[4:2]};
+    vram_mirroring vm2(.addr(at_addr), .mirroring, .vram_addr(vram_addr2));
 
-    assign attrtbl_row = row[8:5]; // row / 32
-    assign attrtbl_col = col[8:5]; // col / 32
-
-    assign block_row = row[4:0];   // row % 32
-    assign block_col = col[4:0];   // col % 32
-
-    assign attrtbl_idx = {4'b0,attrtbl_row,3'b0} + {7'b0, attrtbl_col}; 
-    assign vram_addr2 = nametbl_off + `ATTR_TBL_OFF + attrtbl_idx;
-    assign attr_blk = vram_data2;
-
-    always_comb begin
-        pal_idx = attr_blk[1:0];
-
-        if(block_row < 5'd16 && block_col < 5'd16)
-            pal_idx = attr_blk[1:0];       // TOPLEFT
-        else if(block_row < 5'd16 && block_col >= 5'd16)
-            pal_idx = attr_blk[3:2];       // TOPRIGHT
-        else if(block_row >= 5'd16 && block_col < 5'd16)
-            pal_idx = attr_blk[5:4];       // BOTLEFT
-        else if(block_row >= 5'd16 && block_col >= 5'd16)
-            pal_idx = attr_blk[7:6];       // BOTRIGHT   
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+           at <= 2'd0;
+        end else if(clk_en) begin
+            if(at_ld) begin 
+                if(vAddr[6] == 1'b0 && vAddr[1] == 1'b0)
+                    at <= vram_data2[1:0];       // TOPLEFT
+                else if(vAddr[6] == 1'b0 && vAddr[1] == 1'b1)
+                    at <= vram_data2[3:2];       // TOPRIGHT
+                else if(vAddr[6] == 1'b1 && vAddr[1] == 1'b0)
+                    at <= vram_data2[5:4];       // BOTLEFT
+                else if(vAddr[6] == 1'b1 && vAddr[1] == 1'b1)
+                    at <= vram_data2[7:6];       // BOTRIGHT              
+            end
+        end
     end
 
     //////////// Pattern table //////////////
-    logic [1:0] color_idx;
-    logic [12:0] pattbl_off, pattbl_idx;    
-    logic [7:0] tile_lsb, tile_msb;
+    logic pattbl_off;    
+    logic [7:0] bg_l, bg_h;
+    logic bg_l_ld, bg_h_ld;
 
     always_comb begin
+        pattbl_off = 1'b0;
         case (patt_tbl)
-            LEFT_TBL: pattbl_off = 13'h0000;
-            RIGHT_TBL: pattbl_off = 13'h1000;
-            default : pattbl_off = 13'h0000;
+            LEFT_TBL: pattbl_off = 1'b0;
+            RIGHT_TBL: pattbl_off = 1'b1;
+            default : ;
         endcase
     
     end
 
-    assign pattbl_idx = {1'b0, tile_idx, 1'b0, tile_row};
-    assign chr_rom_addr1 = pattbl_off + pattbl_idx;
-    assign chr_rom_addr2 = chr_rom_addr1 + 13'd8;
+    assign chr_rom_addr1 = {pattbl_off, nt, 1'b0, vAddr[14:12]};
+    assign chr_rom_addr2 = chr_rom_addr1 | 13'd8;
 
-    assign tile_lsb = chr_rom_data1;
-    assign tile_msb = chr_rom_data2;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            bg_l <= 8'd0;
+            bg_h <= 8'd0;
+        end else if(clk_en) begin
+            if(bg_l_ld)
+                bg_l <= chr_rom_data1;
+            if(bg_h_ld)
+                bg_h <= chr_rom_data2;
+        end
+    end
 
-    logic [2:0] bit_idx;
-    assign bit_idx = 3'd7-tile_col;
+    /////// tile and attribute data for two consecutive tiles /////////
+    logic [15:0] bg_l_both, bg_h_both;
+    logic [1:0] at_l_both, at_h_both;
+    logic bg_next_ld, bg_next_sh, at_next_ld, at_next_sh;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            bg_l_both <= 0;
+            bg_h_both <= 0;
+        end else if(clk_en) begin
+            if(bg_next_sh && bg_next_ld) begin
+                bg_l_both <= {bg_l_both[7:0], bg_l};
+                bg_h_both <= {bg_h_both[7:0], bg_h};
+            end else if(bg_next_sh) begin
+                bg_l_both <= {bg_l_both[7:0], 8'd0};
+                bg_h_both <= {bg_h_both[7:0], 8'd0};
+            end else if(bg_next_ld) begin 
+                bg_l_both <= {bg_l_both[15:8], bg_l};
+                bg_h_both <= {bg_h_both[15:8], bg_h};
+            end
+        end
+    end
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            at_l_both <= 0;
+            at_h_both <= 0;
+        end else if(clk_en) begin
+            if(at_next_sh && at_next_ld) begin 
+                at_l_both <= {at_l_both[0], at[0]};
+                at_h_both <= {at_h_both[0], at[1]}; 
+            end  else if (at_next_sh) begin 
+                at_l_both <= {at_l_both[0], 1'b0};
+                at_h_both <= {at_h_both[0], 1'b0};
+            end else if(at_next_ld) begin 
+                at_l_both <= {at_l_both[1], at[0]};
+                at_h_both <= {at_h_both[1], at[1]};
+            end
+        end
+    end
+
+    logic [8:0] tl_pre_col;
+    assign tl_pre_col = sl_col - 9'd321;
+    always_comb begin
+        // nametable load
+        nt_ld = 1'b0;
+
+        // attribute table load
+        at_ld = 1'b0;
+
+        // background registers
+        bg_l_ld = 1'b0;
+        bg_h_ld = 1'b0;
+
+        // background tile registers
+        bg_next_sh = 1'b0;    
+        bg_next_ld = 1'b0;
+        at_next_sh = 1'b0;
+        at_next_ld = 1'b0;
+
+        // h_scroll
+        h_scroll = 1'b0;
+        case (hs_state)
+            SL_PRE_CYC: begin 
+                case (sl_col[2:0])
+                    3'd0: begin 
+                        bg_next_ld = 1'b1;
+                        at_next_ld = 1'b1;
+                    end
+                    3'd1: nt_ld = 1'b1; 
+                    3'd3: at_ld = 1'b1;
+                    3'd5: bg_l_ld = 1'b1;
+                    3'd7: begin 
+                        bg_h_ld = 1'b1;
+                        h_scroll = (vs_state == VIS_SL) ? 1'b1 : 1'b0;
+
+                        bg_next_sh = 1'b1;
+                        at_next_sh = 1'b1;
+                    end
+                    default : /* default */;
+                endcase
+            end
+            TL_PRE_CYC: begin
+                case (tl_pre_col[2:0])
+                    3'd0: begin 
+                        bg_next_ld = 1'b1;
+                        at_next_ld = 1'b1;
+                    end
+                    3'd1: nt_ld = 1'b1; 
+                    3'd3: at_ld = 1'b1;
+                    3'd5: bg_l_ld = 1'b1;
+                    3'd7: begin 
+                        bg_h_ld = 1'b1;
+                        h_scroll = (vs_state == VIS_SL || vs_state == PRE_SL) ? 1'b1 : 1'b0;
+
+                        bg_next_sh = 1'b1;
+                        at_next_sh = 1'b1;
+                    end
+                    default : /* default */;
+                endcase
+            end
+            default : /* default */;
+        endcase
+
+    
+    end
+
+    // net x position
+    logic [2:0] net_fX, bit_idx;
+    logic ovf;
+
+    logic [7:0] tile_lsb, tile_msb;
+    logic [1:0] pal_idx, color_idx;
+
+    assign {ovf, net_fX} = {1'b0, fX} + {1'b0, sl_col[2:0]};
+
+    assign tile_lsb = (ovf) ? bg_l_both[7:0] : bg_l_both[15:8];
+    assign tile_msb = (ovf) ? bg_h_both[7:0] : bg_h_both[15:8];
+
+    assign bit_idx = 3'd7 - net_fX;
+
+    assign pal_idx = (ovf) ? {at_h_both[0], at_l_both[0]} : {at_h_both[1], at_l_both[1]};
     assign color_idx = {tile_msb[bit_idx], tile_lsb[bit_idx]};
 
     // background color index
