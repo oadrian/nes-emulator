@@ -26,6 +26,8 @@ inter,number of bits,signal name,area
 2048 (bytes),32768,cpu_ram,cpu_mem
 ,8,read_data,cpu_mem
 ,1,prev_reg_en,cpu_mem
+,1,prev_but_rd,cpu_mem
+,1,prev_apu_rd,cpu_mem
 ,8,ppuctrl_out,ppu
 ,8,ppumask_out,ppu
 ,8,oamdma_out,ppu
@@ -33,7 +35,7 @@ inter,number of bits,signal name,area
 ,1,wr_curr_state,ppu
 ,8,reg_data_out,ppu
 ,8,read_buf_curr,ppu
-,8,ppustatus_out,
+,8,ppustatus_out,ppu
 ,1,force_vblank_clr0,ppu
 ,1,force_vblank_clr1,ppu
 ,3,fX,ppu
