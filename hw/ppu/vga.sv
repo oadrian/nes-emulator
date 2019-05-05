@@ -18,7 +18,10 @@ module vga (
 
     // Scanline Buffer
     output logic [7:0] vga_buf_idx,
-    input logic [5:0] vga_buf_out
+    input logic [5:0] vga_buf_out,
+
+    // CRT look
+    input logic retro_look
 );
     // row, col logic
 
@@ -211,17 +214,21 @@ module vga (
     // index of ppu buffer
     assign vga_buf_idx = col[7:0];
 
-	 `ifdef CRT_LOOK
-    assign {vga_r, vga_g, vga_b} = 
+
+    always_comb begin 
+      {vga_r, vga_g, vga_b} = { 8'd0, 8'd0, 8'd0 };
+      if(retro_look) begin
+        {vga_r, vga_g, vga_b} = 
         (vs_curr_state == VGA_VS_VIS_SL && 
          hs_curr_state == VGA_HS_VIS_CYC && 
          row[0] == 1'b0) ? 
          rgb : { 8'd0, 8'd0, 8'd0 };
-		`else
-		assign {vga_r, vga_g, vga_b} = 
+      end else begin
+        {vga_r, vga_g, vga_b} = 
         (vs_curr_state == VGA_VS_VIS_SL && 
          hs_curr_state == VGA_HS_VIS_CYC) ? 
          rgb : { 8'd0, 8'd0, 8'd0 };
-		`endif
+      end
+    end
 
 endmodule

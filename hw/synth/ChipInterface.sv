@@ -16,6 +16,7 @@ module ChipInterface
    output logic        VGA_BLANK_N, VGA_CLK, VGA_SYNC_N, 
    output logic        VGA_VS, VGA_HS,
 
+   // AUDIO DAC
   input  AUD_ADCDAT,
   inout  AUD_ADCLRCK,
   inout  AUD_BCLK,
@@ -26,7 +27,16 @@ module ChipInterface
   output I2C_SCLK,
   inout I2C_SDAT,
    // GPIO PINS
-   inout logic [35:0] GPIO
+   inout logic [35:0] GPIO,
+
+  //////////// SRAM //////////
+  output [19:0] SRAM_ADDR,
+  output SRAM_CE_N,
+  inout  [15:0] SRAM_DQ,
+  output SRAM_LB_N,
+  output SRAM_OE_N,
+  output SRAM_UB_N,
+  output SRAM_WE_N
    ); 
 
 	logic reset_n;
@@ -46,19 +56,66 @@ module ChipInterface
 	assign VGA_CLK = CLOCK_10;
 
   logic clock;
-
   assign clock = CLOCK_21;
+
+  /// SRAM LOADER /////
+
+  logic [3:0] game_select;
+  logic start_load, done_load;
+
+  // PRG RAM SRAM WRITE
+  logic [14:0] prg_rom_addr_sram;
+  logic prg_rom_we_sram;
+  logic [7:0] prg_rom_wr_data_sram;
+  // CHR RAM SRAM WRITE
+  logic [12:0] chr_rom_addr_sram;
+  logic chr_rom_we_sram;
+  logic [7:0] chr_rom_wr_data_sram;
+  // HEADER RAM
+  logic [4:0] header_addr_sram;
+  logic header_we_sram;
+  logic [7:0] header_wr_data_sram;
+  
+  assign game_select = SW[3:0];
+  assign start_load = ~KEY[0];
+
+  sram_loader sram_ld(
+    .clk(clock), .rst_n(reset_n), 
+    .game_select(game_select), .start_load(start_load), .done_load(done_load),
+    
+    .SRAM_DQ(SRAM_DQ), .SRAM_ADDR(SRAM_ADDR), .SRAM_LB_N(SRAM_LB_N), 
+    .SRAM_UB_N(SRAM_UB_N), .SRAM_CE_N(SRAM_CE_N), .SRAM_OE_N(SRAM_OE_N), 
+    .SRAM_WE_N(SRAM_WE_N),
+    
+    .prg_rom_addr(prg_rom_addr_sram), .prg_rom_we(prg_rom_we_sram),
+    .prg_rom_wr_data(prg_rom_wr_data_sram),
+
+    .chr_rom_addr(chr_rom_addr_sram), .chr_rom_we(chr_rom_we_sram),
+    .chr_rom_wr_data(chr_rom_wr_data_sram),
+
+    .header_addr(header_addr_sram), .header_we(header_we_sram),
+    .header_wr_data(header_wr_data_sram)
+    );
 	
 	// ppu
-      logic ppu_clk_en;  // Master / 4
-    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en));
+      logic ppu_clk_en_t, ppu_clk_en;  // Master / 4
+    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en_t));
 
-    logic cpu_clk_en;  // Master / 12
-    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en));
-//	 Stepper step(.clock, .reset_n, .key_n(KEY[3]), .clk_en(cpu_clk_en));
+    logic cpu_clk_en_t, cpu_clk_en;  // Master / 12
+    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en_t));
 
-    logic apu_clk_en;
-    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en));
+    logic apu_clk_en_t, apu_clk_en;
+    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en_t));
+
+    logic vga_clk_en_t, vga_clk_en;  // Master / 2
+    clock_div #(2) v_ck(.clk(clock), .rst_n(reset_n), .clk_en(vga_clk_en_t));
+
+    assign ppu_clk_en = ppu_clk_en_t && done_load;
+    assign cpu_clk_en = cpu_clk_en_t && done_load;
+    assign apu_clk_en = apu_clk_en_t && done_load;
+    assign vga_clk_en = vga_clk_en_t && done_load;
+
+
     // ppu cycle
     logic [63:0] ppu_cycle;
     always_ff @(posedge clock or negedge reset_n) begin
@@ -103,9 +160,9 @@ module ChipInterface
     logic [7:0] header_wr_data, header_rd_data;
     logic header_wr_en;
 
-    assign header_addr = 5'd6;   // flag 6 addr
-    assign header_wr_data = 8'd0;
-    assign header_wr_en = 1'b0;
+    assign header_addr = (~done_load) ? header_addr_sram : 5'd6; // flag 6 addr
+    assign header_wr_data = header_wr_data_sram;
+    assign header_wr_en = header_we_sram;
 
     header_ram hd_ram(.address(header_addr), .clock(clock), 
                       .data(header_wr_data), .wren(header_wr_en),
@@ -123,14 +180,19 @@ module ChipInterface
         endcase
     end
 
-    ppu peep(.clk(clock), .rst_n(reset_n), .ppu_clk_en, .vblank_nmi, 
+    logic retro_look;
+    assign retro_look = SW[16];
+
+    ppu peep(.clk(clock), .rst_n(reset_n), .ppu_clk_en, .vga_clk_en, .vblank_nmi, 
             .vsync_n(VGA_VS), .hsync_n(VGA_HS), 
             .vga_r(VGA_R), .vga_g(VGA_G), .vga_b(VGA_B), .blank, 
             .cpu_clk_en, .reg_sel, .reg_en, .reg_rw, .reg_data_in(reg_data_wr), .reg_data_out(reg_data_rd),
             .cpu_cyc_par, .cpu_sus, 
             .cpu_addr(mem_addr_p), .cpu_re(mem_re_p), .cpu_rd_data(mem_rd_data_p), 
             .ppuctrl, .ppumask,
-            .mirroring);
+            .mirroring,
+            .retro_look,
+            .chr_rom_addr_sram, .chr_rom_we_sram, .chr_rom_wr_data_sram);
 
     // APU
     logic [4:0] reg_addr;
@@ -191,32 +253,6 @@ module ChipInterface
 
     assign mem_rd_data_c = mem_rd_data;
     assign mem_rd_data_p = mem_rd_data;
-	 
-	// logic up, down, start, select, left, right, A, B;
-     
- //     always_ff @(posedge clock or negedge reset_n) begin
- //        if(~reset_n) begin
- //            up <= 0;
- //            down <= 0;
- //            start <= 0;
- //            select <= 0;
-
- //            left <= 0;
- //            right <= 0;
- //            A <= 0;
- //            B <= 0;
- //        end else begin
- //            up <= ~KEY[3] && SW[0];
- //            down <= ~KEY[2] && SW[0];
- //            start <= ~KEY[1] && SW[0];
- //            select <= ~KEY[0] && SW[0];
-
- //            left <= ~KEY[3] && ~SW[0];
- //            right <= ~KEY[2] && ~SW[0];
- //            A <= ~KEY[1] && ~SW[0];
- //            B <= ~KEY[0] && ~SW[0];
- //        end
- //     end
 
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
@@ -225,7 +261,9 @@ module ChipInterface
                    .read_prom,
                    .ctlr_pulse_p1(GPIO[26]), .ctlr_pulse_p2(GPIO[11]),
                    .ctlr_latch, 
-                   .ctlr_data_p1(GPIO[30]), .ctlr_data_p2(GPIO[15]));
+                   .ctlr_data_p1(GPIO[30]), .ctlr_data_p2(GPIO[15]),
+                   .prom_wr_addr(prg_rom_addr_sram), .prom_we(prg_rom_we_sram),
+                   .prom_wr_data(prg_rom_wr_data_sram));
 
     // controller pins:
     // P1: Power: 3.3V, pulse: 26, latch: 28, data: 30
@@ -236,6 +274,7 @@ module ChipInterface
 
     assign GPIO[28] = ctlr_latch;
     assign GPIO[13] = ctlr_latch;
+
 
     // see ppu status registers
     SevenSegmentDigit ppu_ctrl_hi(.bcd(ppuctrl[7:4]), .segment(HEX7), .blank(1'b0));

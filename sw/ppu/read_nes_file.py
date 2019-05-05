@@ -17,6 +17,9 @@ HEADER_BIN = "header_init.bin"
 HEADER_HEX = "init-intel/header_init.hex"
 
 
+SRAM_TXT = "init/sram_init.hex"
+
+
 
 def getIthBit(i, num):
     return (num>>i)&1
@@ -67,7 +70,7 @@ def interpretHeader(header):
 
     return prgrom_sz, chrrom_sz, vertical_mirror, bit_trainer
 
-def writeTXT(filename, prgrom):
+def writeTXT(filename, prgrom, endchr= "\n"):
     mem = []
     for c in prgrom:
         to_hex = hex(ord(c))
@@ -75,11 +78,11 @@ def writeTXT(filename, prgrom):
         if(len(to_hex) == 1):
             to_hex = "0"+to_hex
         mem.append(to_hex)
-    lib.dumpMemory(filename, mem)
+    lib.dumpMemory(filename, mem, endchr)
 
 def readNES(filename):
     with open(filename, "rb") as f:
-        header = f.read(16)
+        header = 2*f.read(16)
         writeTXT(HEADER_TXT, header)
         prgrom_sz, chrrom_sz, vertical_mirror, bit_trainer = interpretHeader(header)
         if(bit_trainer):
@@ -99,14 +102,18 @@ def readNES(filename):
         writeTXT(PRGROM_TXT, prgrom)
         writeTXT(CHRROM_TXT, chrrom)
 
+        sram_init = header+prgrom+chrrom
+        writeTXT(SRAM_TXT, sram_init, endchr="")
+
         if(sys.platform == 'linux2'):
             text2bin.write2file(PRGROM_BIN, prgrom)
             text2bin.write2file(CHRROM_BIN, chrrom)
             text2bin.write2file(HEADER_BIN, header)
+            text2bin.write2file(SRAM_BIN, sram_init)
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", PRGROM_BIN, PRGROM_HEX])
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", CHRROM_BIN, CHRROM_HEX])
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", HEADER_BIN, HEADER_HEX])
-
+            subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", SRAM_BIN, SRAM_HEX])
         elif(sys.platform == 'win32'):
             text2bin.write2file(PRGROM_BIN, prgrom)
             text2bin.write2file(CHRROM_BIN, chrrom)
@@ -114,6 +121,7 @@ def readNES(filename):
             subprocess.call(["srec_cat", PRGROM_BIN, "-binary", "-output", PRGROM_HEX, "-Intel"])
             subprocess.call(["srec_cat", CHRROM_BIN, "-binary", "-output", CHRROM_HEX, "-Intel"])
             subprocess.call(["srec_cat", HEADER_BIN, "-binary", "-output", HEADER_HEX, "-Intel"])
+
 
 
 
