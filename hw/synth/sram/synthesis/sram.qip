@@ -1,0 +1,38 @@
+set_global_assignment -entity "sram" -library "sram" -name IP_TOOL_NAME "Qsys"
+set_global_assignment -entity "sram" -library "sram" -name IP_TOOL_VERSION "16.0"
+set_global_assignment -entity "sram" -library "sram" -name IP_TOOL_ENV "Qsys"
+set_global_assignment -library "sram" -name SOPCINFO_FILE [file join $::quartus(qip_path) "../../sram.sopcinfo"]
+set_global_assignment -entity "sram" -library "sram" -name SLD_INFO "QSYS_NAME sram HAS_SOPCINFO 1 GENERATION_ID 1557015220"
+set_global_assignment -library "sram" -name MISC_FILE [file join $::quartus(qip_path) "../sram.cmp"]
+set_global_assignment -library "sram" -name SLD_FILE [file join $::quartus(qip_path) "sram.debuginfo"]
+set_global_assignment -entity "sram" -library "sram" -name IP_TARGETED_DEVICE_FAMILY "Cyclone IV E"
+set_global_assignment -entity "sram" -library "sram" -name IP_GENERATED_DEVICE_FAMILY "{Cyclone IV E}"
+set_global_assignment -entity "sram" -library "sram" -name IP_QSYS_MODE "STANDALONE"
+set_global_assignment -name SYNTHESIS_ONLY_QIP ON
+set_global_assignment -library "sram" -name MISC_FILE [file join $::quartus(qip_path) "../../sram.qsys"]
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_NAME "c3JhbQ=="
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_DISPLAY_NAME "c3JhbQ=="
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_REPORT_HIERARCHY "On"
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_INTERNAL "Off"
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_VERSION "MS4w"
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19HRU5FUkFUSU9OX0lE::MTU1NzAxNTIyMA==::QXV0byBHRU5FUkFUSU9OX0lE"
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0VfRkFNSUxZ::Q3ljbG9uZSBJViBF::QXV0byBERVZJQ0VfRkFNSUxZ"
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0U=::RVA0Q0UxMTVGMjlDNw==::QXV0byBERVZJQ0U="
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0VfU1BFRURHUkFERQ==::Nw==::QXV0byBERVZJQ0VfU1BFRURHUkFERQ=="
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19DTEtfQ0xPQ0tfUkFURQ==::LTE=::QXV0byBDTE9DS19SQVRF"
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19DTEtfQ0xPQ0tfRE9NQUlO::LTE=::QXV0byBDTE9DS19ET01BSU4="
+set_global_assignment -entity "sram" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19DTEtfUkVTRVRfRE9NQUlO::LTE=::QXV0byBSRVNFVF9ET01BSU4="
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_NAME "c3JhbV9zcmFtXzA="
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_DISPLAY_NAME "U1JBTS9TU1JBTSBDb250cm9sbGVy"
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_REPORT_HIERARCHY "Off"
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_INTERNAL "Off"
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_AUTHOR "QWx0ZXJhIFVuaXZlcnNpdHkgUHJvZ3JhbQ=="
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_VERSION "MTUuMQ=="
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_DESCRIPTION "U1JBTS9TU1JBTSBDb250cm9sbGVyIGZvciBERS1zZXJpZXMgQm9hcmRz"
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_PARAMETER "Ym9hcmQ=::REUyLTExNQ==::REUtU2VyaWVzIEJvYXJk"
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_PARAMETER "cGl4ZWxfYnVmZmVy::ZmFsc2U=::VXNlIGFzIGEgcGl4ZWwgYnVmZmVyIGZvciB2aWRlbyBvdXQ="
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0VfRkFNSUxZ::Q3ljbG9uZSBJViBF::QXV0byBERVZJQ0VfRkFNSUxZ"
+set_global_assignment -entity "sram_sram_0" -library "sram" -name IP_COMPONENT_PARAMETER "QVVUT19DTEtfQ0xPQ0tfUkFURQ==::MA==::QXV0byBDTE9DS19SQVRF"
+
+set_global_assignment -library "sram" -name VERILOG_FILE [file join $::quartus(qip_path) "sram.v"]
+set_global_assignment -library "sram" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/sram_sram_0.v"]

@@ -5,6 +5,8 @@ module ppu (
     input clk,    // Master Clock
     input rst_n,  // Asynchronous reset active low
     input logic ppu_clk_en,   // 
+    input logic vga_clk_en,   // 
+
 
     // NMI VBlank
     output logic vblank_nmi, // NMI signal to cpu
@@ -40,13 +42,16 @@ module ppu (
     output logic [7:0] ppuctrl, ppumask,
 
     // mirroring
-    input mirror_t mirroring
+    input mirror_t mirroring,
+
+    // CRT look
+    input logic retro_look,
+
+    // write chr rom
+    input logic [12:0] chr_rom_addr_sram,
+    input logic chr_rom_we_sram,
+    input logic [7:0] chr_rom_wr_data_sram
 );
-
-    //////////// VGA clk   /////////////
-    logic vga_clk_en;  // Master / 2
-    clock_div #(2) v_ck(.clk, .rst_n, .clk_en(vga_clk_en));
-
 
     //////////// VRAM (ASYNC READ)   /////////////
     logic [10:0] vram_addr1, vram_addr2;
@@ -80,10 +85,14 @@ module ppu (
 
     //////////// CHR_ROM (ASYNC READ)   /////////////
     logic [12:0] chr_rom_addr1, chr_rom_addr2;
+    logic chr_rom_we1, chr_rom_we2;
+    logic [7:0] chr_rom_in1, chr_rom_in2; 
     logic [7:0] chr_rom_out1, chr_rom_out2;
 
     chr_rom cr(.clk, .clk_en(ppu_clk_en), .rst_n,
                .addr1(chr_rom_addr1), .addr2(chr_rom_addr2),
+               .we1(chr_rom_we1), .we2(chr_rom_we2),
+               .data_in1(chr_rom_in1), .data_in2(chr_rom_in2),
                .data_out1(chr_rom_out1), .data_out2(chr_rom_out2));
 
     //////////// CPU Register Interface   /////////////
@@ -102,8 +111,16 @@ module ppu (
 
     // CHR ROM (Async read)
     logic [12:0] chr_rom_addr_ri;
+    logic chr_rom_we_ri;
     logic chr_rom_re_ri;
+    logic [7:0] chr_rom_wr_data_ri;
     logic [7:0] chr_rom_rd_data_ri;
+
+    assign chr_rom_we1 = chr_rom_we_sram || chr_rom_we_ri;
+    assign chr_rom_we2 = 1'b0;
+
+    assign chr_rom_in1 = (chr_rom_we_sram) ? chr_rom_wr_data_sram : chr_rom_wr_data_ri;
+    assign chr_rom_in2 = 8'd0;
 
     assign chr_rom_rd_data_ri = chr_rom_out1;
 
@@ -141,7 +158,8 @@ module ppu (
                  .oam_addr(oam_addr_ri), .oam_we(oam_we_ri), .oam_re(oam_re_ri),
                  .oam_wr_data(oam_wr_data_ri), .oam_rd_data (oam_rd_data_ri),
 
-                 .chr_rom_addr(chr_rom_addr_ri), .chr_rom_re(chr_rom_re_ri), .chr_rom_rd_data(chr_rom_rd_data_ri),
+                 .chr_rom_addr(chr_rom_addr_ri), .chr_rom_we(chr_rom_we_ri), .chr_rom_re(chr_rom_re_ri), 
+                 .chr_rom_wr_data(chr_rom_wr_data_ri), .chr_rom_rd_data(chr_rom_rd_data_ri),
 
                  .vram_addr(vram_addr_ri), .vram_we(vram_we_ri), .vram_re(vram_re_ri),
                  .vram_wr_data(vram_wr_data_ri), .vram_rd_data(vram_rd_data_ri),
@@ -317,7 +335,8 @@ module ppu (
 
     vga v(.clk, .clk_en(vga_clk_en), .rst_n, 
           .vsync_n, .hsync_n, .vga_r, .vga_g, .vga_b, .blank,
-          .vga_buf_idx, .vga_buf_out);
+          .vga_buf_idx, .vga_buf_out,
+          .retro_look);
 
     /////////////////////   BACKGROUND  //////////////////////////
     // background pixel generation
@@ -449,9 +468,13 @@ module ppu (
                 .chr_rom_re(sp_chr_rom_re));
 
     // background and sprite rendering share address lines for tile data
-    assign chr_rom_addr1 = (chr_rom_re_ri)   ? chr_rom_addr_ri :  
-                           (sp_chr_rom_re) ? sp_chr_rom_addr1 : 
-                                             bg_chr_rom_addr1;
+    assign chr_rom_addr1 = (chr_rom_we_sram) ? 
+                                chr_rom_addr_sram : 
+                           (chr_rom_we_ri || chr_rom_re_ri)   ? 
+                                chr_rom_addr_ri :  
+                           (sp_chr_rom_re) ? 
+                                sp_chr_rom_addr1 : 
+                                bg_chr_rom_addr1;
     assign chr_rom_addr2 = (sp_chr_rom_re) ? sp_chr_rom_addr2 : bg_chr_rom_addr2;
 
     // share the OAM addr bus

@@ -40,8 +40,10 @@ module reg_inter (
 
     // CHR ROM (Async read)
     output logic [12:0] chr_rom_addr,
+    output logic chr_rom_we,
     output logic chr_rom_re,
 
+    output logic [7:0] chr_rom_wr_data,
     input logic [7:0] chr_rom_rd_data,
 
     // VRAM (Async read)
@@ -375,8 +377,10 @@ module reg_inter (
         oam_we_reg = 1'b0;
         oam_wr_data_reg = 8'd0;
 		  
-		  // CHR ROM
-		  chr_rom_re = 1'b0;
+		// CHR ROM
+		chr_rom_re = 1'b0;
+        chr_rom_we = 1'b0;
+        chr_rom_wr_data = 8'd0;
 
         // PPU VRAM
         vram_re = 1'b0;
@@ -498,6 +502,8 @@ module reg_inter (
 
                     if(14'h0000 <= vAddr[13:0] && vAddr[13:0] <= 14'h1FFF) begin 
                         // CHR RAM
+                        chr_rom_we = 1'b1;
+                        chr_rom_wr_data = reg_data_in;
                         
                     end else if(14'h2000 <= vAddr[13:0] && vAddr[13:0] <= 14'h3EFF) begin 
                         // NT RAM
