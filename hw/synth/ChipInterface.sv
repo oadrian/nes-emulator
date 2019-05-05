@@ -62,6 +62,7 @@ module ChipInterface
 
   logic [4:0] game_select;
   logic start_load, done_load;
+  logic no_load;
 
   // PRG RAM SRAM WRITE
   logic [14:0] prg_rom_addr_sram;
@@ -76,8 +77,9 @@ module ChipInterface
   logic header_we_sram;
   logic [7:0] header_wr_data_sram;
   
+  assign no_load = SW[15];
   assign game_select = SW[4:0];
-  assign start_load = ~KEY[0];
+  assign start_load = ~KEY[0] && ~no_load;
 
   sram_loader sram_ld(
     .clk(clock), .rst_n(reset_n), 
@@ -110,10 +112,10 @@ module ChipInterface
     logic vga_clk_en_t, vga_clk_en;  // Master / 2
     clock_div #(2) v_ck(.clk(clock), .rst_n(reset_n), .clk_en(vga_clk_en_t));
 
-    assign ppu_clk_en = ppu_clk_en_t && done_load;
-    assign cpu_clk_en = cpu_clk_en_t && done_load;
-    assign apu_clk_en = apu_clk_en_t && done_load;
-    assign vga_clk_en = vga_clk_en_t && done_load;
+    assign ppu_clk_en = ppu_clk_en_t && (done_load || no_load);
+    assign cpu_clk_en = cpu_clk_en_t && (done_load || no_load);
+    assign apu_clk_en = apu_clk_en_t && (done_load || no_load);
+    assign vga_clk_en = vga_clk_en_t && (done_load || no_load);
 
 
     // ppu cycle
@@ -160,7 +162,7 @@ module ChipInterface
     logic [7:0] header_wr_data, header_rd_data;
     logic header_wr_en;
 
-    assign header_addr = (~done_load) ? header_addr_sram : 5'd6; // flag 6 addr
+    assign header_addr = (~done_load && ~no_load) ? header_addr_sram : 5'd6; // flag 6 addr
     assign header_wr_data = header_wr_data_sram;
     assign header_wr_en = header_we_sram;
 
