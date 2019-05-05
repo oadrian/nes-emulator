@@ -8,8 +8,6 @@ module frame_counter (
   input logic [7:0] data_in,
   input logic we,
 
-  input logic mode,
-  input logic inhibit_interrupt,
   input logic clear_interrupt,
   
   output logic interrupt,
@@ -17,12 +15,37 @@ module frame_counter (
 
   logic [15:0] next_num_cycles, num_cycles;
   logic load;
+  logic next_mode, mode;
+  logic next_inhibit, inhibit_interrupt;
 
   assign load = (addr == 16'h4017) & we;
 
   apu_register #(.WIDTH(16), .RES_VAL(0)) cycles_reg (
     .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
     .d(next_num_cycles), .q(num_cycles));
+
+  always_comb begin
+    if (load)
+      next_mode = data_in[7];
+    else
+      next_mode = mode;
+  end
+
+  apu_register #(.WIDTH(1), .RES_VAL(0)) mode_reg (
+    .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
+    .d(next_mode), .q(mode));
+
+  always_comb begin
+    if (load)
+      next_inhibit = data_in[6];
+    else
+      next_inhibit = inhibit_interrupt;
+  end
+
+  apu_register #(.WIDTH(1), .RES_VAL(0)) inhibit_reg (
+    .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
+    .d(next_inhibit), .q(inhibit_interrupt));
+
 
   always_ff @(posedge clk, negedge rst_l)
     if (~rst_l)
