@@ -50,7 +50,12 @@ module apu (
   assign irq_l = ~frame_interrupt & dmc_irq_l;
   //TODO: DMC does not seem to have non_zero signal
 
-  assign reg_data_out = {~dmc_irq_l, frame_interrupt, 1'b0, lengths_non_zero};
+  always_ff @(posedge clk, negedge rst_l)
+    if (~rst_l)
+      reg_data_out <= 8'b0;
+    else if (cpu_clk_en)
+      reg_data_out <= {~dmc_irq_l, frame_interrupt, 1'b0, lengths_non_zero};
+
 
   always_comb begin
     triangle_sigs = get_triangle_signals(reg_array);
