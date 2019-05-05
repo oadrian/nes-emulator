@@ -2,7 +2,7 @@
 `include "../include/cpu_types.vh"
 `include "../include/ucode_ctrl.vh"
 
-`define NESTEST
+//`define NESTEST
 
 `ifdef NESTEST
 `define DEFAULT_SP 8'hFD
@@ -77,7 +77,9 @@ module core(
     // NV-BDIZC
     logic n_flag, v_flag, d_flag, i_flag, z_flag, c_flag;
 	 
-	 assign PC_debug = PC;
+	assign PC_debug = PC;
+    
+    logic [15:0] addr_reg_val;
 
     logic [15:0] next_PC;
     logic next_n_flag, next_v_flag, next_d_flag,
@@ -145,7 +147,7 @@ module core(
             `SAVE_STATE_CPU_C_FLAG: next_save_state_save_data = {15'b0, c_flag};
             `SAVE_STATE_CPU_PC: next_save_state_save_data = PC;
             `SAVE_STATE_CPU_R_DATA_BUFFER: next_save_state_save_data = {8'b0, r_data_buffer};
-            `SAVE_STATE_CPU_ADDR: next_save_state_save_data = addr;
+            `SAVE_STATE_CPU_ADDR: next_save_state_save_data = addr_reg_val;
             `SAVE_STATE_CPU_ALU_OUT: next_save_state_save_data = {8'b0, alu_out};
             `SAVE_STATE_CPU_ALU_C_OUT: next_save_state_save_data = {15'b0, alu_c_out};
             `SAVE_STATE_CPU_ALU_V_OUT: next_save_state_save_data = {15'b0, alu_v_out};
@@ -338,7 +340,7 @@ module core(
 
     cpu_wide_write_thru_register #(.SAVE_STATE_ADDR(`SAVE_STATE_CPU_ADDR))
     addr_reg(.data_en(addr_en), 
-        .data_in(next_addr), .data_out(addr), .*);
+        .data_in(next_addr), .data_out(addr), .data_val(addr_reg_val), .*);
 
 
 ////////////////////////////////////////////////////////////////////////////////

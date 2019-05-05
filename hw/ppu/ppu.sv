@@ -10,6 +10,7 @@ module ppu (
     output logic vblank_nmi, // NMI signal to cpu
 
     // VGA 
+    input  logic vga_clk_en,
     output logic vsync_n,     // vga vsync enable low
     output logic hsync_n,     // vga hsync enable low
     output logic [7:0] vga_r, // vga red 
@@ -42,11 +43,6 @@ module ppu (
     // mirroring
     input mirror_t mirroring
 );
-
-    //////////// VGA clk   /////////////
-    logic vga_clk_en;  // Master / 2
-    clock_div #(2) v_ck(.clk, .rst_n, .clk_en(vga_clk_en));
-
 
     //////////// VRAM (ASYNC READ)   /////////////
     logic [10:0] vram_addr1, vram_addr2;

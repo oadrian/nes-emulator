@@ -35,13 +35,48 @@ module ChipInterface
   logic clock;
 
   assign clock = CLOCK_21;
+
+  // save states
+
+  logic [15:0] svst_state_read_data;
+  logic [15:0] svst_mem_read_data;
+  logic svst_begin_save_state, svst_begin_load_state;
+  logic svst_state_write_en, svst_state_read_en;
+  logic [`SAVE_STATE_BITS-1:0] svst_state_addr;
+  logic [15:0] svst_state_write_data;
+  logic svst_mem_write_en, svst_mem_read_en;
+  logic [`SAVE_STATE_BITS-1:0] svst_mem_addr;
+  logic [15:0] svst_mem_write_data;
+  logic [15:0] mem_state_read_data;
+  logic [15:0] cpu_state_read_data;
+
+  save_state_module svst_module(
+      .clock, .reset_n, 
+      .state_read_data(svst_state_read_data),
+      .mem_read_data(svst_mem_read_data),
+      .begin_save_state(svst_begin_save_state),
+      .begin_load_state(svst_begin_load_state),
+      .stall(svst_stall),
+      .state_write_en(svst_state_write_en),
+      .state_read_en(svst_state_read_en),
+      .state_addr(svst_state_addr),
+      .state_write_data(svst_state_write_data),
+      .mem_write_en(svst_mem_write_en),
+      .mem_read_en(svst_mem_read_en),
+      .mem_addr(svst_mem_addr),
+      .mem_write_data(svst_mem_write_data));
+
+  save_data_router svst_data_router(.clock, .reset_n, 
+      .save_data(svst_state_read_data),
+      .cpu_save_data(cpu_state_read_data), .mem_save_data(mem_state_read_data), 
+      .state_addr(svst_state_addr));
 	
 	// ppu
       logic ppu_clk_en;  // Master / 4
-    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en));
+    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en), .stall(svst_stall));
 
     logic cpu_clk_en;  // Master / 12
-    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en));
+    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en), .stall(svst_stall));
 //	 Stepper step(.clock, .reset_n, .key_n(KEY[3]), .clk_en(cpu_clk_en));
 
     // ppu cycle
@@ -126,7 +161,11 @@ module ChipInterface
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .nmi(vblank_nmi), .PC_debug(PC), .irq_n);
+             .nmi(vblank_nmi), .PC_debug(PC), .irq_n,
+             .save_state_load_en(svst_state_write_en),
+             .save_state_addr(svst_state_addr),
+             .save_state_load_data(svst_state_write_data),
+             .save_state_save_data(cpu_state_read_data));
 
     // CPU Memory Interface
     logic [15:0] mem_addr;
@@ -142,31 +181,6 @@ module ChipInterface
     assign mem_rd_data_c = mem_rd_data;
     assign mem_rd_data_p = mem_rd_data;
 	 
-	// logic up, down, start, select, left, right, A, B;
-     
- //     always_ff @(posedge clock or negedge reset_n) begin
- //        if(~reset_n) begin
- //            up <= 0;
- //            down <= 0;
- //            start <= 0;
- //            select <= 0;
-
- //            left <= 0;
- //            right <= 0;
- //            A <= 0;
- //            B <= 0;
- //        end else begin
- //            up <= ~KEY[3] && SW[0];
- //            down <= ~KEY[2] && SW[0];
- //            start <= ~KEY[1] && SW[0];
- //            select <= ~KEY[0] && SW[0];
-
- //            left <= ~KEY[3] && ~SW[0];
- //            right <= ~KEY[2] && ~SW[0];
- //            A <= ~KEY[1] && ~SW[0];
- //            B <= ~KEY[0] && ~SW[0];
- //        end
- //     end
 
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
@@ -174,7 +188,13 @@ module ChipInterface
                    .read_prom,
                    .ctlr_pulse_p1(GPIO[26]), .ctlr_pulse_p2(GPIO[11]),
                    .ctlr_latch, 
-                   .ctlr_data_p1(GPIO[30]), .ctlr_data_p2(GPIO[15]));
+                   .ctlr_data_p1(GPIO[30]), .ctlr_data_p2(GPIO[15]),
+                   .svst_state_read_data(mem_state_read_data),
+                   .svst_mem_read_data,
+                   .svst_state_write_en, .svst_state_read_en,
+                   .svst_state_addr, .svst_state_write_data,
+                   .svst_mem_write_en, .svst_mem_read_en,
+                   .svst_mem_addr, .svst_mem_write_data);
 
     // controller pins:
     // P1: Power: 3.3V, pulse: 26, latch: 28, data: 30

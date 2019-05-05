@@ -30,7 +30,6 @@ module save_state_module(
         next_state_write_en = 1'b0;
         next_state = IDLE;
 
-
         case (state)
             IDLE: begin 
                 if (begin_save_state) begin
@@ -158,8 +157,6 @@ module save_state_module(
         end
     end
 
-
-
 endmodule : save_state_module
     
 
@@ -188,3 +185,29 @@ module save_data_router(
     end
 
 endmodule : save_data_router
+
+module sim_save_state_mem(
+    input  logic reset_n, clock, 
+    output logic [15:0] svst_mem_read_data,
+    input  logic svst_mem_write_en, svst_mem_read_en,
+    input  logic [`SAVE_STATE_BITS-1:0] svst_mem_addr,
+    input  logic [15:0] svst_mem_write_data);
+    
+    logic [15:0] save_state_mem[`SAVE_STATE_LAST_ADDRESS:0];
+
+    always_ff @(posedge clock, negedge reset_n) begin
+        if (!reset_n) begin
+            for (int i = 0; i <= `SAVE_STATE_LAST_ADDRESS; i++) begin
+                save_state_mem[i] <= 16'b0;
+            end
+            svst_mem_read_data <= 16'b0;
+        end
+        else if (svst_mem_read_en) begin
+            svst_mem_read_data <= save_state_mem[svst_mem_addr];
+        end
+        else if (svst_mem_write_en) begin
+            save_state_mem[svst_mem_addr] <= svst_mem_write_data;
+        end
+    end
+
+endmodule : sim_save_state_mem    
