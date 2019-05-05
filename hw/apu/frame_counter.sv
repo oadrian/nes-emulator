@@ -7,17 +7,17 @@ module frame_counter (
   input logic [15:0] addr,
   input logic [7:0] data_in,
   input logic we,
-
-  input logic clear_interrupt,
   
   output logic interrupt,
   output logic quarter_clk_en, half_clk_en);
 
   logic [15:0] next_num_cycles, num_cycles;
   logic load;
+  logic clear_interrupt;
   logic next_mode, mode;
   logic next_inhibit, inhibit_interrupt;
 
+  assign clear_interrupt = ((addr == 16'h4015) & ~we) | ((addr == 16'h4017) & we & data_in[6]);
   assign load = (addr == 16'h4017) & we;
 
   apu_register #(.WIDTH(16), .RES_VAL(0)) cycles_reg (

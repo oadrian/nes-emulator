@@ -70,7 +70,6 @@ module apu (
   frame_counter fc (
   .clk, .rst_l, .cpu_clk_en, .apu_clk_en,
   .addr(direct_addr), .data_in(direct_data_in), .we(direct_we),
-  .clear_interrupt(status_read | (reg_updates[23] & fc_signals.inhibit_interrupt)),
   .interrupt(frame_interrupt),
   .quarter_clk_en, .half_clk_en);
 
