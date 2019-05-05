@@ -13,6 +13,9 @@ CHRROM_BIN = "chr_rom_init.bin"
 CHRROM_HEX = "init-intel/chr_rom_init.hex"
 
 HEADER_TXT = "init/header_init.txt"
+HEADER_BIN = "header_init.bin"
+HEADER_HEX = "init-intel/header_init.hex"
+
 
 
 def getIthBit(i, num):
@@ -99,19 +102,19 @@ def readNES(filename):
         if(sys.platform == 'linux2'):
             text2bin.write2file(PRGROM_BIN, prgrom)
             text2bin.write2file(CHRROM_BIN, chrrom)
+            text2bin.write2file(HEADER_BIN, header)
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", PRGROM_BIN, PRGROM_HEX])
             subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", CHRROM_BIN, CHRROM_HEX])
+            subprocess.call(["objcopy", "--input-target=binary", "--output-target=ihex", HEADER_BIN, HEADER_HEX])
 
-            #subprocess.call(["rem", PRGROM_BIN])
-            #subprocess.call(["rem", CHRROM_BIN])
         elif(sys.platform == 'win32'):
             text2bin.write2file(PRGROM_BIN, prgrom)
             text2bin.write2file(CHRROM_BIN, chrrom)
+            text2bin.write2file(HEADER_BIN, header)
             subprocess.call(["srec_cat", PRGROM_BIN, "-binary", "-output", PRGROM_HEX, "-Intel"])
             subprocess.call(["srec_cat", CHRROM_BIN, "-binary", "-output", CHRROM_HEX, "-Intel"])
+            subprocess.call(["srec_cat", HEADER_BIN, "-binary", "-output", HEADER_HEX, "-Intel"])
 
-            # subprocess.call(["rem", PRGROM_BIN])
-            # subprocess.call(["rem", CHRROM_BIN])
 
 
             

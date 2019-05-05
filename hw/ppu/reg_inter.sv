@@ -38,6 +38,12 @@ module reg_inter (
     output logic [7:0] oam_wr_data,
     input logic [7:0] oam_rd_data,
 
+    // CHR ROM (Async read)
+    output logic [12:0] chr_rom_addr,
+    output logic chr_rom_re,
+
+    input logic [7:0] chr_rom_rd_data,
+
     // VRAM (Async read)
     output logic [10:0] vram_addr,
     output logic vram_we,
@@ -155,6 +161,9 @@ module reg_inter (
         .vAddr_in, .tAddr_in, .fX_in, 
         .h_scroll, .v_scroll, .h_update, .v_update,
         .rendering); 
+
+    ////////// CHR ROM address to read or write to //////////////
+    assign chr_rom_addr = vAddr[12:0];
 
 
     ////////// PPU VRAM address to read or write to /////////////
@@ -365,6 +374,9 @@ module reg_inter (
         oam_re_reg = 1'b0;
         oam_we_reg = 1'b0;
         oam_wr_data_reg = 8'd0;
+		  
+		  // CHR ROM
+		  chr_rom_re = 1'b0;
 
         // PPU VRAM
         vram_re = 1'b0;
@@ -501,8 +513,10 @@ module reg_inter (
                     vAddr_in = vAddr + vAddr_inc_amnt;
                     vAddr_upd = 1'b1;
 
-                    if(14'h0000 <= vAddr[13:0] && vAddr[13:0] <= 14'h1FFF) begin 
-                        
+                    if(14'h0000 <= vAddr[13:0] && vAddr[13:0] <= 14'h1FFF) begin
+                        chr_rom_re = 1'b1; 
+                        read_buf_next = chr_rom_rd_data;
+                        reg_data_out_next = read_buf_curr;
                     end else if(14'h2000 <= vAddr[13:0] && vAddr[13:0] <= 14'h3EFF) begin 
                         vram_re = 1'b1;
                         read_buf_next = vram_rd_data;
@@ -583,17 +597,14 @@ module vram_addr_register (
                     vAddr[4:0] <= vAddr[4:0] + 5'd1;
                 end
             end else if(rendering && v_scroll) begin
-                if(vAddr[14:12] < 3'd7) begin 
-                    vAddr[14:12] <= vAddr[14:12] + 3'd1;
-                end else begin 
-                    vAddr[14:12] <= 3'd0;
-                    if (vAddr[9:5] == 5'd31)
+                vAddr[14:12] <= vAddr[14:12] + 3'd1;
+                if(vAddr[14:12] == 3'd7) begin 
+                    if (vAddr[9:5] == 5'd31) begin
                         vAddr[9:5] <= 5'd0;
-                    else if (vAddr[9:5] == 5'd29) begin  
+                    end else if (vAddr[9:5] == 5'd29) begin  
                         vAddr[9:5] <= 5'd0; 
-                        vAddr[11:10] <= vAddr[11:10] ^ 2'b10;
-                    end 
-                    else begin
+                        vAddr[11] <= vAddr[11] ^ 1'b1;
+                    end else begin
                         vAddr[9:5] <= vAddr[9:5] + 5'd1;
                     end
                 end

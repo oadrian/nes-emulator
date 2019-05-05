@@ -100,6 +100,13 @@ module ppu (
     assign oam_d_in = oam_wr_data_ri;
     assign oam_rd_data_ri = oam_d_out;
 
+    // CHR ROM (Async read)
+    logic [12:0] chr_rom_addr_ri;
+    logic chr_rom_re_ri;
+    logic [7:0] chr_rom_rd_data_ri;
+
+    assign chr_rom_rd_data_ri = chr_rom_out1;
+
     // VRAM (Async read)
     logic [10:0] vram_addr_ri;
     logic vram_we_ri, vram_re_ri;
@@ -133,6 +140,8 @@ module ppu (
                  
                  .oam_addr(oam_addr_ri), .oam_we(oam_we_ri), .oam_re(oam_re_ri),
                  .oam_wr_data(oam_wr_data_ri), .oam_rd_data (oam_rd_data_ri),
+
+                 .chr_rom_addr(chr_rom_addr_ri), .chr_rom_re(chr_rom_re_ri), .chr_rom_rd_data(chr_rom_rd_data_ri),
 
                  .vram_addr(vram_addr_ri), .vram_we(vram_we_ri), .vram_re(vram_re_ri),
                  .vram_wr_data(vram_wr_data_ri), .vram_rd_data(vram_rd_data_ri),
@@ -440,7 +449,9 @@ module ppu (
                 .chr_rom_re(sp_chr_rom_re));
 
     // background and sprite rendering share address lines for tile data
-    assign chr_rom_addr1 = (sp_chr_rom_re) ? sp_chr_rom_addr1 : bg_chr_rom_addr1;
+    assign chr_rom_addr1 = (chr_rom_re_ri)   ? chr_rom_addr_ri :  
+                           (sp_chr_rom_re) ? sp_chr_rom_addr1 : 
+                                             bg_chr_rom_addr1;
     assign chr_rom_addr2 = (sp_chr_rom_re) ? sp_chr_rom_addr2 : bg_chr_rom_addr2;
 
     // share the OAM addr bus

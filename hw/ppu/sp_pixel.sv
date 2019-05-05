@@ -35,7 +35,8 @@ module sp_pixel (
         if(sec_oam[0].active && sp_color_idxs[0][1:0] != 2'b00 && sec_oam[0].x_pos <= col && col < sec_oam[0].x_pos + `SPRITE_WIDTH) begin 
             sp_color_idx = sp_color_idxs[0];
             sp_prio = sp_prios[0];
-            sp_zero = 1'b1;
+            // sp_zero = 1'b1;
+            sp_zero = (sec_oam[0].spr_idx == 6'd0);
         end else if(sec_oam[1].active && sp_color_idxs[1][1:0] != 2'b00 && sec_oam[1].x_pos <= col && col < sec_oam[1].x_pos + `SPRITE_WIDTH) begin 
             sp_color_idx = sp_color_idxs[1];
             sp_prio = sp_prios[1];
