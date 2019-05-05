@@ -103,6 +103,10 @@ module cpu_memory(
     input logic [7:0] reg_read_data,
     output logic data_valid, reg_we,
 
+    output logic [15:0] direct_addr,
+    output logic [7:0] direct_data_in,
+    output logic direct_we,
+
     input logic dmc_re,
     input logic [14:0] dmc_addr,
     output logic [7:0] dmc_read_data,
@@ -133,6 +137,10 @@ module cpu_memory(
         reg_write_data = w_data;
         reg_we = ~r_en;
         data_valid = 16'h4000 <= addr && addr <= 16'h4017;
+
+        direct_addr = addr;
+        direct_data_in = w_data;
+        direct_we = reg_we;
     end
 
     // prev reg_en

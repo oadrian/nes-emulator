@@ -3,6 +3,11 @@
 module apu (
   input logic clk, rst_l,
   input logic cpu_clk_en, apu_clk_en,
+
+  input logic [15:0] direct_addr,
+  input logic [7:0] direct_data_in,
+  input logic direct_we,
+
   input logic [4:0] reg_addr,
   input logic [7:0] reg_data_in,
   input logic reg_en, reg_we,
@@ -58,8 +63,8 @@ module apu (
   end
 
   frame_counter fc (
-  .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .mode(fc_signals.mode), 
-  .load(reg_updates[23]),
+  .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .mode(fc_signals.mode),
+  .addr(direct_addr), .data_in(direct_data_in), .we(direct_we),
   .inhibit_interrupt(fc_signals.inhibit_interrupt),
   .clear_interrupt(status_read | (reg_updates[23] & fc_signals.inhibit_interrupt)),
   .interrupt(frame_interrupt),

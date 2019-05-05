@@ -3,8 +3,12 @@
 module frame_counter (
   input logic clk, rst_l,
   input logic cpu_clk_en, apu_clk_en,
+
+  input logic [15:0] addr,
+  input logic [7:0] data_in,
+  input logic we,
+
   input logic mode,
-  input logic load,
   input logic inhibit_interrupt,
   input logic clear_interrupt,
   
@@ -12,7 +16,9 @@ module frame_counter (
   output logic quarter_clk_en, half_clk_en);
 
   logic [15:0] next_num_cycles, num_cycles;
-//TODO: The interrupt should be turned off sometimes
+  logic load;
+
+  assign load = (addr == 16'h4017) & we;
 
   apu_register #(.WIDTH(16), .RES_VAL(0)) cycles_reg (
     .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1),
