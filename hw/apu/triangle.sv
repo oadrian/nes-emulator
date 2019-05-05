@@ -20,8 +20,6 @@ module triangle_channel (
   logic [4:0] next_length_load_data, length_load_data;
   logic [10:0] next_timer_period, timer_period;
 
-
-//TODO: LINEAR LOAD REGISTER MIGHT NOT NEED TO RELOAD FLAG $4008 OR $400B
   always_comb begin
     next_length_halt = length_halt;
     next_linear_load_data = linear_load_data;

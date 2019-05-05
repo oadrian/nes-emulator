@@ -58,13 +58,11 @@ module apu (
 
 
   always_comb begin
-    triangle_sigs = get_triangle_signals(reg_array);
     pulse0_sigs = get_pulse_signals(reg_array, 1'b0);
     pulse1_sigs = get_pulse_signals(reg_array, 1'b1);
     noise_sigs = get_noise_signals(reg_array);
     dmc_sigs = get_dmc_signals(reg_array);
     status_signals = get_status_signals(reg_array);
-    fc_signals = get_frame_counter_signals(reg_array);
   end
 
   frame_counter fc (
@@ -75,31 +73,15 @@ module apu (
 
   pulse_channel #(.PULSE_CARRY(1)) pulse0_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,
-    .half_clk_en, .disable_l(status_signals.pulse0_en),
-    .duty(pulse0_sigs.duty), .length_halt(pulse0_sigs.length_halt),
-    .const_vol(pulse0_sigs.const_vol), .vol(pulse0_sigs.vol),
-    .env_load(reg_updates[0]), .sweep_load(reg_updates[1]), 
-    .length_load(reg_updates[3]),
-    .timer_load_lo(reg_updates[2]),
-    .timer_load_hi(reg_updates[3]),
-    .sweep_sigs(pulse0_sigs.sweep_sigs),
-    .timer_period_in(pulse0_sigs.timer_period_in),
-    .length_load_data(pulse0_sigs.length_load_data),
+    .half_clk_en, .disable_l(status[0]),
+    .addr(direct_addr), .data_in(direct_data_in), .we(direct_we),
     .length_non_zero(lengths_non_zero[0]),
     .out(pulse0_out));
 
   pulse_channel #(.PULSE_CARRY(0)) pulse1_channel (
     .clk, .rst_l, .cpu_clk_en, .apu_clk_en, .quarter_clk_en,
-    .half_clk_en, .disable_l(status_signals.pulse1_en),
-    .duty(pulse1_sigs.duty), .length_halt(pulse1_sigs.length_halt),
-    .const_vol(pulse1_sigs.const_vol), .vol(pulse1_sigs.vol),
-    .env_load(reg_updates[4]), .sweep_load(reg_updates[5]), 
-    .length_load(reg_updates[7]), 
-    .timer_load_lo(reg_updates[6]),
-    .timer_load_hi(reg_updates[7]),
-    .sweep_sigs(pulse1_sigs.sweep_sigs),
-    .timer_period_in(pulse1_sigs.timer_period_in),
-    .length_load_data(pulse1_sigs.length_load_data),
+    .half_clk_en, .disable_l(status[1]),
+    .addr(direct_addr), .data_in(direct_data_in), .we(direct_we),
     .length_non_zero(lengths_non_zero[1]),
     .out(pulse1_out));
 
@@ -154,18 +136,6 @@ module apu (
 
 endmodule: apu
 
-function triangle_t get_triangle_signals (
-  input [23:0][7:0] reg_array);
-
-  triangle_t result;
-
-  result.linear_load_data = reg_array[8][6:0];
-  result.length_halt = reg_array[8][7];
-  result.timer_load_data = {reg_array[11][2:0], reg_array[10]};
-  result.length_load_data = reg_array[11][7:3];
-  return result;
-endfunction
-
 function pulse_t get_pulse_signals (
   input [23:0][7:0] reg_array,
   input channel);
@@ -194,12 +164,6 @@ function status_t get_status_signals (
   input [23:0][7:0] reg_array);
 
   return reg_array[21][4:0];
-endfunction
-
-function frame_counter_t get_frame_counter_signals (
-  input [23:0][7:0] reg_array);
-
-  return reg_array[23][7:6];
 endfunction
 
 function dmc_t get_dmc_signals (
