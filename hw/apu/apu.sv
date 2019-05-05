@@ -103,15 +103,22 @@ module apu (
     .length_non_zero(lengths_non_zero[1]),
     .out(pulse1_out));
 
+  logic [4:0] next_status, status;
+
+  always_comb
+    if (direct_we & (direct_addr == 16'h4015))
+      next_status = direct_data_in[4:0];
+    else
+      next_status = status;
+
+  apu_register #(.WIDTH(5), .RES_VAL(0)) status_reg (
+    .clk, .rst_l, .clk_en(cpu_clk_en), .en(1'b1), 
+    .d(next_status), .q(status));
+
   triangle_channel tc (
-    .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en, 
-    .disable_l(status_signals.triangle_en), 
-    .length_halt(triangle_sigs.length_halt), 
-    .linear_load(reg_updates[11]), 
-    .length_load(reg_updates[11]), 
-    .linear_load_data(triangle_sigs.linear_load_data),
-    .timer_load_data(triangle_sigs.timer_load_data),
-    .length_load_data(triangle_sigs.length_load_data),
+    .clk, .rst_l, .cpu_clk_en, .quarter_clk_en, .half_clk_en,
+    .addr(direct_addr), .data_in(direct_data_in), .we(direct_we),
+    .disable_l(status[2]), 
     .length_non_zero(lengths_non_zero[2]),
     .out(triangle_out));
 
