@@ -12,7 +12,7 @@ module sram_loader (
     input clk,    // Clock
     input rst_n,  // Asynchronous reset active low
 
-    input logic [3:0] game_select,
+    input logic [4:0] game_select,
     input logic start_load,
     output logic done_load,
 
@@ -82,7 +82,7 @@ module sram_loader (
  
     assign full_addr = {1'b0, addr} + offset;
 
-    assign SRAM_ADDR = {1'b0, game_select, full_addr[15:1]};
+    assign SRAM_ADDR = {game_select, full_addr[15:1]};
     assign SRAM_LB_N = ~(full_addr[0] == 1'b0);
     assign SRAM_UB_N = ~(full_addr[0] == 1'b1);
     assign SRAM_CE_N = (curr_state == IDLE);

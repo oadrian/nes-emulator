@@ -60,7 +60,7 @@ module ChipInterface
 
   /// SRAM LOADER /////
 
-  logic [3:0] game_select;
+  logic [4:0] game_select;
   logic start_load, done_load;
 
   // PRG RAM SRAM WRITE
@@ -76,7 +76,7 @@ module ChipInterface
   logic header_we_sram;
   logic [7:0] header_wr_data_sram;
   
-  assign game_select = SW[3:0];
+  assign game_select = SW[4:0];
   assign start_load = ~KEY[0];
 
   sram_loader sram_ld(
