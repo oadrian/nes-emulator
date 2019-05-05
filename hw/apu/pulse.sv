@@ -31,6 +31,16 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
   logic [2:0] seq_i;
   logic seq_out;
 
+  logic next_env_load, env_load;
+  logic next_sweep_load, sweep_load;
+  sweep_t next_sweep_sigs, sweep_sigs;
+  logic [1:0] next_duty, duty;
+  logic next_length_halt, length_halt;
+  logic next_const_volume, const_volume;
+  logic [3:0] next_volume, volume;
+  logic next_length_load, length_load;
+  logic [4:0] next_length_load_data, length_load_data;
+
   logic [3:0] gate1_out, gate2_out;
 
   always_comb begin
@@ -45,31 +55,19 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
     seq_out = seq[seq_i];
   end
 
-  logic choose_sweep;
-
   assign loop_flag = length_halt;
-
-  logic next_env_load, env_load;
-  logic next_sweep_load, sweep_load;
-  sweep_t next_sweep_sigs, sweep_sigs;
-  logic [1:0] next_duty, duty;
-  logic next_length_halt, length_halt;
-  logic next_const_volume, const_volume;
-  logic [3:0] next_volume, volume;
-  logic next_length_load, length_load;
-  logic [4:0] next_length_load_data, length_load_data;
 
   generate
     if (PULSE_CARRY == 1) // Pulse Channel 0
       always_comb begin
-        next_env_load = env_load;
-        next_sweep_load = sweep_load;
+        next_env_load = 1'b0;
+        next_sweep_load = 1'b0;
         next_sweep_sigs = sweep_sigs;
         next_duty = duty;
         next_length_halt = length_halt;
         next_const_volume = const_volume;
         next_volume = volume;
-        next_length_load = length_load;
+        next_length_load = 1'b0;
         next_length_load_data = length_load_data;
         next_timer_period = timer_period;
 
@@ -95,14 +93,14 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
       end
     else // PULSE_CARRY == 0 => Pulse channel 1
       always_comb begin
-        next_env_load = env_load;
-        next_sweep_load = sweep_load;
+        next_env_load = 1'b0;
+        next_sweep_load = 1'b0;
         next_sweep_sigs = sweep_sigs;
         next_duty = duty;
         next_length_halt = length_halt;
         next_const_volume = const_volume;
         next_volume = volume;
-        next_length_load = length_load;
+        next_length_load = 1'b0;
         next_length_load_data = length_load_data;
         next_timer_period = timer_period;
 

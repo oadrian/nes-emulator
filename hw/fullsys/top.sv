@@ -2,7 +2,7 @@
 `include "../include/ppu_defines.vh"
 `include "../apu/apu_defines.vh"
 
-`define CPU_CYCLES 400000
+`define CPU_CYCLES 1000000
 `define NUM_FRAMES 20
 
 module top ();

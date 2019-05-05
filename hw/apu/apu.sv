@@ -26,6 +26,7 @@ module apu (
   logic [3:0] pulse0_out, pulse1_out, triangle_out, noise_out;
   logic [6:0] dmc_out;
 
+  logic [4:0] next_status, status;
   logic [4:0] lengths_non_zero;
 
   logic status_read;
@@ -85,7 +86,6 @@ module apu (
     .length_non_zero(lengths_non_zero[1]),
     .out(pulse1_out));
 
-  logic [4:0] next_status, status;
 
   always_comb
     if (direct_we & (direct_addr == 16'h4015))
