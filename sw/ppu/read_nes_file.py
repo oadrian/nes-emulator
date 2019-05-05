@@ -183,7 +183,7 @@ def multipleGames(folder):
 
 def main():
     path = sys.argv[1]
-    sram_init = (sys.argv[2] == "-sram_init")
+    sram_init = (len(sys.argv) > 2 and sys.argv[2] == "-sram_init")
 
     if(sram_init):
         multipleGames(path)
