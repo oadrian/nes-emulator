@@ -71,6 +71,9 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
         next_length_load_data = length_load_data;
         next_timer_period = timer_period;
 
+        if (update_timer_period)
+          next_timer_period = sweep_timer_period;
+
         if (we)
           if (addr == 16'h4000) begin
             next_duty = data_in[7:6];
@@ -87,8 +90,7 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
             next_timer_period = {data_in[2:0], timer_period[7:0]};
             next_length_load_data = data_in[7:3];
             next_length_load = 1'b1;
-          end else if (update_timer_period)
-            next_timer_period = sweep_timer_period;
+          end
 
       end
     else // PULSE_CARRY == 0 => Pulse channel 1
@@ -103,6 +105,9 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
         next_length_load = 1'b0;
         next_length_load_data = length_load_data;
         next_timer_period = timer_period;
+
+        if (update_timer_period)
+          next_timer_period = sweep_timer_period;
 
         if (we)
           if (addr == 16'h4004) begin
@@ -120,8 +125,7 @@ module pulse_channel #(parameter PULSE_CARRY=0) (
             next_timer_period = {data_in[2:0], timer_period[7:0]};
             next_length_load_data = data_in[7:3];
             next_length_load = 1'b1;
-          end else if (update_timer_period)
-            next_timer_period = sweep_timer_period;
+          end
 
       end
 
