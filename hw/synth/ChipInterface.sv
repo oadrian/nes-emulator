@@ -58,7 +58,6 @@ module ChipInterface
   logic clock;
   assign clock = CLOCK_21;
 
-<<<<<<< HEAD
   // save states
 
   logic [15:0] svst_state_read_data;
@@ -72,6 +71,9 @@ module ChipInterface
   logic [15:0] svst_mem_write_data;
   logic [15:0] mem_state_read_data;
   logic [15:0] cpu_state_read_data;
+  logic [15:0] top_state_read_data;
+  logic [15:0] ppu_state_read_data;
+  logic [15:0] apu_state_read_data;
 
   save_state_module svst_module(
       .clock, .reset_n, 
@@ -93,6 +95,12 @@ module ChipInterface
       .save_data(svst_state_read_data),
       .cpu_save_data(cpu_state_read_data), .mem_save_data(mem_state_read_data), 
       .state_addr(svst_state_addr));
+
+  assign svst_begin_save_state = (~KEY[3]) & (~vga_clk_en);
+  assign svst_begin_load_state = (~KEY[2]) & (~vga_clk_en);
+
+  // if mem_write_en, set sram_addr to mem_addr, sram_w_data to w data
+  // if mem_read_en, set next sram_addr to mem_addr, set sram_r_data to r data 
 	
   /// SRAM LOADER /////
 
@@ -117,6 +125,12 @@ module ChipInterface
   assign game_select = SW[4:0];
   assign start_load = ~KEY[0] && ~no_load;
 
+  logic sram_loader_sram_dq, 
+
+  logic [19:0] sram_loader_addr;
+  logic [15:0] sram_loader_
+
+
   sram_loader sram_ld(
     .clk(clock), .rst_n(reset_n), 
     .game_select(game_select), .start_load(start_load), .done_load(done_load),
@@ -137,16 +151,16 @@ module ChipInterface
 	
 	// ppu
       logic ppu_clk_en_t, ppu_clk_en;  // Master / 4
-    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en_t));
+    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en_t), .stall(svst_stall));
 
     logic cpu_clk_en_t, cpu_clk_en;  // Master / 12
-    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en_t));
+    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en_t), .stall(svst_stall));
 
     logic apu_clk_en_t, apu_clk_en;
-    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en_t));
+    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en_t), .stall(svst_stall));
 
     logic vga_clk_en_t, vga_clk_en;  // Master / 2
-    clock_div #(2) v_ck(.clk(clock), .rst_n(reset_n), .clk_en(vga_clk_en_t));
+    clock_div #(2) v_ck(.clk(clock), .rst_n(reset_n), .clk_en(vga_clk_en_t), .stall(svst_stall));
 
     assign ppu_clk_en = ppu_clk_en_t && (done_load || no_load);
     assign cpu_clk_en = cpu_clk_en_t && (done_load || no_load);
@@ -158,6 +172,12 @@ module ChipInterface
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
             ppu_cycle <= 64'd0;
+        end else if (svst_state_write_en && 
+                    (svst_state_addr >= `SAVE_STATE_TOP_PPU_CYCLE_LO &&
+                     svst_state_addr <= `SAVE_STATE_TOP_PPU_CYCLE_HI)) begin
+            automatic i;
+            i = svst_state_addr-`SAVE_STATE_TOP_PPU_CYCLE_LO;
+            ppu_cycle[((i+'b1)<<5)-1:i<<5] <= svst_state_write_data;
         end else if(ppu_clk_en) begin
             ppu_cycle <= ppu_cycle + 64'd1;
         end
@@ -168,9 +188,35 @@ module ChipInterface
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
             cpu_cycle <= 64'd0;
+        end else if (svst_state_write_en && 
+                    (svst_state_addr >= `SAVE_STATE_TOP_CPU_CYCLE_LO &&
+                     svst_state_addr <= `SAVE_STATE_TOP_CPU_CYCLE_HI)) begin
+            automatic i;
+            i = svst_state_addr-`SAVE_STATE_TOP_CPU_CYCLE_LO;
+            cpu_cycle[((i+'b1)<<5)-1:i<<5] <= svst_state_write_data;
         end else if(cpu_clk_en) begin
             cpu_cycle <= cpu_cycle + 64'd1;
         end
+    end
+
+    always_ff @(posedge clock, reset_n) begin
+      if (~reset_n) begin
+        top_state_read_data <= 16'b0;
+      end
+      else begin
+        if (svst_state_addr >= `SAVE_STATE_TOP_PPU_CYCLE_LO &&
+            svst_state_addr <= `SAVE_STATE_TOP_PPU_CYCLE_HI) begin
+          automatic i;
+          i = svst_state_addr-`SAVE_STATE_TOP_PPU_CYCLE_LO;
+          top_state_read_data <= ppu_cycle[((i+'b1)<<5)-1:i<<5];
+        end
+        else if (svst_state_addr >= `SAVE_STATE_TOP_CPU_CYCLE_LO &&
+                 svst_state_addr <= `SAVE_STATE_TOP_CPU_CYCLE_HI) begin
+          automatic i;
+          i = svst_state_addr-`SAVE_STATE_TOP_CPU_CYCLE_LO;
+          top_state_read_data <= cpu_cycle[((i+'b1)<<5)-1:i<<5];
+        end
+      end
     end
 
     // PPU stuff
