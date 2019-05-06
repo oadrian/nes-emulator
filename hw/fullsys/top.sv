@@ -223,7 +223,7 @@ module top ();
         copy_save_data[`SAVE_STATE_CPU_STATE] = cpu.state;
         copy_save_data[`SAVE_STATE_CPU_NMI_ACTIVE] = cpu.nmi_active;
         copy_save_data[`SAVE_STATE_CPU_RESET_ACTIVE] = cpu.reset_active;
-        copy_save_data[`SAVE_STATE_CPU_CURRENT_INTERUPT] = cpu.curr_interrupt;
+        copy_save_data[`SAVE_STATE_CPU_CURRENT_INTERRUPT] = cpu.curr_interrupt;
         copy_save_data[`SAVE_STATE_CPU_A] = cpu.A;
         copy_save_data[`SAVE_STATE_CPU_X] = cpu.X;
         copy_save_data[`SAVE_STATE_CPU_Y] = cpu.Y;
@@ -242,10 +242,13 @@ module top ();
         copy_save_data[`SAVE_STATE_CPU_ALU_V_OUT] = cpu.alu_v_out;
         copy_save_data[`SAVE_STATE_CPU_ALU_Z_OUT] = cpu.alu_z_out;
         copy_save_data[`SAVE_STATE_CPU_ALU_N_OUT] = cpu.alu_n_out;
-        for (int i = `SAVE_STATE_MEM_RAM_LO; i < `SAVE_STATE_MEM_RAM_HI; i++) begin
-            copy_save_data[i] = mem.ram[i-`SAVE_STATE_MEM_RAM_LO];
+        for (int i = `SAVE_STATE_CPU_MEM_CPU_RAM_LO; i < `SAVE_STATE_CPU_MEM_CPU_RAM_HI; i++) begin
+            copy_save_data[i] = mem.ram[i-`SAVE_STATE_CPU_MEM_CPU_RAM_LO];
         end
-        copy_save_data[`SAVE_STATE_MEM_READ_DATA] = mem.mem_data_rd;
+        copy_save_data[`SAVE_STATE_CPU_MEM_READ_DATA] = mem.mem_data_rd;
+        copy_save_data[`SAVE_STATE_CPU_MEM_PREV_REG_EN] = mem.prev_reg_en;
+        copy_save_data[`SAVE_STATE_CPU_MEM_PREV_BUT_RD] = mem.prev_but_rd;
+        copy_save_data[`SAVE_STATE_CPU_MEM_PREV_APU_RD] = mem.prev_apu_read;
 
     endfunction : copy_save_data
 
@@ -306,18 +309,18 @@ module top ();
             end   
             
             svst_begin_load_state = 1'b0;
-            if (load_save_counter > (12*100 + 2076) && !loaded_once && just_enabled_all) begin
+            if (load_save_counter > (12*100 + 4 + `SAVE_STATE_LAST_ADDRESS) && !loaded_once && just_enabled_all) begin
                 svst_begin_load_state = 1'b1;
                 loaded_once = 1'b1;
             end
-            if (load_save_counter > (12*100 + 2076) && loaded_once && just_stalled && !svst_stall) begin
+            if (load_save_counter > (12*100 + 4 + `SAVE_STATE_LAST_ADDRESS) && loaded_once && just_stalled && !svst_stall) begin
                 new_data = copy_save_data();
                 compare_save_data;
                 load_save_counter = 0;
                 saved_once = 1'b0;
                 loaded_once = 1'b0;
             end
-
+            
             just_enabled_all = cpu_clk_en & ppu_clk_en;// & vga_clk_en; 
             just_stalled = svst_stall;
             load_save_counter++;

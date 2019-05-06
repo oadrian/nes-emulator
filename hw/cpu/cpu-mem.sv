@@ -170,6 +170,7 @@ module cpu_memory(
         if(~reset_n) begin
             prev_reg_en <= 0;
             prev_but_rd <= 0;
+        end
         else if (svst_state_write_en) begin
             if (svst_state_addr == `SAVE_STATE_CPU_MEM_PREV_REG_EN) begin
                 prev_reg_en <= svst_state_write_data[0];
@@ -267,9 +268,9 @@ module cpu_memory(
         cram_data_wr = w_data;
         
         if (svst_state_write_en || svst_state_read_en) begin
-            if (svst_state_addr >= `SAVE_STATE_MEM_RAM_LO && 
-                svst_state_addr <= `SAVE_STATE_MEM_RAM_HI) begin
-                cram_address = svst_state_addr - `SAVE_STATE_MEM_RAM_LO;
+            if (svst_state_addr >= `SAVE_STATE_CPU_MEM_CPU_RAM_LO && 
+                svst_state_addr <= `SAVE_STATE_CPU_MEM_CPU_RAM_HI) begin
+                cram_address = svst_state_addr - `SAVE_STATE_CPU_MEM_CPU_RAM_LO;
                 if (svst_state_write_en) begin
                     cram_wren = 1'b1;
                     cram_data_wr = svst_state_write_data[7:0];
@@ -289,7 +290,7 @@ module cpu_memory(
         end
         else begin
             case (svst_state_addr)
-                `SAVE_STATE_MEM_READ_DATA : svst_state_read_data <= {8'b0, mem_data_rd};
+                `SAVE_STATE_CPU_MEM_READ_DATA : svst_state_read_data <= {8'b0, mem_data_rd};
                 `SAVE_STATE_CPU_MEM_PREV_REG_EN : svst_state_read_data <= {15'b0, prev_reg_en};
                 `SAVE_STATE_CPU_MEM_PREV_BUT_RD : svst_state_read_data <= {15'b0, prev_but_rd};
                 `SAVE_STATE_CPU_MEM_PREV_APU_RD : svst_state_read_data <= {15'b0, prev_apu_read};
@@ -302,7 +303,7 @@ module cpu_memory(
         if(~reset_n) begin
             mem_data_rd <= 8'd0;
         end else if (svst_state_write_en && 
-                     svst_state_addr == `SAVE_STATE_MEM_READ_DATA) begin
+                     svst_state_addr == `SAVE_STATE_CPU_MEM_READ_DATA) begin
                 mem_data_rd <= svst_state_write_data[7:0];
         end else if(clock_en) begin
             if(cram_rden) begin 
@@ -346,16 +347,16 @@ module cpu_memory(
 
         // save_states taking over control of memory
         else if (svst_state_write_en || svst_state_read_en) begin
-            if (svst_state_addr >= `SAVE_STATE_MEM_RAM_LO && 
-                svst_state_addr <= `SAVE_STATE_MEM_RAM_HI) begin
+            if (svst_state_addr >= `SAVE_STATE_CPU_MEM_CPU_RAM_LO && 
+                svst_state_addr <= `SAVE_STATE_CPU_MEM_CPU_RAM_HI) begin
                 if (svst_state_write_en) begin
-                    ram[svst_state_addr - `SAVE_STATE_MEM_RAM_LO] <= svst_state_write_data;
+                    ram[svst_state_addr - `SAVE_STATE_CPU_MEM_CPU_RAM_LO] <= svst_state_write_data;
                 end
                 else begin
-                    svst_state_read_data <= ram[svst_state_addr - `SAVE_STATE_MEM_RAM_LO];
+                    svst_state_read_data <= ram[svst_state_addr - `SAVE_STATE_CPU_MEM_CPU_RAM_LO];
                 end
             end
-            else if (svst_state_addr == `SAVE_STATE_MEM_READ_DATA) begin
+            else if (svst_state_addr == `SAVE_STATE_CPU_MEM_READ_DATA) begin
                 if (svst_state_write_en) begin
                     mem_data_rd <= svst_state_write_data[7:0];
                 end

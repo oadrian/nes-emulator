@@ -12,7 +12,6 @@ module ppu (
     output logic vblank_nmi, // NMI signal to cpu
 
     // VGA 
-    input  logic vga_clk_en,
     output logic vsync_n,     // vga vsync enable low
     output logic hsync_n,     // vga hsync enable low
     output logic [7:0] vga_r, // vga red 

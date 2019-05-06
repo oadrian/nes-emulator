@@ -134,7 +134,7 @@ module core(
             `SAVE_STATE_CPU_STATE: next_save_state_save_data = {14'b0, state};
             `SAVE_STATE_CPU_NMI_ACTIVE: next_save_state_save_data = {15'b0, nmi_active};
             `SAVE_STATE_CPU_RESET_ACTIVE: next_save_state_save_data = {15'b0, reset_active};
-            `SAVE_STATE_CPU_CURRENT_INTERUPT: next_save_state_save_data = {14'b0, curr_interrupt};
+            `SAVE_STATE_CPU_CURRENT_INTERRUPT: next_save_state_save_data = {14'b0, curr_interrupt};
             `SAVE_STATE_CPU_A: next_save_state_save_data = {8'b0, A};
             `SAVE_STATE_CPU_X: next_save_state_save_data = {8'b0, X};
             `SAVE_STATE_CPU_Y: next_save_state_save_data = {8'b0, Y};
@@ -267,7 +267,7 @@ module core(
         end
     end
 
-    cpu_register #(.WIDTH(2), .RESET_VAL(INTERRUPT_NONE), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_CURRENT_INTERUPT))
+    cpu_register #(.WIDTH(2), .RESET_VAL(INTERRUPT_NONE), .SAVE_STATE_ADDR(`SAVE_STATE_CPU_CURRENT_INTERRUPT))
     interrupt_reg(
         .data_en(curr_interrupt_en), .data_in(next_interrupt[1:0]),
         .data_out(curr_interrupt[1:0]), .*);
