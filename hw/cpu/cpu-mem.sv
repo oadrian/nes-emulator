@@ -106,10 +106,6 @@ module cpu_memory(
     output logic [15:0] direct_addr,
     output logic [7:0] direct_data_in,
     output logic direct_we,
-
-    input logic dmc_re,
-    input logic [14:0] dmc_addr,
-    output logic [7:0] dmc_read_data,
 	 
 	 // Controller GPIO pins
      input logic ctlr_data_p1, ctlr_data_p2, 
