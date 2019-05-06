@@ -209,10 +209,6 @@ module cpu_memory(
     logic [7:0] prom_data_rd;
 
 
-    logic [7:0] dmc_rom_data;
-
-    dmc_rom dm_rom (
-      .address(dmc_addr), .clock, .q(dmc_rom_data));
     prg_ram prom(.address(prom_address), .clock,  
                  .data(prom_wr_data), .wren(prom_we),
                  .q(prom_data_rd));
@@ -240,15 +236,12 @@ module cpu_memory(
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
             mem_data_rd <= 8'd0;
-            dmc_read_data <= 8'b0;
         end else if(clock_en) begin
             if(cram_rden) begin 
                 mem_data_rd <= cram_data_rd;
             end else if(prom_rden) begin
                 mem_data_rd <= prom_data_rd;
             end
-            if (dmc_re)
-                dmc_read_data <= dmc_rom_data;
         end
     end
 

@@ -210,9 +210,8 @@ module ChipInterface
 
     apu apooh (
       .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr,
-      .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
-      .dmc_re, .dmc_addr, .dmc_read_data,
-		  .reg_data_out(reg_read_data), 
+      .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we, 
+		.reg_data_out(reg_read_data), 
       .irq_l(irq_n), .audio_out,
       .direct_data_in, .direct_addr, .direct_we);
     
@@ -270,7 +269,6 @@ module ChipInterface
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
                    .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
-                   .dmc_re, .dmc_addr, .dmc_read_data,
                    .read_prom,
                    .ctlr_pulse_p1(GPIO[26]), .ctlr_pulse_p2(GPIO[11]),
                    .ctlr_latch, 
