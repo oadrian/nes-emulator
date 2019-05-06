@@ -22,21 +22,21 @@ def get_signal_defines(text):
     lines = text.splitlines()[1:]
 
     for line in lines:
-        # should be [blank, num bits, signal_name, signal_area]
+        # should be [blank, num bits, num addrs, signal_name, signal_area]
         entries = line.split(",")
         
-        num_bits = int(entries[1])
-        signal_name = entries[2].upper()
-        signal_area = entries[3].upper()
-        if num_bits <= 16:
+        num_addrs = int(entries[2])
+        fix_text = lambda s : s.upper().replace("-", "_")
+        signal_name = fix_text(entries[3])
+        signal_area = fix_text(entries[4])
+        if num_addrs == 1:
             define_line = "`define %s_%s_%s %d" % (signal_header, signal_area, signal_name, index)
             signal_list.append(define_line)
         else:
             # values that are more than 16 bits are likely memory
-            num_lines = math.ceil(num_bits/16)
             start_line = "`define %s_%s_%s_LO %d" % (signal_header, signal_area, signal_name, index)
             signal_list.append(start_line)
-            index = index + num_lines - 1
+            index = index + num_addrs - 1
             end_line = "`define %s_%s_%s_HI %d" % (signal_header, signal_area, signal_name, index)
             signal_list.append(end_line)
         index += 1
