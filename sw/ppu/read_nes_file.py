@@ -154,7 +154,6 @@ def multipleGames(folder):
     roms =  getRoms(folder)
     if(len(roms) > SRAM_MAX_GAMES):
         roms = roms[:SRAM_MAX_GAMES]
-    roms = roms[16:]
     sram_init = ""
     game_order = ""
     i = 0
