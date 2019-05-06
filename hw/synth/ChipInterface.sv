@@ -58,6 +58,50 @@ module ChipInterface
   logic clock;
   assign clock = CLOCK_21;
 
+  // save states
+
+  logic [15:0] svst_state_read_data;
+  logic [15:0] svst_mem_read_data;
+  logic svst_begin_save_state, svst_begin_load_state;
+  logic svst_state_write_en, svst_state_read_en;
+  logic [`SAVE_STATE_BITS-1:0] svst_state_addr;
+  logic [15:0] svst_state_write_data;
+  logic svst_mem_write_en, svst_mem_read_en;
+  logic [`SAVE_STATE_BITS-1:0] svst_mem_addr;
+  logic [15:0] svst_mem_write_data;
+  logic [15:0] mem_state_read_data;
+  logic [15:0] cpu_state_read_data;
+  logic [15:0] top_state_read_data;
+  logic [15:0] ppu_state_read_data;
+  logic [15:0] apu_state_read_data;
+
+  save_state_module svst_module(
+      .clock, .reset_n, 
+      .state_read_data(svst_state_read_data),
+      .mem_read_data(svst_mem_read_data),
+      .begin_save_state(svst_begin_save_state),
+      .begin_load_state(svst_begin_load_state),
+      .stall(svst_stall),
+      .state_write_en(svst_state_write_en),
+      .state_read_en(svst_state_read_en),
+      .state_addr(svst_state_addr),
+      .state_write_data(svst_state_write_data),
+      .mem_write_en(svst_mem_write_en),
+      .mem_read_en(svst_mem_read_en),
+      .mem_addr(svst_mem_addr),
+      .mem_write_data(svst_mem_write_data));
+
+  save_data_router svst_data_router(.clock, .reset_n, 
+      .save_data(svst_state_read_data),
+      .cpu_save_data(cpu_state_read_data), .mem_save_data(mem_state_read_data), 
+      .state_addr(svst_state_addr));
+
+  assign svst_begin_save_state = (~KEY[3]) & (~vga_clk_en);
+  assign svst_begin_load_state = (~KEY[2]) & (~vga_clk_en);
+
+  // if mem_write_en, set sram_addr to mem_addr, sram_w_data to w data
+  // if mem_read_en, set next sram_addr to mem_addr, set sram_r_data to r data 
+	
   /// SRAM LOADER /////
 
   logic [4:0] game_select;
@@ -81,6 +125,12 @@ module ChipInterface
   assign game_select = SW[4:0];
   assign start_load = ~KEY[0] && ~no_load;
 
+  logic sram_loader_sram_dq, 
+
+  logic [19:0] sram_loader_addr;
+  logic [15:0] sram_loader_
+
+
   sram_loader sram_ld(
     .clk(clock), .rst_n(reset_n), 
     .game_select(game_select), .start_load(start_load), .done_load(done_load),
@@ -101,28 +151,33 @@ module ChipInterface
 	
 	// ppu
       logic ppu_clk_en_t, ppu_clk_en;  // Master / 4
-    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en_t));
+    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en_t), .stall(svst_stall));
 
     logic cpu_clk_en_t, cpu_clk_en;  // Master / 12
-    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en_t));
+    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en_t), .stall(svst_stall));
 
     logic apu_clk_en_t, apu_clk_en;
-    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en_t));
+    clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en_t), .stall(svst_stall));
 
     logic vga_clk_en_t, vga_clk_en;  // Master / 2
-    clock_div #(2) v_ck(.clk(clock), .rst_n(reset_n), .clk_en(vga_clk_en_t));
+    clock_div #(2) v_ck(.clk(clock), .rst_n(reset_n), .clk_en(vga_clk_en_t), .stall(svst_stall));
 
     assign ppu_clk_en = ppu_clk_en_t && (done_load || no_load);
     assign cpu_clk_en = cpu_clk_en_t && (done_load || no_load);
     assign apu_clk_en = apu_clk_en_t && (done_load || no_load);
     assign vga_clk_en = vga_clk_en_t && (done_load || no_load);
 
-
     // ppu cycle
     logic [63:0] ppu_cycle;
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
             ppu_cycle <= 64'd0;
+        end else if (svst_state_write_en && 
+                    (svst_state_addr >= `SAVE_STATE_TOP_PPU_CYCLE_LO &&
+                     svst_state_addr <= `SAVE_STATE_TOP_PPU_CYCLE_HI)) begin
+            automatic i;
+            i = svst_state_addr-`SAVE_STATE_TOP_PPU_CYCLE_LO;
+            ppu_cycle[((i+'b1)<<5)-1:i<<5] <= svst_state_write_data;
         end else if(ppu_clk_en) begin
             ppu_cycle <= ppu_cycle + 64'd1;
         end
@@ -133,9 +188,35 @@ module ChipInterface
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
             cpu_cycle <= 64'd0;
+        end else if (svst_state_write_en && 
+                    (svst_state_addr >= `SAVE_STATE_TOP_CPU_CYCLE_LO &&
+                     svst_state_addr <= `SAVE_STATE_TOP_CPU_CYCLE_HI)) begin
+            automatic i;
+            i = svst_state_addr-`SAVE_STATE_TOP_CPU_CYCLE_LO;
+            cpu_cycle[((i+'b1)<<5)-1:i<<5] <= svst_state_write_data;
         end else if(cpu_clk_en) begin
             cpu_cycle <= cpu_cycle + 64'd1;
         end
+    end
+
+    always_ff @(posedge clock, reset_n) begin
+      if (~reset_n) begin
+        top_state_read_data <= 16'b0;
+      end
+      else begin
+        if (svst_state_addr >= `SAVE_STATE_TOP_PPU_CYCLE_LO &&
+            svst_state_addr <= `SAVE_STATE_TOP_PPU_CYCLE_HI) begin
+          automatic i;
+          i = svst_state_addr-`SAVE_STATE_TOP_PPU_CYCLE_LO;
+          top_state_read_data <= ppu_cycle[((i+'b1)<<5)-1:i<<5];
+        end
+        else if (svst_state_addr >= `SAVE_STATE_TOP_CPU_CYCLE_LO &&
+                 svst_state_addr <= `SAVE_STATE_TOP_CPU_CYCLE_HI) begin
+          automatic i;
+          i = svst_state_addr-`SAVE_STATE_TOP_CPU_CYCLE_LO;
+          top_state_read_data <= cpu_cycle[((i+'b1)<<5)-1:i<<5];
+        end
+      end
     end
 
     // PPU stuff
@@ -245,7 +326,11 @@ module ChipInterface
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .nmi(vblank_nmi), .PC_debug(PC), .irq_n);
+             .nmi(vblank_nmi), .PC_debug(PC), .irq_n,
+             .save_state_load_en(svst_state_write_en),
+             .save_state_addr(svst_state_addr),
+             .save_state_load_data(svst_state_write_data),
+             .save_state_save_data(cpu_state_read_data));
 
     // CPU Memory Interface
     logic [15:0] mem_addr;
@@ -265,6 +350,7 @@ module ChipInterface
     assign mem_rd_data_c = mem_rd_data;
     assign mem_rd_data_p = mem_rd_data;
 
+
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
@@ -273,6 +359,12 @@ module ChipInterface
                    .ctlr_pulse_p1(GPIO[26]), .ctlr_pulse_p2(GPIO[11]),
                    .ctlr_latch, 
                    .ctlr_data_p1(GPIO[30]), .ctlr_data_p2(GPIO[15]),
+                   .svst_state_read_data(mem_state_read_data),
+                   .svst_mem_read_data,
+                   .svst_state_write_en, .svst_state_read_en,
+                   .svst_state_addr, .svst_state_write_data,
+                   .svst_mem_write_en, .svst_mem_read_en,
+                   .svst_mem_addr, .svst_mem_write_data,
                    .direct_data_in, .direct_addr, .direct_we,
                    .prom_wr_addr(prg_rom_addr_sram), .prom_we(prg_rom_we_sram),
                    .prom_wr_data(prg_rom_wr_data_sram));

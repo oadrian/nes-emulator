@@ -7,6 +7,7 @@ SRC := $(wildcard ../include/*.vh) \
 	   $(wildcard ../apu/*.vh) \
 	   $(wildcard ../apu/*.sv) \
 	   $(wildcard ../cpu/*.sv) \
+	   $(wildcard ../save_state/*.sv) \
 	   $(wildcard *.sv) 
 
 SRC := $(filter-out ../ppu/top.sv, $(SRC))

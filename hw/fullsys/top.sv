@@ -13,12 +13,16 @@ module top ();
     logic clock;
     logic reset_n;
     default clocking cb_main @(posedge clock); endclocking
+    logic svst_stall;
+
+    logic vga_clk_en;  // Master / 2
+    clock_div #(2) v_ck(.clk(clock), .rst_n(reset_n), .clk_en(vga_clk_en), .stall(svst_stall));
 
     logic ppu_clk_en;  // Master / 4
-    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en));
+    clock_div #(4) ppu_clk(.clk(clock), .rst_n(reset_n), .clk_en(ppu_clk_en), .stall(svst_stall));
 
     logic cpu_clk_en;  // Master / 12
-    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en));
+    clock_div #(12) cpu_clk(.clk(clock), .rst_n(reset_n), .clk_en(cpu_clk_en), .stall(svst_stall));
 
     logic apu_clk_en;
     clock_div #(24) apu_clk(.clk(clock), .rst_n(reset_n), .clk_en(apu_clk_en));
@@ -42,6 +46,43 @@ module top ();
             cpu_cycle <= cpu_cycle + 64'd1;
         end
     end
+
+    // Save State Stuff
+
+    logic [15:0] svst_state_read_data;
+    logic [15:0] svst_mem_read_data;
+    logic svst_begin_save_state, svst_begin_load_state;
+    logic svst_state_write_en, svst_state_read_en;
+    logic [`SAVE_STATE_BITS-1:0] svst_state_addr;
+    logic [15:0] svst_state_write_data;
+    logic svst_mem_write_en, svst_mem_read_en;
+    logic [`SAVE_STATE_BITS-1:0] svst_mem_addr;
+    logic [15:0] svst_mem_write_data;
+    logic [15:0] mem_state_read_data;
+    logic [15:0] cpu_state_read_data;
+
+    save_state_module svst_module(
+        .clock, .reset_n, 
+        .state_read_data(svst_state_read_data),
+        .mem_read_data(svst_mem_read_data),
+        .begin_save_state(svst_begin_save_state),
+        .begin_load_state(svst_begin_load_state),
+        .stall(svst_stall),
+        .state_write_en(svst_state_write_en),
+        .state_read_en(svst_state_read_en),
+        .state_addr(svst_state_addr),
+        .state_write_data(svst_state_write_data),
+        .mem_write_en(svst_mem_write_en),
+        .mem_read_en(svst_mem_read_en),
+        .mem_addr(svst_mem_addr),
+        .mem_write_data(svst_mem_write_data));
+
+    save_data_router svst_data_router(.clock, .reset_n, 
+        .save_data(svst_state_read_data),
+        .cpu_save_data(cpu_state_read_data), .mem_save_data(mem_state_read_data), 
+        .state_addr(svst_state_addr));
+
+    sim_save_state_mem svst_mem(.*);
 
     // PPU stuff
     logic vblank_nmi;
@@ -115,8 +156,11 @@ module top ();
 
     core cpu(.addr(mem_addr_c), .mem_r_en(mem_re_c), .w_data(mem_wr_data_c),
              .r_data(mem_rd_data_c), .clock_en(cpu_clk_en && !cpu_sus), .clock, .reset_n,
-             .nmi(vblank_nmi), .irq_n, .PC_debug);
-
+             .irq_n, .nmi(vblank_nmi),
+             .save_state_load_en(svst_state_write_en),
+             .save_state_addr(svst_state_addr),
+             .save_state_load_data(svst_state_write_data),
+             .save_state_save_data(cpu_state_read_data));
 
     logic [15:0] audio_out;
     logic [15:0] direct_addr;
@@ -129,7 +173,6 @@ module top ();
       .irq_l(irq_n),
       .reg_data_out(reg_read_data),
       .audio_out, .direct_data_in, .direct_addr, .direct_we);
-
 
     // CPU Memory Interface
     logic [15:0] mem_addr;
@@ -153,9 +196,12 @@ module top ();
     cpu_memory mem(.addr(mem_addr), .r_en(mem_re), .w_data(mem_wr_data), 
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
+                   .ctlr_data_p1(1'b1), .ctlr_data_p2(1'b1),
+                   .svst_state_read_data(mem_state_read_data),
+                   .svst_state_write_en, .svst_state_read_en,
+                   .svst_state_addr, .svst_state_write_data,
                    .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
                    .ctlr_data_p1, .ctlr_data_p2,
-                   .ctlr_pulse_p1, .ctlr_pulse_p2, .ctlr_latch,
                    .read_prom,
                    .direct_data_in, .direct_addr, .direct_we);
 
@@ -172,6 +218,55 @@ module top ();
 
         #1 reset_n <= 1'b1;
     endtask : doReset
+
+    logic[`SAVE_STATE_LAST_ADDRESS:0][15:0] old_data, new_data;
+
+    function logic [`SAVE_STATE_LAST_ADDRESS:0][15:0] copy_save_data;
+        copy_save_data[`SAVE_STATE_CPU_UCODE_INDEX] = cpu.ucode_index;
+        copy_save_data[`SAVE_STATE_CPU_INSTR_CTRL_INDEX] = cpu.instr_ctrl_index;
+        copy_save_data[`SAVE_STATE_CPU_STATE] = cpu.state;
+        copy_save_data[`SAVE_STATE_CPU_NMI_ACTIVE] = cpu.nmi_active;
+        copy_save_data[`SAVE_STATE_CPU_RESET_ACTIVE] = cpu.reset_active;
+        copy_save_data[`SAVE_STATE_CPU_CURRENT_INTERRUPT] = cpu.curr_interrupt;
+        copy_save_data[`SAVE_STATE_CPU_A] = cpu.A;
+        copy_save_data[`SAVE_STATE_CPU_X] = cpu.X;
+        copy_save_data[`SAVE_STATE_CPU_Y] = cpu.Y;
+        copy_save_data[`SAVE_STATE_CPU_SP] = cpu.SP;
+        copy_save_data[`SAVE_STATE_CPU_N_FLAG] = cpu.n_flag;
+        copy_save_data[`SAVE_STATE_CPU_V_FLAG] = cpu.v_flag;
+        copy_save_data[`SAVE_STATE_CPU_D_FLAG] = cpu.d_flag;
+        copy_save_data[`SAVE_STATE_CPU_I_FLAG] = cpu.i_flag;
+        copy_save_data[`SAVE_STATE_CPU_Z_FLAG] = cpu.z_flag;
+        copy_save_data[`SAVE_STATE_CPU_C_FLAG] = cpu.c_flag;
+        copy_save_data[`SAVE_STATE_CPU_PC] = cpu.PC;
+        copy_save_data[`SAVE_STATE_CPU_R_DATA_BUFFER] = cpu.r_data_buffer;
+        copy_save_data[`SAVE_STATE_CPU_ADDR] = cpu.addr_reg_val;
+        copy_save_data[`SAVE_STATE_CPU_ALU_OUT] = cpu.alu_out;
+        copy_save_data[`SAVE_STATE_CPU_ALU_C_OUT] = cpu.alu_c_out;
+        copy_save_data[`SAVE_STATE_CPU_ALU_V_OUT] = cpu.alu_v_out;
+        copy_save_data[`SAVE_STATE_CPU_ALU_Z_OUT] = cpu.alu_z_out;
+        copy_save_data[`SAVE_STATE_CPU_ALU_N_OUT] = cpu.alu_n_out;
+        for (int i = `SAVE_STATE_CPU_MEM_CPU_RAM_LO; i < `SAVE_STATE_CPU_MEM_CPU_RAM_HI; i++) begin
+            copy_save_data[i] = mem.ram[i-`SAVE_STATE_CPU_MEM_CPU_RAM_LO];
+        end
+        copy_save_data[`SAVE_STATE_CPU_MEM_READ_DATA] = mem.mem_data_rd;
+        copy_save_data[`SAVE_STATE_CPU_MEM_PREV_REG_EN] = mem.prev_reg_en;
+        copy_save_data[`SAVE_STATE_CPU_MEM_PREV_BUT_RD] = mem.prev_but_rd;
+        copy_save_data[`SAVE_STATE_CPU_MEM_PREV_APU_RD] = mem.prev_apu_read;
+
+    endfunction : copy_save_data
+
+    task compare_save_data;
+        int mismatch_count;
+        mismatch_count = 0;
+        for (int i = 0; i <= `SAVE_STATE_LAST_ADDRESS; i++) begin
+            if (old_data[i] != new_data[i]) begin
+                $display("bad addr: %d", i);
+                mismatch_count++;
+            end
+        end
+        $display("mismatch_count: %d", mismatch_count);
+    endtask : compare_save_data
 
     int fd, vram_fd;
     int cnt;
@@ -194,19 +289,50 @@ module top ();
     assign can_status = {can_n, can_v, 1'b1, 1'b0, 
                          can_d, can_i, can_z, can_c};
 
-    // initial begin 
-    //     ##1000000000;
-    //     $finish;
-    // end
+
+    int load_save_counter;
+    logic do_begin_save;
+    logic do_begin_load;
+    logic saved_once, loaded_once;
+    logic just_enabled_all, just_stalled;
 
     task cpuTrace(input int fd);
         cnt = 0;
-        // while(cpu.PC != 16'hE057) begin
+        load_save_counter = 0;
+        saved_once = 1'b0;
+        loaded_once = 1'b0;
+        just_enabled_all = 1'b0;
+        just_stalled = 1'b0;
         while(cnt < 12*`CPU_CYCLES) begin
-            if(cpu.state == STATE_DECODE && cnt % 12 == 0) begin 
+
+            svst_begin_save_state = 1'b0;
+            if (load_save_counter > 12*50 && !saved_once && just_enabled_all) begin
+                svst_begin_save_state = 1'b1;
+                old_data = copy_save_data();
+                saved_once = 1'b1;
+            end   
+            
+            svst_begin_load_state = 1'b0;
+            if (load_save_counter > (12*100 + 4 + `SAVE_STATE_LAST_ADDRESS) && !loaded_once && just_enabled_all) begin
+                svst_begin_load_state = 1'b1;
+                loaded_once = 1'b1;
+            end
+            if (load_save_counter > (12*100 + 4 + `SAVE_STATE_LAST_ADDRESS) && loaded_once && just_stalled && !svst_stall) begin
+                new_data = copy_save_data();
+                compare_save_data;
+                load_save_counter = 0;
+                saved_once = 1'b0;
+                loaded_once = 1'b0;
+            end
+            
+            just_enabled_all = cpu_clk_en & ppu_clk_en;// & vga_clk_en; 
+            just_stalled = svst_stall;
+            load_save_counter++;
+
+            if(cpu.state == STATE_DECODE && cpu_clk_en) begin 
                 $fwrite(fd,"%.4x %.2x ", cpu.PC-16'b1, mem_rd_data);
                 $fwrite(fd,"A:%.2x X:%.2x Y:%.2x P:%.2x SP:%.2x CYC:%1.d",
-                       can_A, can_X, can_Y, can_status, can_SP, cpu_cycle-64'd8);
+                        can_A, can_X, can_Y, can_status, can_SP, cpu_cycle);
                 $fwrite(fd," ppuctrl: %.2x, ppumask: %.2x, nmi: %d\n", peep.ppuctrl, peep.ppumask, vblank_nmi);
             end
             @(posedge clock);

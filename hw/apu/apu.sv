@@ -20,7 +20,6 @@ module apu (
   logic [23:0][7:0] reg_array;
 
   logic [3:0] pulse0_out, pulse1_out, triangle_out, noise_out;
-  logic [6:0] dmc_out;
 
   logic [4:0] next_status, status;
   logic [4:0] lengths_non_zero;

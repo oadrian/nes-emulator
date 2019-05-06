@@ -10,14 +10,20 @@
 
 `define CTRL_PULSE_LEN 3
 
-module cpu_register #(WIDTH=8, RESET_VAL=0) (
+module cpu_register #(WIDTH=8, RESET_VAL=0, SAVE_STATE_ADDR=0) (
     input  logic clock, clock_en, reset_n, data_en,
-    input logic[WIDTH-1:0] data_in,
+    input  logic[WIDTH-1:0] data_in,
+    input  logic save_state_load_en,
+    input  logic[15:0] save_state_load_data,
+    input  logic[`SAVE_STATE_BITS-1:0] save_state_addr,
     output logic[WIDTH-1:0] data_out);
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
             data_out <= RESET_VAL;
+        end
+        if (save_state_load_en && save_state_addr == SAVE_STATE_ADDR) begin
+            data_out <= save_state_load_data[WIDTH-1:0];
         end
         else if (clock_en && data_en) begin
             data_out <= data_in;
@@ -27,15 +33,21 @@ module cpu_register #(WIDTH=8, RESET_VAL=0) (
 endmodule : cpu_register
 
 
-module cpu_wide_counter_register #(RESET_VAL=0) (
+module cpu_wide_counter_register #(RESET_VAL=0, SAVE_STATE_ADDR=0) (
     input  logic clock, clock_en, reset_n, inc_en,
     input  logic[1:0] data_en,
-    input logic[15:0] data_in,
+    input  logic[15:0] data_in,
+    input  logic save_state_load_en,
+    input  logic[15:0] save_state_load_data,
+    input  logic[`SAVE_STATE_BITS-1:0] save_state_addr,
     output logic[15:0] data_out);
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
             data_out <= RESET_VAL;
+        end
+        if (save_state_load_en && save_state_addr == SAVE_STATE_ADDR) begin
+            data_out <= save_state_load_data;
         end
         else if (clock_en) begin
             case (data_en)
@@ -50,13 +62,15 @@ module cpu_wide_counter_register #(RESET_VAL=0) (
 endmodule : cpu_wide_counter_register
 
 
-module cpu_wide_write_thru_register #(RESET_VAL=0) (
+module cpu_wide_write_thru_register #(RESET_VAL=0, SAVE_STATE_ADDR=0) (
     input  logic clock, clock_en, reset_n,
     input  logic[1:0] data_en,
-    input logic[15:0] data_in,
-    output logic[15:0] data_out);
-
-    logic [15:0] data_val;
+    input  logic[15:0] data_in,
+    input  logic save_state_load_en,
+    input  logic[15:0] save_state_load_data,
+    input  logic[`SAVE_STATE_BITS-1:0] save_state_addr,
+    output logic[15:0] data_out,
+    output logic[15:0] data_val);
 
     always_comb begin
         data_out = data_val;
@@ -71,6 +85,9 @@ module cpu_wide_write_thru_register #(RESET_VAL=0) (
     always_ff @(posedge clock, negedge reset_n) begin
         if (!reset_n) begin
             data_val <= RESET_VAL;
+        end
+        if (save_state_load_en && save_state_addr == SAVE_STATE_ADDR) begin
+            data_val <= save_state_load_data;
         end
         else if (clock_en) begin
             data_val <= data_out;
@@ -114,17 +131,29 @@ module cpu_memory(
 	 // debug output
 	 output logic [7:0] read_prom,
 
-     // write prg rom
+     // save state
+     output logic [15:0] svst_state_read_data,
+     
+     input  logic svst_state_write_en, svst_state_read_en, 
+     input  logic [`SAVE_STATE_BITS-1:0] svst_state_addr,
+     input  logic [15:0] svst_state_write_data,
+
+      // write prg rom
     input logic [14:0] prom_wr_addr,
     input logic prom_we,
     input logic [7:0] prom_wr_data
     );
 
+    logic save_state_active;
+    assign save_state_active = svst_state_write_en | svst_state_read_en;
     logic prev_apu_read;
 
     always_ff @(posedge clock or negedge reset_n)
       if (~reset_n)
         prev_apu_read <= 1'b0;
+      else if (svst_state_write_en && svst_state_addr == `SAVE_STATE_CPU_MEM_PREV_APU_RD) begin
+        prev_apu_read <= svst_state_write_data[0];
+      end
       else if (clock_en & (addr == 16'h4015))
         prev_apu_read <= 1'b1;
       else if (clock_en)
@@ -149,6 +178,13 @@ module cpu_memory(
         if(~reset_n) begin
             prev_reg_en <= 0;
             prev_but_rd <= 0;
+        end
+        else if (svst_state_write_en) begin
+            if (svst_state_addr == `SAVE_STATE_CPU_MEM_PREV_REG_EN) begin
+                prev_reg_en <= svst_state_write_data[0];
+            end else if (svst_state_addr == `SAVE_STATE_CPU_MEM_PREV_BUT_RD) begin
+                prev_but_rd <= svst_state_write_data[0];
+            end
         end else if(clock_en) begin
             prev_reg_en <= reg_en;
             prev_but_rd <= r_en && (addr == 16'h4016 || addr == 16'h4017);
@@ -183,7 +219,7 @@ module cpu_memory(
 
 	// Controller interface
     logic [7:0] button_data_rd; 
-    ctlr_interface ctrlr(.clock, .reset_n, .clock_en, 
+    ctlr_interface ctrlr(.clock, .reset_n, .clock_en, .save_state_active,
                          .addr, .r_en, .w_data,
                          .ctlr_data_p1, .ctlr_data_p2,
                          .ctlr_pulse_p1, .ctlr_pulse_p2, .ctlr_latch, 
@@ -203,7 +239,7 @@ module cpu_memory(
 	 end
 	 
 
-    `ifdef SYNTH
+`ifdef SYNTH
     logic [14:0] prom_address;
     logic prom_rden;
     logic [7:0] prom_data_rd;
@@ -228,14 +264,55 @@ module cpu_memory(
               .data(cram_data_wr),
               .wren(cram_wren), .q(cram_data_rd));
 
-    assign cram_rden = (16'h0000 <= addr && addr < 16'h2000 && r_en);
-    assign cram_wren = (16'h0000 <= addr && addr < 16'h2000 && !r_en);
-    assign cram_address = addr[10:0];
-    assign cram_data_wr = w_data;
+    assign prom_rden = (addr[15] == 1'b1 && r_en);
+    assign prom_address = addr[14:0];
 
+    assign read_prom = prom_data_rd;
+        
+    always_comb begin
+        cram_wren = 1'b0;
+        cram_rden = 1'b0;
+        cram_address = addr[10:0];
+        cram_data_wr = w_data;
+        
+        if (svst_state_write_en || svst_state_read_en) begin
+            if (svst_state_addr >= `SAVE_STATE_CPU_MEM_CPU_RAM_LO && 
+                svst_state_addr <= `SAVE_STATE_CPU_MEM_CPU_RAM_HI) begin
+                cram_address = svst_state_addr - `SAVE_STATE_CPU_MEM_CPU_RAM_LO;
+                if (svst_state_write_en) begin
+                    cram_wren = 1'b1;
+                    cram_data_wr = svst_state_write_data[7:0];
+                end
+            end
+        end
+        
+        else begin
+            cram_rden = (16'h0000 <= addr && addr < 16'h2000 && r_en);
+            cram_wren = (16'h0000 <= addr && addr < 16'h2000 && !r_en);
+        end
+    end
+
+    always_ff @(posedge clock, negedge reset_n) begin
+        if (reset_n) begin
+            svst_state_read_data <= 16'b0;
+        end
+        else begin
+            case (svst_state_addr)
+                `SAVE_STATE_CPU_MEM_READ_DATA : svst_state_read_data <= {8'b0, mem_data_rd};
+                `SAVE_STATE_CPU_MEM_PREV_REG_EN : svst_state_read_data <= {15'b0, prev_reg_en};
+                `SAVE_STATE_CPU_MEM_PREV_BUT_RD : svst_state_read_data <= {15'b0, prev_but_rd};
+                `SAVE_STATE_CPU_MEM_PREV_APU_RD : svst_state_read_data <= {15'b0, prev_apu_read};
+                default : svst_state_read_data <= {8'b0, cram_data_rd};
+            endcase
+        end
+    end
+    
     always_ff @(posedge clock or negedge reset_n) begin
         if(~reset_n) begin
             mem_data_rd <= 8'd0;
+        end else if (svst_state_write_en && 
+                     svst_state_addr == `SAVE_STATE_CPU_MEM_READ_DATA) begin
+                mem_data_rd <= svst_state_write_data[7:0];
         end else if(clock_en) begin
             if(cram_rden) begin 
                 mem_data_rd <= cram_data_rd;
@@ -245,7 +322,7 @@ module cpu_memory(
         end
     end
 
-    `else 
+`else 
 
     logic [7:0] ram [2047:0];
     logic [7:0] ppu_regs[7:0];
@@ -275,6 +352,37 @@ module cpu_memory(
             `endif 
             mem_data_rd <= 8'd0;
         end
+
+        // save_states taking over control of memory
+        else if (svst_state_write_en || svst_state_read_en) begin
+            if (svst_state_addr >= `SAVE_STATE_CPU_MEM_CPU_RAM_LO && 
+                svst_state_addr <= `SAVE_STATE_CPU_MEM_CPU_RAM_HI) begin
+                if (svst_state_write_en) begin
+                    ram[svst_state_addr - `SAVE_STATE_CPU_MEM_CPU_RAM_LO] <= svst_state_write_data;
+                end
+                else begin
+                    svst_state_read_data <= ram[svst_state_addr - `SAVE_STATE_CPU_MEM_CPU_RAM_LO];
+                end
+            end
+            else if (svst_state_addr == `SAVE_STATE_CPU_MEM_READ_DATA) begin
+                if (svst_state_write_en) begin
+                    mem_data_rd <= svst_state_write_data[7:0];
+                end
+                else begin
+                    svst_state_read_data <= {8'b0, mem_data_rd};
+                end
+            end
+            else if (svst_state_addr == `SAVE_STATE_CPU_MEM_PREV_REG_EN && svst_state_read_en) begin
+                svst_state_read_data <= {15'b0, prev_reg_en};
+            end 
+            else if (svst_state_addr == `SAVE_STATE_CPU_MEM_PREV_BUT_RD && svst_state_read_en) begin
+                svst_state_read_data <= {15'b0, prev_but_rd};
+            end
+            else if (svst_state_addr == `SAVE_STATE_CPU_MEM_PREV_APU_RD && svst_state_read_en) begin
+                svst_state_read_data <= {15'b0, prev_apu_read};
+            end
+        end
+
         else if (clock_en) begin
             if (addr < 16'h2000) begin
                 if (r_en == 1'b1) begin
@@ -310,7 +418,7 @@ module cpu_memory(
             end
         end
     end
-    `endif
+`endif
 
 endmodule : cpu_memory
 
@@ -322,6 +430,7 @@ module ctlr_interface (
     // cpu 
     input  logic [15:0] addr,
     input  logic r_en,
+    input  logic save_state_active,
     input  logic [7:0] w_data,
 
     // GPIO Pins
@@ -336,7 +445,7 @@ module ctlr_interface (
     logic next_pulse_p1, next_pulse_p2, next_latch;
 
     always_ff @(posedge clock or negedge reset_n) begin
-        if(~reset_n) begin
+        if(!reset_n || save_state_active) begin
             button_data_rd <= 8'd0;
             ctlr_pulse_p1 <= 1'b1;
             ctlr_pulse_p2 <= 1'b1;
