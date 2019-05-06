@@ -283,13 +283,19 @@ module ChipInterface
     logic [7:0] reg_read_data;
     logic data_valid, reg_we;
 
+    logic [15:0] direct_addr;
+    logic [7:0] direct_data_in;
+    logic direct_we;
+
     logic [15:0] audio_out;
 
     apu apooh (
       .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr,
       .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
-		.reg_data_out(reg_read_data),
-      .irq_l(irq_n), .audio_out);
+      .dmc_re, .dmc_addr, .dmc_read_data,
+		  .reg_data_out(reg_read_data), 
+      .irq_l(irq_n), .audio_out,
+      .direct_data_in, .direct_addr, .direct_we);
     
     logic VGA_CTRL_CLK, AUD_CTRL_CLK;    //  For Audio Controller
     assign AUD_DACLRCK = 1'bz;                         
@@ -333,6 +339,10 @@ module ChipInterface
     logic [7:0] mem_wr_data, mem_rd_data, read_prom;
     logic ctlr_latch;
 
+    logic dmc_re;
+    logic [14:0] dmc_addr;
+    logic [7:0] dmc_read_data;
+
     assign mem_addr = (cpu_sus) ? mem_addr_p : mem_addr_c;
     assign mem_re = (cpu_sus) ? mem_re_p : mem_re_c;
 
@@ -346,6 +356,7 @@ module ChipInterface
                    .clock, .clock_en(cpu_clk_en), .reset_n, .r_data(mem_rd_data), 
                    .reg_sel, .reg_en, .reg_rw, .reg_data_wr, .reg_data_rd,
                    .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
+                   .dmc_re, .dmc_addr, .dmc_read_data,
                    .read_prom,
                    .ctlr_pulse_p1(GPIO[26]), .ctlr_pulse_p2(GPIO[11]),
                    .ctlr_latch, 
@@ -356,6 +367,7 @@ module ChipInterface
                    .svst_state_addr, .svst_state_write_data,
                    .svst_mem_write_en, .svst_mem_read_en,
                    .svst_mem_addr, .svst_mem_write_data,
+                   .direct_data_in, .direct_addr, .direct_we,
                    .prom_wr_addr(prg_rom_addr_sram), .prom_we(prg_rom_we_sram),
                    .prom_wr_data(prg_rom_wr_data_sram));
 

@@ -62,7 +62,7 @@ module prg_rom_32 (
 				.q_a (sub_wire0),
 				.aclr0 (1'b0),
 				.aclr1 (1'b0),
-				.address_b (1'b1),
+				.address_b (),
 				.addressstall_a (1'b0),
 				.addressstall_b (1'b0),
 				.byteena_a (1'b1),

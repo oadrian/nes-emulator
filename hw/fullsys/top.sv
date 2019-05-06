@@ -2,7 +2,7 @@
 `include "../include/ppu_defines.vh"
 `include "../apu/apu_defines.vh"
 
-`define CPU_CYCLES 297807
+`define CPU_CYCLES 500000
 `define NUM_FRAMES 30
 
 module top ();
@@ -163,13 +163,16 @@ module top ();
              .save_state_save_data(cpu_state_read_data));
 
     logic [15:0] audio_out;
+    logic [15:0] direct_addr;
+    logic [7:0] direct_data_in;
+    logic direct_we;
 
     apu apooh (
       .clk(clock), .rst_l(reset_n), .cpu_clk_en, .apu_clk_en, .reg_addr, 
       .reg_data_in(reg_write_data), .reg_en(data_valid), .reg_we,
       .irq_l(irq_n),
       .reg_data_out(reg_read_data),
-      .audio_out);
+      .audio_out, .direct_data_in, .direct_addr, .direct_we);
 
     // CPU Memory Interface
     logic [15:0] mem_addr;
@@ -199,7 +202,8 @@ module top ();
                    .svst_state_addr, .svst_state_write_data,
                    .reg_addr, .reg_write_data, .reg_read_data, .data_valid, .reg_we,
                    .ctlr_data_p1, .ctlr_data_p2,
-                   .read_prom);
+                   .read_prom
+                   .direct_data_in, .direct_addr, .direct_we);
 
 
     initial begin 

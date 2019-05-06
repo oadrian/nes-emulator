@@ -8,5 +8,9 @@
   </columns>
  </systemtable>
  <library expandedCategories="Library,Project" />
+<<<<<<< HEAD
+ <window width="1920" height="1020" x="0" y="0" />
+=======
  <window width="1920" height="1030" x="0" y="0" />
+>>>>>>> master
 </preferences>

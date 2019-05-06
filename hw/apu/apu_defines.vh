@@ -43,6 +43,15 @@ typedef struct packed {
 } noise_t;
 
 typedef struct packed {
+  logic [7:0] length;
+  logic [7:0] addr;
+  logic [6:0] direct_load_data;
+  logic irq_en;
+  logic loop;
+  logic [3:0] rate_index;
+} dmc_t;
+
+typedef struct packed {
   logic mode;
   logic inhibit_interrupt;
 } frame_counter_t;

@@ -1112,10 +1112,7 @@ set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
 set_global_assignment -name ENABLE_SIGNALTAP ON
 set_global_assignment -name USE_SIGNALTAP_FILE triangle.stp
-set_global_assignment -name VERILOG_FILE "../../../../Downloads/fpga_nes-master/hw/src/cpu/apu/apu_length_counter.v"
-set_global_assignment -name VERILOG_FILE "../../../../Downloads/fpga_nes-master/hw/src/cpu/apu/apu_div.v"
-set_global_assignment -name VERILOG_FILE "../../../../Downloads/fpga_nes-master/hw/src/cpu/apu/apu_triangle.v"
-set_global_assignment -name VERILOG_FILE "../../../../Downloads/fpga_nes-master/hw/src/cpu/apu/apu_frame_counter.v"
+set_global_assignment -name SYSTEMVERILOG_FILE ../apu/dmc.sv
 set_global_assignment -name VERILOG_FILE ../apu/ref/apu_triangle.v
 set_global_assignment -name VERILOG_FILE ../apu/ref/apu_length_counter.v
 set_global_assignment -name VERILOG_FILE ../apu/ref/apu_frame_counter.v
@@ -1163,6 +1160,10 @@ set_global_assignment -name QIP_FILE prg_rom_16.qip
 set_global_assignment -name QIP_FILE cram.qip
 set_global_assignment -name QIP_FILE prg_rom_32.qip
 set_global_assignment -name SIGNALTAP_FILE triangle.stp
+set_global_assignment -name QIP_FILE dmc_rom.qip
+set_global_assignment -name QIP_FILE dcm_rom.qip
+set_global_assignment -name CDF_FILE output_files/Chain2.cdf
+set_global_assignment -name CDF_FILE output_files/Chain1.cdf
 set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
 set_global_assignment -name QIP_FILE header_ram.qip
 set_global_assignment -name QIP_FILE chr_ram.qip
