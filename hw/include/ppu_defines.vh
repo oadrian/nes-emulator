@@ -75,6 +75,7 @@ typedef struct packed{
     logic [7:0] x_pos;
     logic [7:0] bitmap_hi;
     logic [7:0] bitmap_lo;
+    logic [5:0] spr_idx;
 } second_oam_t;
 
 typedef enum logic [3:0] {

@@ -124,12 +124,14 @@ module sp_eval (
                         if({1'b0, oam_data} <= next_row && next_row < {1'b0, oam_data} + `SPRITE_WIDTH) begin 
                             curr_sprite_in.active = 1'b1;
                             curr_sprite_in.y_pos = oam_data;
+                            curr_sprite_in.spr_idx = col[7:2];
                         end 
                     end
                     2'd1: begin 
                         if(curr_sprite.active) begin 
                             curr_sprite_in.active = curr_sprite.active;
                             curr_sprite_in.y_pos = curr_sprite.y_pos;
+                            curr_sprite_in.spr_idx = curr_sprite.spr_idx;
                             curr_sprite_in.tile_idx = oam_data;
                         end
                     end
@@ -137,6 +139,7 @@ module sp_eval (
                         if(curr_sprite.active) begin 
                             curr_sprite_in.active = curr_sprite.active;
                             curr_sprite_in.y_pos = curr_sprite.y_pos;
+                            curr_sprite_in.spr_idx = curr_sprite.spr_idx;
                             curr_sprite_in.tile_idx = curr_sprite.tile_idx;
                             curr_sprite_in.attribute = oam_data;
                         end
@@ -145,6 +148,7 @@ module sp_eval (
                         if(curr_sprite.active) begin 
                             curr_sprite_in.active = curr_sprite.active;
                             curr_sprite_in.y_pos = curr_sprite.y_pos;
+                            curr_sprite_in.spr_idx = curr_sprite.spr_idx;
                             curr_sprite_in.tile_idx = curr_sprite.tile_idx;
                             curr_sprite_in.attribute = curr_sprite.attribute;
                             curr_sprite_in.x_pos = oam_data;
@@ -165,6 +169,7 @@ module sp_eval (
                 sec_oam_wr = 1'b1;
                 sec_oam_wr_data.active = temp_oam_rd_data.active;
                 sec_oam_wr_data.y_pos = temp_oam_rd_data.y_pos;
+                sec_oam_wr_data.spr_idx = temp_oam_rd_data.spr_idx;
                 sec_oam_wr_data.tile_idx = temp_oam_rd_data.tile_idx;
                 sec_oam_wr_data.attribute = temp_oam_rd_data.attribute;
                 sec_oam_wr_data.x_pos = temp_oam_rd_data.x_pos;

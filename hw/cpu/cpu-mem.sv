@@ -116,8 +116,12 @@ module cpu_memory(
      output logic ctlr_pulse_p1, ctlr_pulse_p2, ctlr_latch,
 	 
 	 // debug output
-	 output logic [7:0] read_prom
-    
+	 output logic [7:0] read_prom,
+
+     // write prg rom
+    input logic [14:0] prom_wr_addr,
+    input logic prom_we,
+    input logic [7:0] prom_wr_data
     );
 
     logic prev_apu_read;
@@ -211,9 +215,16 @@ module cpu_memory(
 
     logic [7:0] dmc_rom_data;
 
-    prg_rom_32 prom(.address(prom_address), .clock,  .q(prom_data_rd));
     dmc_rom dm_rom (
       .address(dmc_addr), .clock, .q(dmc_rom_data));
+    prg_ram prom(.address(prom_address), .clock,  
+                 .data(prom_wr_data), .wren(prom_we),
+                 .q(prom_data_rd));
+
+    assign prom_rden = (addr[15] == 1'b1 && r_en);
+    assign prom_address = (prom_we) ? prom_wr_addr : addr[14:0];
+
+    assign read_prom = prom_data_rd;
 
     logic [10:0]  cram_address;
     logic [7:0]  cram_data_wr;
@@ -224,11 +235,6 @@ module cpu_memory(
     cram cmem(.address(cram_address), .clock,
               .data(cram_data_wr),
               .wren(cram_wren), .q(cram_data_rd));
-
-    assign prom_rden = (addr[15] == 1'b1 && r_en);
-    assign prom_address = addr[14:0];
-
-	assign read_prom = prom_data_rd;
 
     assign cram_rden = (16'h0000 <= addr && addr < 16'h2000 && r_en);
     assign cram_wren = (16'h0000 <= addr && addr < 16'h2000 && !r_en);

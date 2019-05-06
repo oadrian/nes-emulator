@@ -1,0 +1,21 @@
+	component sram is
+		port (
+			address       : in    std_logic_vector(19 downto 0) := (others => 'X'); -- address
+			byteenable    : in    std_logic_vector(1 downto 0)  := (others => 'X'); -- byteenable
+			read          : in    std_logic                     := 'X';             -- read
+			write         : in    std_logic                     := 'X';             -- write
+			writedata     : in    std_logic_vector(15 downto 0) := (others => 'X'); -- writedata
+			readdata      : out   std_logic_vector(15 downto 0);                    -- readdata
+			readdatavalid : out   std_logic;                                        -- readdatavalid
+			clk           : in    std_logic                     := 'X';             -- clk
+			SRAM_DQ       : inout std_logic_vector(15 downto 0) := (others => 'X'); -- DQ
+			SRAM_ADDR     : out   std_logic_vector(19 downto 0);                    -- ADDR
+			SRAM_LB_N     : out   std_logic;                                        -- LB_N
+			SRAM_UB_N     : out   std_logic;                                        -- UB_N
+			SRAM_CE_N     : out   std_logic;                                        -- CE_N
+			SRAM_OE_N     : out   std_logic;                                        -- OE_N
+			SRAM_WE_N     : out   std_logic;                                        -- WE_N
+			reset         : in    std_logic                     := 'X'              -- reset
+		);
+	end component sram;
+

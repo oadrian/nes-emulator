@@ -2,8 +2,8 @@
 `include "../include/ppu_defines.vh"
 `include "../apu/apu_defines.vh"
 
-`define CPU_CYCLES 1000000
-`define NUM_FRAMES 20
+`define CPU_CYCLES 500000
+`define NUM_FRAMES 30
 
 module top ();
     string logFile = "logs/fullsys-log.txt";
@@ -220,10 +220,28 @@ module top ();
 
     int i;
     task vramTrace(input int fd);
+        while(!(peep.vs_curr_state == VIS_SL && peep.col == 9'd0)) begin 
+            @(posedge clock);
+        end
+        // wait until 
+        if($test$plusargs("DEBUG")) begin
+            $display("Visible Pixel\n");
+            $display("tAddr: %X", peep.ri.addr_reg.tAddr);
+            $display(" vAddr: %X", peep.ri.addr_reg.vAddr);
+            $display(" NT Addr: %X",peep.bg.nt_addr);
+        end
+
         // wait until nmi
         while(vblank_nmi) begin 
             @(posedge clock);
         end
+
+        if($test$plusargs("DEBUG")) begin 
+            $display("NMI\n");
+            $display("tAddr: %X", peep.ri.addr_reg.tAddr);
+            $display(" vAddr: %X\n", peep.ri.addr_reg.vAddr);            
+        end
+
 
         // write chr_rom data
         for (i = 0; i < 'h2000; i++) begin
@@ -304,6 +322,13 @@ module top ();
                       "---------------------\n" });
             doReset;
             @(posedge clock);
+            if(mirroring == VER_MIRROR) begin 
+                $display("Vertical mirroring");
+            end else if(mirroring == HOR_MIRROR) begin
+                $display("Horizontal mirroring");
+            end else begin 
+                $error("mirroring was wrong");
+            end
             for (int i = 0; i < `NUM_FRAMES; i++) begin
                 frameCount.itoa(i);
                 vram_fd = $fopen({vramFile, frameCount, ".txt"},"w");
